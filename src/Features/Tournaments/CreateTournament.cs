@@ -4,35 +4,30 @@ using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Common;
+using OneOf;
 
 namespace Features.Tournaments;
 
 public static class CreateTournament
 {
-	public sealed record CreateTournamentCommand(string Name) : IRequest<bool>;
+	public sealed record CreateTournamentCommand(string Name) : IRequest<OneOf<Guid, ValidationFailure>>;
 
-	public class Validator : AbstractValidator<CreateTournamentCommand>
-	{
-		public Validator()
-		{
-			RuleFor(c => c.Name)
-				.NotEmpty()
-				.MinimumLength(3);
-		}
-	}
-	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, bool>
+	
+	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<Guid, ValidationFailure>>
 	{
 		private readonly DbContext _dbContext;
 		
 		public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 		
-		public async ValueTask<bool> Handle(CreateTournamentCommand request, CancellationToken cancellationToken)
+		public async ValueTask<OneOf<Guid, ValidationFailure>> Handle(CreateTournamentCommand request, CancellationToken cancellationToken)
 		{
 			Validator validator = new();
 			ValidationResult result = validator.Validate(request);
 			if (!result.IsValid)
 			{
-				return false;
+				//result.Errors;
+				Console.WriteLine("Validation Failure");
+				return new ValidationFailure();
 			}
 			
 			var tourny = new Tournament
@@ -42,9 +37,24 @@ public static class CreateTournament
 			Console.WriteLine($"Tournament: {tourny}");
 
 			_dbContext.Add(tourny);
-			await _dbContext.SaveChangesAsync(cancellationToken);
+			var results = await _dbContext.SaveChangesAsync(cancellationToken);
+			if (results < 1)
+			{
+				Console.WriteLine($"Database Failure {results}");
+				return new ValidationFailure();
+			}
 
-			return true;
+			return tourny.Id;
+		}
+	}
+	
+	public class Validator : AbstractValidator<CreateTournamentCommand>
+	{
+		public Validator()
+		{
+			RuleFor(c => c.Name)
+				.NotEmpty()
+				.MinimumLength(3);
 		}
 	}
 
@@ -52,11 +62,13 @@ public static class CreateTournament
 		app.MapPost("tournaments", CreateTournament.EndPoint);
 	
 	
-	public static async Task<Results<Created, BadRequest>> EndPoint(CreateTournamentCommand request, 
+	public static async Task<Results<Created, ProblemHttpResult>> EndPoint(CreateTournamentCommand request, 
 		IMediator mediator, 
 		CancellationToken token)
 	{
 		var result = await mediator.Send(request, token);
-		return TypedResults.Created();
+		return result.Match<Results<Created, ProblemHttpResult>>(
+			created => TypedResults.Created(created.ToString()),
+			validateError => TypedResults.Problem(detail:"validation error"));
 	}
 }
