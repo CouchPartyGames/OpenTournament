@@ -9,5 +9,5 @@ public sealed class AppDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder options)
         => options.UseSqlite($"Data Source=tourny.db");
 
-    private DbSet<Tournament> Tournaments { get; set; }
+    public DbSet<Tournament> Tournaments { get; set; }
 }

@@ -1,25 +1,21 @@
-using FluentValidation;
-using FluentValidation.Results;
-using Mediator;
-using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Common;
-using OneOf;
 
 namespace Features.Tournaments;
 
 public static class CreateTournament
 {
-	public sealed record CreateTournamentCommand(string Name) : IRequest<OneOf<Guid, ValidationFailure>>;
+	public sealed record CreateTournamentCommand(string Name) : IRequest<OneOf<Guid, ValidationFailure, ProblemDetails>>;
 
 	
-	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<Guid, ValidationFailure>>
+	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<Guid, ValidationFailure, ProblemDetails>>
 	{
 		private readonly DbContext _dbContext;
 		
 		public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 		
-		public async ValueTask<OneOf<Guid, ValidationFailure>> Handle(CreateTournamentCommand request, CancellationToken cancellationToken)
+		public async ValueTask<OneOf<Guid, ValidationFailure, ProblemDetails>> Handle(CreateTournamentCommand request, CancellationToken cancellationToken)
 		{
 			Validator validator = new();
 			ValidationResult result = validator.Validate(request);
@@ -34,14 +30,17 @@ public static class CreateTournament
 			{
 				Name = request.Name
 			};
-			Console.WriteLine($"Tournament: {tourny}");
 
 			_dbContext.Add(tourny);
 			var results = await _dbContext.SaveChangesAsync(cancellationToken);
 			if (results < 1)
 			{
 				Console.WriteLine($"Database Failure {results}");
-				return new ValidationFailure();
+				return new ProblemDetails
+				{
+					Title = "Internal Server Error",
+					Status = 500
+				};
 			}
 
 			return tourny.Id;
@@ -69,6 +68,7 @@ public static class CreateTournament
 		var result = await mediator.Send(request, token);
 		return result.Match<Results<Created, ProblemHttpResult>>(
 			created => TypedResults.Created(created.ToString()),
-			validateError => TypedResults.Problem(detail:"validation error"));
+			validateError => TypedResults.Problem(detail:"validation error"),
+			internalError => TypedResults.Problem(internalError));
 	}
 }
