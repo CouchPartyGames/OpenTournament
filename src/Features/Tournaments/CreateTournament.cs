@@ -6,7 +6,8 @@ namespace Features.Tournaments;
 
 public static class CreateTournament
 {
-	public sealed record CreateTournamentCommand(string Name) : IRequest<OneOf<Guid, ValidationFailure, ProblemDetails>>;
+	public sealed record CreateTournamentCommand(string Name,
+		DateTime StartTime) : IRequest<OneOf<Guid, ValidationFailure, ProblemDetails>>;
 
 	
 	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<Guid, ValidationFailure, ProblemDetails>>

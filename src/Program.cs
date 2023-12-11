@@ -12,10 +12,20 @@ builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddHealthChecks();
 builder.Services.AddSingleton<AppDbContext>();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+
 app.MapHealthChecks("/health");
-app.MapGet("/", () => "Hello World!");
 CreateTournament.MapEndpoint(app);
+GetTournament.MapEndpoint(app);
 
 app.Run();

@@ -38,10 +38,12 @@ public static class GetTournament
 	
 	
     
-    public static async Task<Results<Ok<Tournament>, NotFound>> EndPoint(Query request, 
+    public static async Task<Results<Ok<Tournament>, NotFound>> EndPoint(string id, 
         IMediator mediator, 
         CancellationToken token)
     {
+        Guid.TryParse(id, out Guid guid );
+        Query request = new Query(guid);
         var result = await mediator.Send(request, token);
         return result.Match<Results<Ok<Tournament>, NotFound>>(
             tournament => TypedResults.Ok(tournament),
