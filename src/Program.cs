@@ -7,6 +7,7 @@ using OpenTournament.Common;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddMediator();
 builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddHealthChecks();
@@ -24,8 +25,10 @@ if (app.Environment.IsDevelopment())
 }
 
 
+app.UseExceptionHandler();
 app.MapHealthChecks("/health");
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
+UpdateTournament.MapEndpoint(app);
 
 app.Run();

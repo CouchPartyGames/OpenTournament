@@ -1,5 +1,4 @@
 using OpenTournament.Common;
-using Microsoft.EntityFrameworkCore;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
 namespace Features.Tournaments;

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using OpenTournament.Common;
 
 namespace Features.Tournaments;
@@ -59,7 +57,7 @@ public static class CreateTournament
 	}
 
 	public static void MapEndpoint(this IEndpointRouteBuilder app) => 
-		app.MapPost("tournaments", CreateTournament.EndPoint);
+		app.MapPost("tournaments", EndPoint);
 	
 	
 	public static async Task<Results<Created, ProblemHttpResult>> EndPoint(CreateTournamentCommand request, 
