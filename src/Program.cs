@@ -1,3 +1,4 @@
+using Features.Matches;
 using Features.Tournaments;
 using OpenTournament.Common.Exceptions;
 using Mediator;
@@ -30,5 +31,6 @@ app.MapHealthChecks("/health");
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
 UpdateTournament.MapEndpoint(app);
+GetMatch.MapEndpoint(app);
 
 app.Run();

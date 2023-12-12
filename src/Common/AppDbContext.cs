@@ -10,4 +10,6 @@ public sealed class AppDbContext : DbContext
         => options.UseSqlite($"Data Source=tourny.db");
 
     public DbSet<Tournament> Tournaments { get; set; }
+    
+    public DbSet<Match> Matches { get; set; }
 }
