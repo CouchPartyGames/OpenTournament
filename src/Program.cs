@@ -28,9 +28,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.MapHealthChecks("/health");
+
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
 UpdateTournament.MapEndpoint(app);
+JoinTournament.MapEndpoint(app);
+StartTournament.MapEndpoint(app);
+
 GetMatch.MapEndpoint(app);
 
 app.Run();
