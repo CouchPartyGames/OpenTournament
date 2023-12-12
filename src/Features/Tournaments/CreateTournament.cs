@@ -5,16 +5,17 @@ namespace Features.Tournaments;
 public static class CreateTournament
 {
 	public sealed record CreateTournamentCommand(string Name,
-		DateTime StartTime) : IRequest<OneOf<Guid, ValidationFailure, ProblemDetails>>;
+		DateTime StartTime) : IRequest<OneOf<TournamentId, ValidationFailure, ProblemDetails>>;
 
 	
-	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<Guid, ValidationFailure, ProblemDetails>>
+	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<TournamentId, ValidationFailure, ProblemDetails>>
 	{
 		private readonly DbContext _dbContext;
 		
 		public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 		
-		public async ValueTask<OneOf<Guid, ValidationFailure, ProblemDetails>> Handle(CreateTournamentCommand request, CancellationToken cancellationToken)
+		public async ValueTask<OneOf<TournamentId, ValidationFailure, ProblemDetails>> Handle(CreateTournamentCommand request, 
+			CancellationToken cancellationToken)
 		{
 			Validator validator = new();
 			ValidationResult result = validator.Validate(request);

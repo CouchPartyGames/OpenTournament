@@ -5,7 +5,7 @@ namespace Features.Tournaments;
 
 public static class GetTournament
 {
-    public sealed record GetTournamentQuery(Guid Id) : IRequest<OneOf<Tournament, OneOf.Types.NotFound>>;
+    public sealed record GetTournamentQuery(TournamentId Id) : IRequest<OneOf<Tournament, OneOf.Types.NotFound>>;
 
 
     internal sealed class
@@ -42,7 +42,7 @@ public static class GetTournament
         CancellationToken token)
     {
         Guid.TryParse(id, out Guid guid );
-        var request = new GetTournamentQuery(guid);
+        var request = new GetTournamentQuery(new TournamentId(guid));
         var result = await mediator.Send(request, token);
         return result.Match<Results<Ok<Tournament>, NotFound>>(
             tournament => TypedResults.Ok(tournament),

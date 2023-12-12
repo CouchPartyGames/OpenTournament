@@ -4,7 +4,7 @@ namespace Features.Matches;
 
 public static class GetMatch
 {
-    public sealed record GetMatchQuery(Guid Id) : IRequest<OneOf<Match, OneOf.Types.NotFound>>;
+    public sealed record GetMatchQuery(MatchId Id) : IRequest<OneOf<Match, OneOf.Types.NotFound>>;
 
     internal sealed class Handler : IRequestHandler<GetMatchQuery, OneOf<Match, OneOf.Types.NotFound>>
     {
@@ -35,7 +35,7 @@ public static class GetMatch
         CancellationToken token)
     {
         bool isValid = Guid.TryParse(id, out Guid guidOutput);
-        var request = new GetMatchQuery(guidOutput);
+        var request = new GetMatchQuery(new MatchId(guidOutput));
         var result = await mediator.Send(request, token);
         return result.Match<Results<Ok<Match>, NotFound>>(
             match => TypedResults.Ok(match),

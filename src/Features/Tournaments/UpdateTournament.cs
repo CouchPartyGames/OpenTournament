@@ -4,7 +4,7 @@ namespace Features.Tournaments;
 
 public static class UpdateTournament
 {
-   public sealed record UpdateTournamentCommand(string Id, string Name) : IRequest<OneOf<bool, OneOf.Types.NotFound, ProblemDetails>>;
+   public sealed record UpdateTournamentCommand(TournamentId Id, string Name) : IRequest<OneOf<bool, OneOf.Types.NotFound, ProblemDetails>>;
    
    internal sealed class Handler : IRequestHandler<UpdateTournamentCommand, OneOf<bool, OneOf.Types.NotFound, ProblemDetails>>
    {
@@ -16,11 +16,11 @@ public static class UpdateTournament
       }
 
 		
-      public async ValueTask<OneOf<bool, OneOf.Types.NotFound, ProblemDetails>> Handle(UpdateTournamentCommand request, 
+      public async ValueTask<OneOf<bool, OneOf.Types.NotFound, ProblemDetails>> Handle(UpdateTournamentCommand command, 
          CancellationToken cancellationToken)
       {
          Validator validator = new();
-         ValidationResult result = validator.Validate(request);
+         ValidationResult result = validator.Validate(command);
          if (!result.IsValid)
          {
             //result.Errors;
@@ -28,14 +28,18 @@ public static class UpdateTournament
             //return new ValidationFailure();
          }
 
+
+         //command.Id;
+         var tournament = await _dbContext
+            .Tournaments
+            .FirstOrDefaultAsync(m => m.Id == command.Id);
          
-         var tournament = await _dbContext.Tournaments.FirstOrDefaultAsync(m => m.Id == new Guid(request.Id));
          if (tournament is null)
          {
             return new OneOf.Types.NotFound();
          }
 
-         tournament.Name = request.Name;
+         tournament.Name = command.Name;
          
          var results = await _dbContext.SaveChangesAsync(cancellationToken);
          if (results < 1)
@@ -69,7 +73,9 @@ public static class UpdateTournament
          IMediator mediator,
          CancellationToken token) =>
       {
-         var commandRequest = request with { Id = id };
+         Guid.TryParse(id, out Guid guid);
+         
+         var commandRequest = request with { Id = new TournamentId(guid) };
          var result = await mediator.Send(commandRequest, token);
          return result.Match<Results<NoContent, NotFound, ProblemHttpResult>>(
             sucessful => TypedResults.NoContent(),

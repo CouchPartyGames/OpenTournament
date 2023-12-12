@@ -6,7 +6,7 @@ namespace Features.Tournaments;
 
 public static class StartTournament
 {
-    public sealed record StartTournamentCommand(Guid Id) : IRequest<bool>;
+    public sealed record StartTournamentCommand(TournamentId Id) : IRequest<bool>;
 
     internal sealed class Handler : IRequestHandler<StartTournamentCommand, bool>
     {
@@ -39,7 +39,7 @@ public static class StartTournament
         CancellationToken token)
     {
         Guid.TryParse(id, out Guid guid);
-        var request = new StartTournamentCommand(guid);
+        var request = new StartTournamentCommand(new TournamentId(guid));
         var result = await mediator.Send(request, token);
         return TypedResults.NoContent();
     }

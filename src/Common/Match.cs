@@ -1,6 +1,8 @@
 namespace OpenTournament.Common;
 
+public sealed record MatchId(Guid Value);
+
 public sealed class Match
 {
-    public Guid Id { get; set; }
+    public MatchId Id { get; set; }
 }

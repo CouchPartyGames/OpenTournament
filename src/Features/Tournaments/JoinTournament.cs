@@ -5,7 +5,7 @@ namespace Features.Tournaments;
 
 public static class JoinTournament
 {
-    public sealed record JoinTournamentCommand(Guid Id) : IRequest<bool>;
+    public sealed record JoinTournamentCommand(TournamentId Id) : IRequest<bool>;
 
     internal sealed class Handler : IRequestHandler<JoinTournamentCommand, bool>
     {
@@ -30,7 +30,7 @@ public static class JoinTournament
         CancellationToken token)
     {
         Guid.TryParse(id, out Guid guid);
-        var command = new JoinTournamentCommand(guid);
+        var command = new JoinTournamentCommand(new TournamentId(guid));
         var result = await mediator.Send(command, token);
         return TypedResults.NoContent();
     }
