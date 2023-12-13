@@ -13,8 +13,13 @@ public sealed class AppDbContext : DbContext
     
     public DbSet<Match> Matches { get; set; }
     
+    public DbSet<Participant> Participants { get; set; }
+    
+    public DbSet<Registration> Registrations { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+            // Tournaments
         modelBuilder.Entity<Tournament>().HasKey(t => t.Id);
         
         modelBuilder.Entity<Tournament>()
@@ -27,11 +32,20 @@ public sealed class AppDbContext : DbContext
             .IsRequired();
         
         
+            // Matches
         modelBuilder.Entity<Match>().HasKey(m => m.Id);
         
         modelBuilder.Entity<Match>()
             .Property(m => m.Id)
             .HasConversion(v => v.Value,
                 v => new MatchId(v));
+
+            // Participants
+        modelBuilder.Entity<Participant>().HasKey(m => m.Id);
+        
+        modelBuilder.Entity<Participant>()
+            .Property(p => p.Id)
+            .HasConversion(v => v.Value,
+                v => new ParticipantId(v));
     }
 }
