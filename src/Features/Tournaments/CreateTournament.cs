@@ -28,6 +28,7 @@ public static class CreateTournament
 			
 			var tourny = new Tournament
 			{
+				Id = new TournamentId(Guid.NewGuid()),
 				Name = request.Name
 			};
 
@@ -58,7 +59,7 @@ public static class CreateTournament
 	}
 
 	public static void MapEndpoint(this IEndpointRouteBuilder app) => 
-		app.MapPost("tournaments", EndPoint);
+		app.MapPost("tournaments", EndPoint).WithTags("Tournament");
 	
 	
 	public static async Task<Results<Created, ProblemHttpResult>> EndPoint(CreateTournamentCommand request, 

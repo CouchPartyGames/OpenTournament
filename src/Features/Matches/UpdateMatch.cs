@@ -12,7 +12,11 @@ public static class UpdateMatch
         IMediator mediator,
         CancellationToken token)
     {
-        Guid.TryParse(id, out Guid guid );
+        if (!Guid.TryParse(id, out Guid guid))
+        {
+            return TypedResults.NotFound();
+        }
+        
         var command = new UpdateMatchCommand(guid);
         var result = await mediator.Send(command, token);
 

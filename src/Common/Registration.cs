@@ -2,7 +2,7 @@ namespace OpenTournament.Common;
 
 public sealed class Registration
 {
-    public TournamentId Id { get; set; }
+    public TournamentId TournamentId { get; set; }
 
     public ParticipantId ParticipantId { get; set; }
 }

@@ -1,29 +1,38 @@
-using OneOf.Types;
 using OpenTournament.Common;
-using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
+using OpenTournament.Common.Rules;
 
 namespace Features.Tournaments;
 
 public static class StartTournament
 {
-    public sealed record StartTournamentCommand(TournamentId Id) : IRequest<bool>;
+    public sealed record StartTournamentCommand(TournamentId Id) : IRequest<OneOf<bool, OneOf.Types.NotFound, RuleFailure>>;
 
-    internal sealed class Handler : IRequestHandler<StartTournamentCommand, bool>
+    internal sealed class Handler : IRequestHandler<StartTournamentCommand, OneOf<bool, OneOf.Types.NotFound, RuleFailure>>
     {
         private readonly AppDbContext _dbContext;
         
         public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 
-        public async ValueTask<bool> Handle(StartTournamentCommand command,
+        public async ValueTask<OneOf<bool, OneOf.Types.NotFound, RuleFailure>> Handle(StartTournamentCommand command,
             CancellationToken token)
         {
             var tournament = await _dbContext
                 .Tournaments
                 .FirstOrDefaultAsync(m => m.Id == command.Id);
+            if (tournament is null)
+            {
+                return new OneOf.Types.NotFound();
+            }
 
-            // Apply Rules
+                // Apply Rules
+            var engine = new RuleEngine();
+            engine.Add(new TournamentInRegistrationState(tournament.Status));
+            if (!engine.Evaluate())
+            {
+                return new RuleFailure(engine.Errors);
+            }
             
-            // Save
+                // Save
             tournament.Status = Status.InProcess;
             var results = await _dbContext.SaveChangesAsync(token);
                 
@@ -31,16 +40,30 @@ public static class StartTournament
         }
     }
     
+    
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("/tournament/{id}/start", Endpoint);
+        app.MapPut("/tournament/{id}/start", Endpoint)
+            .WithTags("Tournament")
+            .WithDescription("Start a tournament");
+    
 
-    public static async Task<Results<NoContent, NotFound>> Endpoint(string id,
+    public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id,
         IMediator mediator,
         CancellationToken token)
     {
-        Guid.TryParse(id, out Guid guid);
+        if (!Guid.TryParse(id, out Guid guid))
+        {
+            return TypedResults.NotFound();
+        }
+        
         var request = new StartTournamentCommand(new TournamentId(guid));
         var result = await mediator.Send(request, token);
-        return TypedResults.NoContent();
+        return result.Match<Results<NoContent, NotFound, ProblemHttpResult>> (
+            _ => TypedResults.NoContent(),
+            _ => TypedResults.NotFound(),
+            ruleErrs =>
+            {
+                return TypedResults.Problem("Rule Failures");
+            });
     }
 }

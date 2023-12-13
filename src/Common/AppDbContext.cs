@@ -47,5 +47,19 @@ public sealed class AppDbContext : DbContext
             .Property(p => p.Id)
             .HasConversion(v => v.Value,
                 v => new ParticipantId(v));
+        
+            // Registration
+        modelBuilder.Entity<Registration>()
+            .HasKey(r => r.TournamentId);
+        
+        modelBuilder.Entity<Registration>()
+            .Property(p => p.TournamentId)
+            .HasConversion(v => v.Value,
+                v => new TournamentId(v));
+        
+        modelBuilder.Entity<Registration>()
+            .Property(p => p.ParticipantId)
+            .HasConversion(v => v.Value,
+                v => new ParticipantId(v));
     }
 }

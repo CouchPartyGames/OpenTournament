@@ -33,7 +33,7 @@ public static class GetTournament
 
     
     public static void MapEndpoint(this IEndpointRouteBuilder app) => 
-        app.MapGet("tournaments/{id}", Endpoint);
+        app.MapGet("tournaments/{id}", Endpoint).WithTags("Tournament");
 	
 	
     
@@ -41,7 +41,11 @@ public static class GetTournament
         IMediator mediator, 
         CancellationToken token)
     {
-        Guid.TryParse(id, out Guid guid );
+        if (Guid.TryParse(id, out Guid guid))
+        {
+            return TypedResults.NotFound();
+        }
+        
         var request = new GetTournamentQuery(new TournamentId(guid));
         var result = await mediator.Send(request, token);
         return result.Match<Results<Ok<Tournament>, NotFound>>(

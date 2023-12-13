@@ -73,7 +73,10 @@ public static class UpdateTournament
          IMediator mediator,
          CancellationToken token) =>
       {
-         Guid.TryParse(id, out Guid guid);
+         if (!Guid.TryParse(id, out Guid guid))
+         {
+            return TypedResults.NotFound();
+         }
          
          var commandRequest = request with { Id = new TournamentId(guid) };
          var result = await mediator.Send(commandRequest, token);
@@ -81,6 +84,8 @@ public static class UpdateTournament
             sucessful => TypedResults.NoContent(),
             _ => TypedResults.NotFound(),
             internalError => TypedResults.Problem());
-      });
+      })
+         .WithTags("Tournament")
+         .WithDescription("Update a Tournament");
    }
 }

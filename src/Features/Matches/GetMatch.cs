@@ -28,13 +28,19 @@ public static class GetMatch
     }
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapGet("matches/{id}", Endpoint);
+        app.MapGet("matches/{id}", Endpoint)
+            .WithTags("Match")
+            .WithDescription("Update a Match");
 
     public static async Task<Results<Ok<Match>, NotFound>> Endpoint(string id,
         IMediator mediator,
         CancellationToken token)
     {
-        bool isValid = Guid.TryParse(id, out Guid guidOutput);
+        if (Guid.TryParse(id, out Guid guidOutput))
+        {
+            return TypedResults.NotFound();
+        }
+        
         var request = new GetMatchQuery(new MatchId(guidOutput));
         var result = await mediator.Send(request, token);
         return result.Match<Results<Ok<Match>, NotFound>>(

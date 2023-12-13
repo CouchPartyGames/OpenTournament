@@ -7,8 +7,7 @@ public sealed record RuleFailure(List<RuleError> Errors);
 public interface IRule
 {
     public bool Evaluate();
-
-    public RuleError GetError();
+    public RuleError Error { get;  }
 }
 
 public class RuleEngine
@@ -21,16 +20,31 @@ public class RuleEngine
 
     public bool Evaluate()
     {
-        bool result = false;
+        bool result = true;
         foreach (var rule in _rules)
         {
             if (!rule.Evaluate())
             {
                 result = false;
-                Errors.Add(rule.GetError());
+                Errors.Add(rule.Error);
             }
         }
 
         return result;
     }
+}
+
+public sealed class TournamentInRegistrationState : IRule
+{
+    public RuleError Error { get; private set; }
+
+    private readonly Status _status;
+    public TournamentInRegistrationState(Status status)
+    {
+        _status = status;
+        Error = new RuleError(nameof(TournamentInRegistrationState),
+            "Tournament is not in a registration state", "tournament.status");
+    }
+    
+    public bool Evaluate() => _status == Status.Registration;
 }
