@@ -4,9 +4,9 @@ namespace Features.Tournaments;
 
 public static class UpdateTournament
 {
-   public sealed record UpdateTournamentCommand(TournamentId Id, string Name) : IRequest<OneOf<bool, OneOf.Types.NotFound, ProblemDetails>>;
+   public sealed record UpdateTournamentCommand(TournamentId Id, string Name) : IRequest<OneOf<bool, OneOf.Types.NotFound>>;
    
-   internal sealed class Handler : IRequestHandler<UpdateTournamentCommand, OneOf<bool, OneOf.Types.NotFound, ProblemDetails>>
+   internal sealed class Handler : IRequestHandler<UpdateTournamentCommand, OneOf<bool, OneOf.Types.NotFound>>
    {
       private readonly AppDbContext _dbContext;
       
@@ -16,7 +16,7 @@ public static class UpdateTournament
       }
 
 		
-      public async ValueTask<OneOf<bool, OneOf.Types.NotFound, ProblemDetails>> Handle(UpdateTournamentCommand command, 
+      public async ValueTask<OneOf<bool, OneOf.Types.NotFound>> Handle(UpdateTournamentCommand command, 
          CancellationToken cancellationToken)
       {
          Validator validator = new();
@@ -44,12 +44,13 @@ public static class UpdateTournament
          var results = await _dbContext.SaveChangesAsync(cancellationToken);
          if (results < 1)
          {
+            /*j
             Console.WriteLine($"Database Failure {results}");
             return new ProblemDetails
             {
                Title = "Internal Server Error",
                Status = 500
-            };
+            };*/
          }
 
          return true;
@@ -79,7 +80,7 @@ public static class UpdateTournament
          .WithDescription("Update a Tournament");
    }
 
-   public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id,
+   public static async Task<Results<NoContent, NotFound>> Endpoint(string id,
       UpdateTournamentCommand request,
       IMediator mediator,
       CancellationToken token)
@@ -91,9 +92,8 @@ public static class UpdateTournament
          
       var commandRequest = request with { Id = new TournamentId(guid) };
       var result = await mediator.Send(commandRequest, token);
-      return result.Match<Results<NoContent, NotFound, ProblemHttpResult>>(
+      return result.Match<Results<NoContent, NotFound>>(
          sucessful => TypedResults.NoContent(),
-         _ => TypedResults.NotFound(),
-         internalError => TypedResults.Problem()); 
+         _ => TypedResults.NotFound()); 
    }
 }

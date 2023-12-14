@@ -28,9 +28,12 @@ app.MapHealthChecks("/health");
 
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
-UpdateTournament.MapEndpoint(app);
-JoinTournament.MapEndpoint(app);
+//UpdateTournament.MapEndpoint(app);
+DeleteTournament.MapEndpoint(app);
 StartTournament.MapEndpoint(app);
+
+LeaveTournament.MapEndpoint(app);
+JoinTournament.MapEndpoint(app);
 
 GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);
