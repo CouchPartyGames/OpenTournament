@@ -71,21 +71,29 @@ public static class UpdateTournament
       app.MapPut("tournaments/{id}", async (string id, 
          UpdateTournamentCommand request, 
          IMediator mediator,
-         CancellationToken token) =>
-      {
-         if (!Guid.TryParse(id, out Guid guid))
+         CancellationToken token) => 
          {
-            return TypedResults.NotFound();
-         }
-         
-         var commandRequest = request with { Id = new TournamentId(guid) };
-         var result = await mediator.Send(commandRequest, token);
-         return result.Match<Results<NoContent, NotFound, ProblemHttpResult>>(
-            sucessful => TypedResults.NoContent(),
-            _ => TypedResults.NotFound(),
-            internalError => TypedResults.Problem());
-      })
+            return UpdateTournament.Endpoint(id, request, mediator, token); 
+         })
          .WithTags("Tournament")
          .WithDescription("Update a Tournament");
+   }
+
+   public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id,
+      UpdateTournamentCommand request,
+      IMediator mediator,
+      CancellationToken token)
+   {
+      if (!Guid.TryParse(id, out Guid guid))
+      {
+         return TypedResults.NotFound();
+      }
+         
+      var commandRequest = request with { Id = new TournamentId(guid) };
+      var result = await mediator.Send(commandRequest, token);
+      return result.Match<Results<NoContent, NotFound, ProblemHttpResult>>(
+         sucessful => TypedResults.NoContent(),
+         _ => TypedResults.NotFound(),
+         internalError => TypedResults.Problem()); 
    }
 }

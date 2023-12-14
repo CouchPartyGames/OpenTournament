@@ -10,7 +10,7 @@ public static class CreateTournament
 	
 	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<TournamentId, ValidationFailure, ProblemDetails>>
 	{
-		private readonly DbContext _dbContext;
+		private readonly AppDbContext _dbContext;
 		
 		public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 		
@@ -28,7 +28,7 @@ public static class CreateTournament
 			
 			var tourny = new Tournament
 			{
-				Id = new TournamentId(Guid.NewGuid()),
+				Id = TournamentId.Create(),
 				Name = request.Name
 			};
 

@@ -36,5 +36,6 @@ JoinTournament.MapEndpoint(app);
 StartTournament.MapEndpoint(app);
 
 GetMatch.MapEndpoint(app);
+UpdateMatch.MapEndpoint(app);
 
 app.Run();

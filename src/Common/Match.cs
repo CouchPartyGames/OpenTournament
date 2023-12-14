@@ -1,6 +1,9 @@
 namespace OpenTournament.Common;
 
-public sealed record MatchId(Guid Value);
+public sealed record MatchId(Guid Value)
+{
+    public static MatchId Create() => new MatchId(Guid.NewGuid());
+}
 
 public enum MatchStatus
 {
