@@ -1,9 +1,6 @@
 using Features.Matches;
 using Features.Tournaments;
 using OpenTournament.Common.Exceptions;
-using Mediator;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using OpenTournament.Common;
 
 var builder = WebApplication.CreateSlimBuilder(args);

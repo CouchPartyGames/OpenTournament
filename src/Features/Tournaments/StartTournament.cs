@@ -1,4 +1,6 @@
 using OpenTournament.Common;
+using OpenTournament.Common.Draw.Layout;
+using OpenTournament.Common.Draw.Opponents;
 using OpenTournament.Common.Rules;
 
 namespace Features.Tournaments;
@@ -24,6 +26,11 @@ public static class StartTournament
                 return new OneOf.Types.NotFound();
             }
 
+            var participants = _dbContext
+                .Registrations
+                .Select(x => x.TournamentId == tournament.Id)
+                .ToList();
+            
                 // Apply Rules
             var engine = new RuleEngine();
             engine.Add(new TournamentInRegistrationState(tournament.Status));
@@ -31,8 +38,22 @@ public static class StartTournament
             {
                 return new RuleFailure(engine.Errors);
             }
+
+                // Get Opponents
+            //var opponents = new SeededDrawOrdering();
+            //var opponents = new BlindDrawOrdering();
+                // Get Layout
+            //var draw = new SeededDraw(opponent.Count);
             
-                // Save
+                // Convert Opponents and Layout into Matches
+            //var creator = new CreatMatches();
+
+            /*foreach (var match in created.Matches)
+            {
+                //_dbContext.Add(match);
+            }*/
+
+            // Save
             tournament.Status = Status.InProcess;
             var results = await _dbContext.SaveChangesAsync(token);
                 

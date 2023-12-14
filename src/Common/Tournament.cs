@@ -22,4 +22,8 @@ public sealed class Tournament
     public Status Status { get; set; } = Status.Registration;
     
     public DateTime StartTime { get; set;  }
+
+    public int MinParticipants { get; set; } = 2;
+
+    public int MaxParticipants { get; set; } = 8;
 }

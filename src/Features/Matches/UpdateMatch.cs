@@ -45,10 +45,10 @@ public static class UpdateMatch
             IMediator mediator,
             CancellationToken token) =>
         {
-            return UpdateMatch.Endpoint(id, cmd, mediator, token);
+            return Endpoint(id, cmd, mediator, token);
         }).WithTags("Match").WithDescription("Update a Match");
 
-    public static async Task<Results<NoContent, NotFound>> Endpoint(string id,
+    public static async Task<Results<NoContent, NotFound, ValidationProblem>> Endpoint(string id,
         UpdateMatchCommand request,
         IMediator mediator,
         CancellationToken token)
@@ -60,7 +60,7 @@ public static class UpdateMatch
 
         var command = request with { Id = new MatchId(guid) };
         var result = await mediator.Send(command, token);
-        return result.Match<Results<NoContent, NotFound>>(
+        return result.Match<Results<NoContent, NotFound, ValidationProblem>>(
             _ => TypedResults.NoContent(),
             _ => TypedResults.NotFound(),
             _ => TypedResults.NotFound());
