@@ -1,5 +1,3 @@
-using System.Net.Sockets;
-
 namespace OpenTournament.Common.Draw.Layout;
 
 public enum RoundId
@@ -12,6 +10,8 @@ public enum RoundId
 
 public sealed record FullMatch(int Id, int RoundId, int Progression);
 
+public sealed class CurrentDoesntMatchNextException(string message) : Exception(message);
+
 public sealed class SingleEliminationDraw
 {
    private readonly DrawSize _drawSize;
@@ -19,31 +19,38 @@ public sealed class SingleEliminationDraw
    
    private List<VersusMatch> _positions;
 
+   public Dictionary<int, FullMatch> Matches
+   {
+      get { return _matches; }
+   }
+
    private Dictionary<int, FullMatch> _matches = new();
-   public int _matchId = 1;
    
-   public SingleEliminationDraw(ParticipantDrawPositions postions)
+   public SingleEliminationDraw(ParticipantPositions postions)
    {
       _positions = postions.Matches;
       _drawSize = postions.DrawSize;
       _totalRounds = postions.DrawSize.ToTotalRounds();
+
+      CreateMatchProgressions(CreateMatchIds());
    }
 
    
    public Dictionary<int, List<int>> CreateMatchIds()
    {
-      int localId = 1;
+      int localMatchId = 1;
+      
+      // round number = list of match ids
       Dictionary<int, List<int>> matchIds = new();
       for (int i = 1; i <= _totalRounds; i++)
       {
-         var totalMatches = GetTotalMatchInRound(i);
+         var totalMatches = GetTotalMatchesInRound(i);
          var ids = new List<int>();
          for (int j = 0; j < totalMatches; j++)
          {
-            ids.Add(localId);
-            localId++;
+            ids.Add(localMatchId);
+            localMatchId++;
          }
-
          matchIds.TryAdd(i, ids);
       }
       
@@ -67,7 +74,7 @@ public sealed class SingleEliminationDraw
             // Number of Pairs in the Current should match the Next Round
          if (chunkPairs.ToList().Count != nextMatchIds.Count)
          {
-            throw new Exception("Invalid number of matches");
+            throw new CurrentDoesntMatchNextException("Mismatch Current with Next Round");
          }
          
             // Loop thru the Sets in the Current Round
@@ -76,15 +83,14 @@ public sealed class SingleEliminationDraw
             var progressMatchId = nextMatchIds[prevId];
             foreach (var matchId in pair)
             {
-               new FullMatch(matchId, round, progressMatchId);
+               _matches.Add(matchId, new FullMatch(matchId, round, progressMatchId));
             }
             prevId++;
          }
       }
    }
 
-
-   public int GetTotalMatchInRound(int round) => _drawSize.Value / (int)Math.Pow(2, round);
+   public int GetTotalMatchesInRound(int round) => _drawSize.Value / (int)Math.Pow(2, round);
    
    
    public static RoundId MatchCountToRoundId(int numMatches) => numMatches switch
@@ -93,14 +99,6 @@ public sealed class SingleEliminationDraw
       2 => RoundId.Semifinals,
       4 => RoundId.Quarterfinals,
       8 => RoundId.RoundOf16
-   };
-
-   public static string RoundToName(RoundId round) => round switch
-   {
-      RoundId.Finals => "Finals",
-      RoundId.Semifinals => "Semifinals",
-      RoundId.Quarterfinals => "Quarterfinals",
-      RoundId.RoundOf16 => "Round of 16"
    };
    
 }

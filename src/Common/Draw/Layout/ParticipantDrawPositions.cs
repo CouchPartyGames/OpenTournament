@@ -10,9 +10,9 @@ public sealed record VersusMatch(int FirstParticipant, int SecondParticipant);
 // <summary>
 // Get Player Seeding/Position in the Tournament depending on player/draw size
 // </summary>
-public sealed class ParticipantDrawPositions
+public sealed class ParticipantPositions
 {
-	public ParticipantDrawPositions(int numParticipants)
+	public ParticipantPositions(int numParticipants)
 	{
 		DrawSize = DrawSize.FromNumParticipants(numParticipants);
 		Matches = DrawSize.Value switch

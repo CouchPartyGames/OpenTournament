@@ -1,6 +1,9 @@
-namespace OpenTournament.Common.Draw.Opponents;
+namespace OpenTournament.Common.Draw.Participants;
 
-public sealed class SeededDrawOrdering(List<Opponent> opponents) : IOpponentDrawOrder
+// <summary>
+// Ranked Order of Participants
+// </summary>
+public sealed class RankedParticipantOrder(List<Opponent> opponents) : IParticipantOrder
 {
 
     // <summary>
