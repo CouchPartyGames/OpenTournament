@@ -1,3 +1,5 @@
+using System.Net.Sockets;
+
 namespace OpenTournament.Common.Draw.Layout;
 
 public enum RoundId
@@ -8,41 +10,82 @@ public enum RoundId
    RoundOf16 = 4
 };
 
-public record FullMatch(int Id, int ParticipantPos);
+public sealed record FullMatch(int Id, int RoundId, int Progression);
 
 public sealed class SingleEliminationDraw
 {
-   public int NumRounds { get; private set;  }
+   private readonly DrawSize _drawSize;
+   private readonly int _totalRounds;
    
-   private List<VersusMatch> _firstMatches;
-   public FullDraw(List<VersusMatch> firstMatches)
+   private List<VersusMatch> _positions;
+
+   private Dictionary<int, FullMatch> _matches = new();
+   public int _matchId = 1;
+   
+   public SingleEliminationDraw(ParticipantDrawPositions postions)
    {
-      _firstMatches = firstMatches;
-      NumRounds = firstMatches.Count;
+      _positions = postions.Matches;
+      _drawSize = postions.DrawSize;
+      _totalRounds = postions.DrawSize.ToTotalRounds();
    }
 
-   public bool Create()
+   
+   public Dictionary<int, List<int>> CreateMatchIds()
    {
-      int i = 1;
-      int numMatches = _firstMatches.Count;
-      foreach (var match in _firstMatches)
+      int localId = 1;
+      Dictionary<int, List<int>> matchIds = new();
+      for (int i = 1; i <= _totalRounds; i++)
       {
-         new FullMatch(i);
-         i++;
+         var totalMatches = GetTotalMatchInRound(i);
+         var ids = new List<int>();
+         for (int j = 0; j < totalMatches; j++)
+         {
+            ids.Add(localId);
+            localId++;
+         }
+
+         matchIds.TryAdd(i, ids);
+      }
+      
+      return matchIds;
+   }
+
+   public void CreateMatchProgressions(Dictionary<int, List<int>> matchIds)
+   {
+      int prevId = 0;
+      int round = 0;
+      for (round = 1; round < _totalRounds; round++)
+      {
+            // Get Match Ids for the Current and Next Round (after current round)
+         var curMatchIds = matchIds[round];
+         var nextMatchIds = matchIds[round + 1];
+
+
+            // Create Sets of 2 (MatchIds) 
+         var chunkPairs = curMatchIds.Chunk<int>(2);
+
+            // Number of Pairs in the Current should match the Next Round
+         if (chunkPairs.ToList().Count != nextMatchIds.Count)
+         {
+            throw new Exception("Invalid number of matches");
+         }
+         
+            // Loop thru the Sets in the Current Round
+         foreach (var pair in chunkPairs)
+         {
+            var progressMatchId = nextMatchIds[prevId];
+            foreach (var matchId in pair)
+            {
+               new FullMatch(matchId, round, progressMatchId);
+            }
+            prevId++;
+         }
       }
    }
 
-   public static int MatchCountToNumRounds(int numMatches) => numMatches switch
-   {
-      1 => 1,
-      2 => 2,
-      4 => 3,
-      8 => 4,
-      16 => 5,
-      32 => 6,
-      64 => 7,
-      128 => 8
-   };
+
+   public int GetTotalMatchInRound(int round) => _drawSize.Value / (int)Math.Pow(2, round);
+   
    
    public static RoundId MatchCountToRoundId(int numMatches) => numMatches switch
    {

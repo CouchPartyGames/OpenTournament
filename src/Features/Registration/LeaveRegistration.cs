@@ -2,7 +2,7 @@ using OpenTournament.Common;
 
 namespace Features.Tournaments;
 
-public static class LeaveTournament
+public static class LeaveRegistration
 {
     public sealed record LeaveTournamentCommand(TournamentId TournamentId, ParticipantId ParticiantId) :
         IRequest<OneOf<bool, OneOf.Types.NotFound>>;
@@ -16,12 +16,12 @@ public static class LeaveTournament
         public async ValueTask<OneOf<bool, OneOf.Types.NotFound>> Handle(LeaveTournamentCommand command,
             CancellationToken token)
         {
-            var registration = _dbContext
+            var registration = await _dbContext
                 .Registrations
-                .Where(r => r.ParticipantId == command.ParticiantId)
-                .ToList();
+                .FirstOrDefaultAsync(r => r.ParticipantId == command.ParticiantId 
+                                          && r.TournamentId == command.TournamentId);
             
-            if (registration.Count == 0)
+            if (registration is null)
             {
                 return new OneOf.Types.NotFound();
             }

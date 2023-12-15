@@ -2,10 +2,19 @@ namespace OpenTournament.Common;
 
 public sealed record MatchId(Guid Value)
 {
+    public static MatchId TryParse(string id)
+    {
+        if (!Guid.TryParse(id, out Guid guid))
+        {
+            return null;
+        }
+        return new MatchId(guid);
+    }
+
     public static MatchId Create() => new MatchId(Guid.NewGuid());
 }
 
-public enum MatchStatus
+public enum MatchState
 {
     Ready = 0,
     InProgress,
@@ -16,5 +25,8 @@ public sealed class Match
 {
     public MatchId Id { get; set; }
 
-    public MatchStatus Status { get; set; } = MatchStatus.Ready;
+    public MatchState State { get; set; } = MatchState.Ready;
+    
+    //Progression WinProgression;
+    //Progression LoseProgression;
 }

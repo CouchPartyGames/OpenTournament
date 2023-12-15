@@ -2,30 +2,34 @@ using System.Numerics;
 
 namespace OpenTournament.Common.Draw.Layout;
 
+public sealed class InvalidSeedingSizeException(string message) : Exception(message);
+
 public sealed record VersusMatch(int FirstParticipant, int SecondParticipant);
+
 
 // <summary>
 // Get Player Seeding/Position in the Tournament depending on player/draw size
 // </summary>
-public sealed class SeededDraw(int numParticipants)
+public sealed class ParticipantDrawPositions
 {
-    public List<VersusMatch> Matches
-    {
-        get
-        {
-	        var drawSize =  BitOperations.RoundUpToPowerOf2((uint)numParticipants);
-	        return drawSize switch
-	        {
-		        2 => GetDrawSize2(),
-		        4 => GetDrawSize4(),
-		        8 => GetDrawSize8(),
-		        16 => GetDrawSize16(),
-		        32 => GetDrawSize32(),
-		        64 => GetDrawSize64(),
-		        _ => GetDrawSize128()
-	        };
-        }
-    }
+	public ParticipantDrawPositions(int numParticipants)
+	{
+		DrawSize = DrawSize.FromNumParticipants(numParticipants);
+		Matches = DrawSize.Value switch
+		{
+			2 => GetDrawSize2(),
+			4 => GetDrawSize4(),
+			8 => GetDrawSize8(),
+			16 => GetDrawSize16(),
+			32 => GetDrawSize32(),
+			64 => GetDrawSize64(),
+			128 => GetDrawSize128(),
+			_ => throw new InvalidSeedingSizeException( $"Unable to seed matches for size: ${DrawSize.Value}")
+		};
+	}
+	public DrawSize DrawSize { get; private set;  }
+	
+    public List<VersusMatch> Matches { get; private set; }
     
     List<VersusMatch> GetDrawSize2() {
     	return new List<VersusMatch> {
@@ -42,8 +46,10 @@ public sealed class SeededDraw(int numParticipants)
 
 	List<VersusMatch> GetDrawSize8() {
     	return new List<VersusMatch> {
+		    // 1st Half
 			new(1, 8),
 			new(6, 3),
+			// 2nd Half
 			new(4, 5),
 			new(7, 2),
 		};
@@ -51,10 +57,12 @@ public sealed class SeededDraw(int numParticipants)
 
 	List<VersusMatch> GetDrawSize16() {
     	return new List<VersusMatch> {
+		    // 1st Half
 			new(1, 16),
 			new(9, 8),
 			new(4, 13),
 			new(5, 12),
+			// 2nd Half
 			new(3, 14),
 			new(11,6),
 			new(7,10),

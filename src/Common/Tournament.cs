@@ -1,8 +1,20 @@
 
+using OneOf.Types;
+
 namespace OpenTournament.Common;
 
 public sealed record TournamentId(Guid Value)
 {
+    public static TournamentId? TryParse(string id)
+    {
+        if (!Guid.TryParse(id, out Guid guid))
+        {
+            return null;
+        }
+
+        return new TournamentId(guid);
+    }
+    
     public static TournamentId Create() => new TournamentId(Guid.NewGuid());
 }
 

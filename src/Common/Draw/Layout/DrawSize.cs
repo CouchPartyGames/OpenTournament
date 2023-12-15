@@ -30,6 +30,7 @@ public sealed record DrawSize
         16 => 5,
         32 => 6,
         64 => 7,
-        128 => 8
+        128 => 8,
+        _ => throw new InvalidDrawSizeException($"Unable to handle draw of size: ${Value}")
     };
 } 

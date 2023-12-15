@@ -85,12 +85,13 @@ public static class UpdateTournament
       IMediator mediator,
       CancellationToken token)
    {
-      if (!Guid.TryParse(id, out Guid guid))
+      var tournamentId = TournamentId.TryParse(id);
+      if (tournamentId is null)
       {
          return TypedResults.NotFound();
       }
          
-      var commandRequest = request with { Id = new TournamentId(guid) };
+      var commandRequest = request with { Id = tournamentId };
       var result = await mediator.Send(commandRequest, token);
       return result.Match<Results<NoContent, NotFound>>(
          sucessful => TypedResults.NoContent(),
