@@ -11,11 +11,24 @@ public static class LeaveTournament
     {
         private readonly AppDbContext _dbContext;
         
-        public Handler(AppDbContext dbContext) => _dbContext = dbContext; 
+        public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 
         public async ValueTask<OneOf<bool, OneOf.Types.NotFound>> Handle(LeaveTournamentCommand command,
             CancellationToken token)
         {
+            var registration = _dbContext
+                .Registrations
+                .Where(r => r.ParticipantId == command.ParticiantId)
+                .ToList();
+            
+            if (registration.Count == 0)
+            {
+                return new OneOf.Types.NotFound();
+            }
+
+            _dbContext.Remove(registration);
+            var result = await _dbContext.SaveChangesAsync(token);
+            
             return true;
         }
     }

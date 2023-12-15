@@ -4,7 +4,7 @@ using OpenTournament.Common.Rules;
 
 namespace Features.Tournaments;
 
-public static class JoinTournament
+public static class JoinRegistration
 {
     public sealed record JoinTournamentCommand(TournamentId Id) : IRequest<OneOf<bool, OneOf.Types.NotFound, RuleFailure>>;
 

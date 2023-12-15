@@ -7,8 +7,8 @@ var builder = WebApplication.CreateSlimBuilder(args);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddMediator();
-builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddHealthChecks();
+builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddSingleton<AppDbContext>();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -32,8 +32,8 @@ GetTournament.MapEndpoint(app);
 DeleteTournament.MapEndpoint(app);
 StartTournament.MapEndpoint(app);
 
-LeaveTournament.MapEndpoint(app);
-JoinTournament.MapEndpoint(app);
+LeaveRegistration.MapEndpoint(app);
+JoinRegistration.MapEndpoint(app);
 
 GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);
