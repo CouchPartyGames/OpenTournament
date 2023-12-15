@@ -13,6 +13,11 @@ public sealed class RankedParticipantOrder(List<Opponent> opponents) : IParticip
     {
         get
         {
+            if (opponents.Count < 2)
+            {
+                throw new EmptyListOfOpponentsException("Not enough participants");
+            }
+            
             int i = 0;
             var orderedOpponents = new Dictionary<OpponentOrder, Opponent>();
             foreach (Opponent opp in opponents.OrderByDescending(o => o.Rank))

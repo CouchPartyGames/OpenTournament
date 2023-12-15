@@ -1,5 +1,6 @@
 namespace OpenTournament.Common.Draw.Participants;
 
+public sealed class EmptyListOfOpponentsException(string message) : Exception(message);
 
 public interface IParticipantOrder
 {

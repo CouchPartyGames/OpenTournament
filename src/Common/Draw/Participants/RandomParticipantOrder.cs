@@ -12,6 +12,11 @@ public sealed class RandomParticipantOrder(List<Opponent> opponents) : IParticip
     {
         get
         {
+            if (opponents.Count < 2)
+            {
+                throw new EmptyListOfOpponentsException("Not enough participants");
+            }
+            
             Random rng = new Random();
             var orderedOpps = new Dictionary<OpponentOrder, Opponent>();
 

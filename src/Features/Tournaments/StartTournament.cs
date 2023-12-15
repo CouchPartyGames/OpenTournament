@@ -46,6 +46,9 @@ public static class StartTournament
             var draw = new SingleEliminationDraw(new ParticipantPositions(6));
             foreach(KeyValuePair<int, FullMatch> entry in draw.Matches)
             {
+                var matchId = entry.Key;
+                var match = entry.Value;
+                
                 //entry.Value
                 //_dbContext.Add(match);
             }
