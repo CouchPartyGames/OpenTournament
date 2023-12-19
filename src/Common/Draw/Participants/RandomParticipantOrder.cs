@@ -5,6 +5,8 @@ namespace OpenTournament.Common.Draw.Participants;
 // </summary>
 public sealed class RandomParticipantOrder(List<Opponent> opponents) : IParticipantOrder
 {
+    private const int _startIndex = 0;
+    
     // <summary>
     // Dictionary of ordered opponents
     // </summary>
@@ -20,7 +22,7 @@ public sealed class RandomParticipantOrder(List<Opponent> opponents) : IParticip
             Random rng = new Random();
             var orderedOpps = new Dictionary<OpponentOrder, Opponent>();
 
-            int i = 0;
+            int i = _startIndex;
             foreach (Opponent opp in opponents.OrderBy(a => rng.Next()).ToList() )
             {
                 orderedOpps.Add(new OpponentOrder(i), opp);

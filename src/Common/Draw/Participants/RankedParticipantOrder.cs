@@ -6,6 +6,8 @@ namespace OpenTournament.Common.Draw.Participants;
 public sealed class RankedParticipantOrder(List<Opponent> opponents) : IParticipantOrder
 {
 
+    private const int _startIndex = 0;
+    
     // <summary>
     // Dictionary of ordered opponents
     // </summary>
@@ -17,8 +19,8 @@ public sealed class RankedParticipantOrder(List<Opponent> opponents) : IParticip
             {
                 throw new EmptyListOfOpponentsException("Not enough participants");
             }
-            
-            int i = 0;
+
+            int i = _startIndex;
             var orderedOpponents = new Dictionary<OpponentOrder, Opponent>();
             foreach (Opponent opp in opponents.OrderByDescending(o => o.Rank))
             {
