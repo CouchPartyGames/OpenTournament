@@ -31,7 +31,7 @@ if (app.Environment.IsDevelopment())
 }
 
 
-app.UseExceptionHandler();
+app.UseExceptionHandler(options => {});
 app.MapHealthChecks("/health");
 
 CreateTournament.MapEndpoint(app);
