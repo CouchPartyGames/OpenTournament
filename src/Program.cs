@@ -1,13 +1,21 @@
 using Features.Matches;
 using Features.Tournaments;
+using Microsoft.AspNetCore.HttpLogging;
 using OpenTournament.Common.Exceptions;
 using OpenTournament.Common;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddMediator();
 builder.Services.AddHealthChecks();
+builder.Services.AddHttpLogging((options) =>
+{
+    options.CombineLogs = true;
+    options.LoggingFields = HttpLoggingFields.All;
+});
 builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddSingleton<AppDbContext>();
 
