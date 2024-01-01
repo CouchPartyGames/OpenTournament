@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTournament", "src\OpenTournament.csproj", "{881CE7C5-7989-4CDB-B55D-AE81580EDD0B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTournament.UnitTests", "tests\OpenTournament.UnitTests\OpenTournament.UnitTests.csproj", "{FBC7C246-B38E-4A64-8ADD-B6E430E50C3F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTournament.Tests.Unit", "tests\OpenTournament.Tests.Unit\OpenTournament.Tests.Unit.csproj", "{FBC7C246-B38E-4A64-8ADD-B6E430E50C3F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
