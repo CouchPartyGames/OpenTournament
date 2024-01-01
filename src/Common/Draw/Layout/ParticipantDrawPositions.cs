@@ -9,7 +9,7 @@ public sealed record VersusMatch(int FirstParticipant, int SecondParticipant);
 
 
 // <summary>
-// Get Player Seeding/Position in the Tournament depending on player/draw size
+// Get Player Seeding/Positions in the Tournament's First Round depending on player/draw size
 // </summary>
 public sealed class ParticipantPositions(DrawSize size)
 {

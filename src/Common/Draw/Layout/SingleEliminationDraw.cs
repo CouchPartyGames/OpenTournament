@@ -10,7 +10,7 @@ public enum RoundId
 
 public enum FinalsType
 {
-   OneOfOne,
+   OneOfOne = 0,
    TwoOfThree,
    ThreeOfFive
 };
