@@ -39,11 +39,11 @@ public sealed class SingleEliminationDraw
 
    private Dictionary<int, DrawMatch> _matches = new();
    
-   public SingleEliminationDraw(ParticipantPositions postions, FinalsType finalsType = FinalsType.OneOfOne)
+   public SingleEliminationDraw(ParticipantPositions postions, DrawSize size, FinalsType finalsType = FinalsType.OneOfOne)
    {
       _positions = postions.Matches;
-      _drawSize = postions.DrawSize;
-      _totalRounds = postions.DrawSize.ToTotalRounds();
+      _drawSize = size;
+      _totalRounds = size.ToTotalRounds();
 
       CreateMatchProgressions(CreateMatchIds());
    }

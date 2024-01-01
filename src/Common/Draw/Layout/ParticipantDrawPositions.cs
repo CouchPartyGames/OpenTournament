@@ -11,31 +11,30 @@ public sealed record VersusMatch(int FirstParticipant, int SecondParticipant);
 // <summary>
 // Get Player Seeding/Position in the Tournament depending on player/draw size
 // </summary>
-public sealed class ParticipantPositions
+public sealed class ParticipantPositions(DrawSize size)
 {
-	public ParticipantPositions(int numParticipants)
+	public List<VersusMatch> Matches
 	{
-		DrawSize = DrawSize.FromNumParticipants(numParticipants);
-		Matches = DrawSize.Value switch
+		get
 		{
-			DrawSize.Size.Size2 => GetDrawSize2(),
-			DrawSize.Size.Size4 => GetDrawSize4(),
-			DrawSize.Size.Size8 => GetDrawSize8(),
-			DrawSize.Size.Size16 => GetDrawSize16(),
-			DrawSize.Size.Size32 => GetDrawSize32(),
-			DrawSize.Size.Size64 => GetDrawSize64(),
-			DrawSize.Size.Size128 => GetDrawSize128(),
-			_ => throw new InvalidSeedingSizeException( $"Unable to seed matches for size: ${DrawSize.Value}")
-		};
+			return size.Value switch
+			{
+				DrawSize.Size.Size2 => GetDrawSize2(),
+				DrawSize.Size.Size4 => GetDrawSize4(),
+				DrawSize.Size.Size8 => GetDrawSize8(),
+				DrawSize.Size.Size16 => GetDrawSize16(),
+				DrawSize.Size.Size32 => GetDrawSize32(),
+				DrawSize.Size.Size64 => GetDrawSize64(),
+				DrawSize.Size.Size128 => GetDrawSize128(),
+				_ => throw new InvalidSeedingSizeException( $"Unable to seed matches for size: ${size.Value}")
+			};
+		}
 	}
-	public DrawSize DrawSize { get; private set;  }
-	
-    public List<VersusMatch> Matches { get; private set; }
-    //public FrozenSet<VersusMatch> Matches1 { get; private set; }
+    
     
     List<VersusMatch> GetDrawSize2() {
-    	return new() {
-    		new(1, 2)
+    	return new(){
+    		new VersusMatch(1, 2)
     	};
 	}
 

@@ -20,10 +20,11 @@ public sealed record DrawSize
     public Size Value { get; }
 
     private DrawSize(Size value) => Value = value;
+
+    public static DrawSize Create(DrawSize.Size size) => new(size);
     
-    public static DrawSize FromNumParticipants(int numParticipants)
+    public static DrawSize CreateFromParticipants(int numParticipants)
     {
-        
         var size = (Size)BitOperations.RoundUpToPowerOf2((uint)numParticipants);
         if (!Enum.IsDefined(typeof(Size), size))
         {
