@@ -8,7 +8,20 @@ public enum RoundId
    RoundOf16 = 4
 };
 
-public sealed record FullMatch(int Id, int RoundId, int Progression);
+public enum FinalsType
+{
+   OneOfOne,
+   TwoOfThree,
+   ThreeOfFive
+};
+
+public enum EliminationMode
+{
+   Single = 0,
+   Double
+};
+
+public sealed record DrawMatch(int Id, int RoundId, int Progression, int Position1 = 0, int Position2 = 0);
 
 public sealed class CurrentDoesntMatchNextException(string message) : Exception(message);
 
@@ -19,14 +32,14 @@ public sealed class SingleEliminationDraw
    
    private List<VersusMatch> _positions;
 
-   public Dictionary<int, FullMatch> Matches
+   public Dictionary<int, DrawMatch> Matches
    {
       get { return _matches; }
    }
 
-   private Dictionary<int, FullMatch> _matches = new();
+   private Dictionary<int, DrawMatch> _matches = new();
    
-   public SingleEliminationDraw(ParticipantPositions postions)
+   public SingleEliminationDraw(ParticipantPositions postions, FinalsType finalsType = FinalsType.OneOfOne)
    {
       _positions = postions.Matches;
       _drawSize = postions.DrawSize;
@@ -83,14 +96,14 @@ public sealed class SingleEliminationDraw
             var progressMatchId = nextMatchIds[prevId];
             foreach (var matchId in pair)
             {
-               _matches.Add(matchId, new FullMatch(matchId, round, progressMatchId));
+               _matches.Add(matchId, new DrawMatch(matchId, round, progressMatchId));
             }
             prevId++;
          }
       }
    }
 
-   public int GetTotalMatchesInRound(int round) => _drawSize.Value / (int)Math.Pow(2, round);
+   public int GetTotalMatchesInRound(int round) => (int)_drawSize.Value / (int)Math.Pow(2, round);
    
    
    public static RoundId MatchCountToRoundId(int numMatches) => numMatches switch
@@ -98,7 +111,7 @@ public sealed class SingleEliminationDraw
       1 => RoundId.Finals,
       2 => RoundId.Semifinals,
       4 => RoundId.Quarterfinals,
-      8 => RoundId.RoundOf16
+      8 => RoundId.RoundOf16,
+      _ => throw new Exception("bad rounds")
    };
-   
 }

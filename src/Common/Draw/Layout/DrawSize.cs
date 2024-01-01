@@ -6,31 +6,42 @@ public sealed class InvalidDrawSizeException(string message) : Exception(message
 
 public sealed record DrawSize
 {
-    public int Value { get; }
+    public enum Size
+    {
+        Size2 = 2,
+        Size4 = 4,
+        Size8 = 8,
+        Size16 = 16,
+        Size32 = 32,
+        Size64 = 64,
+        Size128 = 128
+    };
+    
+    public Size Value { get; }
 
-    private DrawSize(int value) => Value = value;
+    private DrawSize(Size value) => Value = value;
     
     public static DrawSize FromNumParticipants(int numParticipants)
     {
-        int size = (int)BitOperations.RoundUpToPowerOf2((uint)numParticipants);
-        var good = size switch
+        
+        var size = (Size)BitOperations.RoundUpToPowerOf2((uint)numParticipants);
+        if (!Enum.IsDefined(typeof(Size), size))
         {
-            2 or 4 or 8 or 16 or 32 or 64 or 128 => size,
-            _ => throw new InvalidDrawSizeException($"Unable to handle draw of size: ${size}")
-        };
-        return new DrawSize(good);
+            throw new InvalidDrawSizeException($"Unable to handle draw of size: ${size}");
+        }
+            //https://learn.microsoft.com/en-us/dotnet/api/system.enum.isdefined?view=net-8.0&redirectedfrom=MSDN#System_Enum_IsDefined_System_Type_System_Object_
+        return new(size);
     }
 
     public int ToTotalRounds() => Value switch
     {
-        1 => 1,
-        2 => 2,
-        4 => 3,
-        8 => 4,
-        16 => 5,
-        32 => 6,
-        64 => 7,
-        128 => 8,
+        Size.Size2 => 1,
+        Size.Size4 => 2,
+        Size.Size8 => 3,
+        Size.Size16 => 4,
+        Size.Size32 => 5,
+        Size.Size64 => 6,
+        Size.Size128 => 7,
         _ => throw new InvalidDrawSizeException($"Unable to handle draw of size: ${Value}")
     };
 } 

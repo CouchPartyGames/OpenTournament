@@ -3,14 +3,12 @@ namespace OpenTournament.Common.Draw.Participants;
 // <summary>
 // Random ordering of Participants (Blind Draw Seeding)
 // </summary>
-public sealed class RandomParticipantOrder(List<Opponent> opponents) : IParticipantOrder
+public sealed class RandomParticipantOrder(List<Opponent> opponents) : ParticipantOrder
 {
-    private const int _startIndex = 0;
-    
     // <summary>
     // Dictionary of ordered opponents
     // </summary>
-    public Dictionary<OpponentOrder, Opponent> Opponents
+    public override Dictionary<OpponentOrder, Opponent> Opponents
     {
         get
         {

@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Numerics;
 
 namespace OpenTournament.Common.Draw.Layout;
@@ -17,35 +18,36 @@ public sealed class ParticipantPositions
 		DrawSize = DrawSize.FromNumParticipants(numParticipants);
 		Matches = DrawSize.Value switch
 		{
-			2 => GetDrawSize2(),
-			4 => GetDrawSize4(),
-			8 => GetDrawSize8(),
-			16 => GetDrawSize16(),
-			32 => GetDrawSize32(),
-			64 => GetDrawSize64(),
-			128 => GetDrawSize128(),
+			DrawSize.Size.Size2 => GetDrawSize2(),
+			DrawSize.Size.Size4 => GetDrawSize4(),
+			DrawSize.Size.Size8 => GetDrawSize8(),
+			DrawSize.Size.Size16 => GetDrawSize16(),
+			DrawSize.Size.Size32 => GetDrawSize32(),
+			DrawSize.Size.Size64 => GetDrawSize64(),
+			DrawSize.Size.Size128 => GetDrawSize128(),
 			_ => throw new InvalidSeedingSizeException( $"Unable to seed matches for size: ${DrawSize.Value}")
 		};
 	}
 	public DrawSize DrawSize { get; private set;  }
 	
     public List<VersusMatch> Matches { get; private set; }
+    //public FrozenSet<VersusMatch> Matches1 { get; private set; }
     
     List<VersusMatch> GetDrawSize2() {
-    	return new List<VersusMatch> {
+    	return new() {
     		new(1, 2)
     	};
 	}
 
 	List<VersusMatch> GetDrawSize4() {
-    	return new List<VersusMatch> {
+    	return new() {
         	new(1, 4),
         	new(3, 2)
     	};
 	}
 
 	List<VersusMatch> GetDrawSize8() {
-    	return new List<VersusMatch> {
+    	return new() {
 		    // 1st Half
 			new(1, 8),
 			new(6, 3),
@@ -56,7 +58,7 @@ public sealed class ParticipantPositions
 	}
 
 	List<VersusMatch> GetDrawSize16() {
-    	return new List<VersusMatch> {
+    	return new() {
 		    // 1st Half
 			new(1, 16),
 			new(9, 8),
@@ -71,7 +73,7 @@ public sealed class ParticipantPositions
 	}
 
 	List<VersusMatch> GetDrawSize32() {
-   		return new List<VersusMatch> {
+   		return new() {
 			// 1st Half
 			new(1, 32),
 			new(16, 17),
@@ -96,7 +98,7 @@ public sealed class ParticipantPositions
 	}
 
 	List<VersusMatch> GetDrawSize64() {
-		return new List<VersusMatch> {
+		return new() {
 			// 1st Bracket
 			new(1,64),
 			new(32,33),
@@ -137,7 +139,7 @@ public sealed class ParticipantPositions
 	}
 
 	List<VersusMatch> GetDrawSize128() {
-    	return new List<VersusMatch> {
+    	return new() {
 			// 1st Bracket
 			new(1,128),
 			new(64,65),
