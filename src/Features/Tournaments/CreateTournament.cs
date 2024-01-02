@@ -1,4 +1,5 @@
 using OpenTournament.Common;
+using OpenTournament.Common.Models;
 
 namespace Features.Tournaments;
 
@@ -68,7 +69,7 @@ public static class CreateTournament
 	{
 		var result = await mediator.Send(request, token);
 		return result.Match<Results<Created, ProblemHttpResult>>(
-			created => TypedResults.Created(created.ToString()),
+			tournamentId => TypedResults.Created(tournamentId.Value.ToString()),
 			validateError => TypedResults.Problem(detail:"validation error"),
 			internalError => TypedResults.Problem(internalError));
 	}

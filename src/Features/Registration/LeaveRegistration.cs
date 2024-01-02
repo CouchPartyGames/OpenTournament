@@ -1,4 +1,5 @@
 using OpenTournament.Common;
+using OpenTournament.Common.Models;
 
 namespace Features.Tournaments;
 
@@ -34,7 +35,7 @@ public static class LeaveRegistration
     }
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapDelete("tournaments/{id}/leave", Endpoint)
+        app.MapDelete("registrations/{id}/leave", Endpoint)
             .WithTags("Registration");
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id,

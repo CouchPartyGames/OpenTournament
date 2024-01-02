@@ -39,12 +39,13 @@ public sealed class SingleEliminationDraw
 
    private Dictionary<int, DrawMatch> _matches = new();
    
-   public SingleEliminationDraw(ParticipantPositions postions, DrawSize size, FinalsType finalsType = FinalsType.OneOfOne)
+   public SingleEliminationDraw(ParticipantPositions positions, DrawSize size, FinalsType finalsType = FinalsType.OneOfOne)
    {
-      _positions = postions.Matches;
+      _positions = positions.Matches;
       _drawSize = size;
       _totalRounds = size.ToTotalRounds();
 
+      _matches = new();
       CreateMatchProgressions(CreateMatchIds());
    }
 
@@ -52,19 +53,20 @@ public sealed class SingleEliminationDraw
    public Dictionary<int, List<int>> CreateMatchIds()
    {
       int localMatchId = 1;
+      var ids = new List<int>();
       
       // round number = list of match ids
       Dictionary<int, List<int>> matchIds = new();
-      for (int i = 1; i <= _totalRounds; i++)
+      for (int round = 1; round <= _totalRounds; round++)
       {
-         var totalMatches = GetTotalMatchesInRound(i);
-         var ids = new List<int>();
+         var totalMatches = GetTotalMatchesInRound(round);
          for (int j = 0; j < totalMatches; j++)
          {
             ids.Add(localMatchId);
             localMatchId++;
          }
-         matchIds.TryAdd(i, ids);
+         matchIds.TryAdd(round, ids);
+         ids.Clear();
       }
       
       return matchIds;
@@ -73,8 +75,7 @@ public sealed class SingleEliminationDraw
    public void CreateMatchProgressions(Dictionary<int, List<int>> matchIds)
    {
       int prevId = 0;
-      int round = 0;
-      for (round = 1; round < _totalRounds; round++)
+      for (int round = 1; round < _totalRounds; round++)
       {
             // Get Match Ids for the Current and Next Round (after current round)
          var curMatchIds = matchIds[round];

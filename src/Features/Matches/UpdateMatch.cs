@@ -1,3 +1,4 @@
+using OpenTournament.Common.Models;
 using OpenTournament.Common;
 
 namespace Features.Matches;

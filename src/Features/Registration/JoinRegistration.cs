@@ -1,6 +1,7 @@
 using Features.Matches;
 using OpenTournament.Common;
 using OpenTournament.Common.Rules;
+using OpenTournament.Common.Models;
 
 namespace Features.Tournaments;
 
@@ -52,7 +53,7 @@ public static class JoinRegistration
     }
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("tournaments/{id}/join", Endpoint).WithTags("Registration");
+        app.MapPut("registrations/{id}/join", Endpoint).WithTags("Registration");
 
     
     public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id, 

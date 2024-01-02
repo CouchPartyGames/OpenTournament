@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OpenTournament.Common.Models;
 
 namespace OpenTournament.Common;
 
@@ -30,6 +31,18 @@ public sealed class AppDbContext : DbContext
         modelBuilder.Entity<Tournament>()
             .Property(b => b.Name)
             .IsRequired();
+
+        modelBuilder.Entity<Tournament>()
+            .Property(t => t.EliminationMode)
+            .HasConversion<int>();
+        
+        modelBuilder.Entity<Tournament>()
+            .Property(t => t.DrawSize)
+            .HasConversion<int>();
+        
+        modelBuilder.Entity<Tournament>()
+            .Property(t => t.RegistrationMode)
+            .HasConversion<int>();
         
         
             // Matches

@@ -1,4 +1,5 @@
 using OpenTournament.Common;
+using OpenTournament.Common.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
@@ -42,16 +43,18 @@ public static class StartTournament
             var opponents = new List<Opponent>();
             var order = ParticipantOrder.Order.Random;
             var participantOrder = ParticipantOrder.Create(order, opponents);
+           // DrawSize size = DrawSize.CreateFromParticipants(6);
 
-            var draw = new SingleEliminationDraw(new ParticipantPositions(6));
-            foreach(KeyValuePair<int, FullMatch> entry in draw.Matches)
+            /*
+            var draw = new SingleEliminationDraw(new ParticipantPositions(size));
+            foreach(KeyValuePair<int, DrawMatch> entry in draw.Matches)
             {
                 var matchId = entry.Key;
                 var match = entry.Value;
                 
                 //entry.Value
                 //_dbContext.Add(match);
-            }
+            }*/
 
             // Save
             tournament.Status = Status.InProcess;

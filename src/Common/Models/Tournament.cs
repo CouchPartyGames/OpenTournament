@@ -1,7 +1,7 @@
 
 using OneOf.Types;
 
-namespace OpenTournament.Common;
+namespace OpenTournament.Common.Models;
 
 public sealed record TournamentId(Guid Value)
 {
@@ -12,10 +12,10 @@ public sealed record TournamentId(Guid Value)
             return null;
         }
 
-        return new TournamentId(guid);
+        return new(guid);
     }
     
-    public static TournamentId Create() => new TournamentId(Guid.NewGuid());
+    public static TournamentId Create() => new(Guid.NewGuid());
 }
 
 public enum Status
@@ -24,6 +24,30 @@ public enum Status
     InProcess,
     Completed
 }
+
+public enum EliminationMode
+{
+    Single = 0,
+    Double
+};
+
+public enum DrawSize
+{
+    NotSet = 0,
+    Size2 = 2,
+    Size4 = 4,
+    Size8 = 8,
+    Size16 = 16,
+    Size32 = 32,
+    Size64 = 64,
+    Size128 = 128
+};
+
+public enum RegistrationMode
+{
+    Preset = 0,
+    Dynamic
+};
 
 public sealed class Tournament
 {
@@ -38,4 +62,10 @@ public sealed class Tournament
     public int MinParticipants { get; set; } = 2;
 
     public int MaxParticipants { get; set; } = 8;
+
+    public EliminationMode EliminationMode = EliminationMode.Single;
+
+    public DrawSize DrawSize = DrawSize.NotSet;
+
+    public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
 }
