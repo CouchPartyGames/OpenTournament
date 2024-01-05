@@ -1,6 +1,10 @@
 using Features.Matches;
 using Features.Tournaments;
+using FirebaseAdmin;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
+using OpenTournament.Authentication;
 using OpenTournament.Common.Exceptions;
 using OpenTournament.Common;
 
@@ -18,6 +22,20 @@ builder.Services.AddHttpLogging((options) =>
 });
 builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddSingleton<AppDbContext>();
+/*
+    Firebase Auth
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddScheme<AuthenticationSchemeOptions, FirebaseAuthenticationHandler>(JwtBearerDefaults.AuthenticationScheme);
+builder.Services.AddSingleton(FirebaseApp.Create());
+    OR
+builder.Services.AddSingleton(FirebaseApp.Create(new AppOptions
+{
+    Credential = null,
+    ProjectId = null,
+    ServiceAccountId = null,
+    HttpClientFactory = null
+}));
+*/
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

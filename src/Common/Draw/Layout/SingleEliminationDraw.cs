@@ -1,12 +1,5 @@
 namespace OpenTournament.Common.Draw.Layout;
 
-public enum RoundId
-{
-   Finals = 1,
-   Semifinals = 2,
-   Quarterfinals = 3,
-   RoundOf16 = 4
-};
 
 public enum FinalsType
 {
@@ -15,13 +8,37 @@ public enum FinalsType
    ThreeOfFive
 };
 
-public enum EliminationMode
-{
-   Single = 0,
-   Double
-};
 
-public sealed record DrawMatch(int Id, int RoundId, int Progression, int Position1 = 0, int Position2 = 0);
+//public sealed record DrawMatch(int Id, int RoundId, int Progression, int Position1 = 0, int Position2 = 0);
+
+public sealed class DrawMatch
+{
+   public int Id { get; } 
+   public int Round { get; } 
+   public int WinProgression { get; private set; } = -1;
+
+   public int Opponent1 { get; } = -1;
+
+   public int Opponent2 { get; } = -1;
+
+   private const int NoProgression = -1;
+
+   public DrawMatch(int id, int round) => (Id, Round) = (id, round);
+   public DrawMatch(int id, int round, int winProgression) => (Id, Round, WinProgression) = (id, round, winProgression);
+   public DrawMatch(int id, int winProgression, int opp1, int opp2) => (Id, Round, WinProgression, Opponent1, Opponent2) = (id, 1, winProgression, opp1, opp2);
+   
+   public void SetProgression(int progression) => WinProgression = progression;
+
+   public override string ToString()
+   {
+      if (Opponent1 != -1 && Opponent2 != -1)
+      {
+         return $"Round: {Round} Id: {Id} Next: {WinProgression}  - {Opponent1} vs {Opponent2}";
+      }
+      return $"Round: {Round} Id: {Id} Next: {WinProgression}";
+   }
+}
+
 
 public sealed class CurrentDoesntMatchNextException(string message) : Exception(message);
 
@@ -29,6 +46,7 @@ public sealed class SingleEliminationDraw
 {
    private readonly DrawSize _drawSize;
    private readonly int _totalRounds;
+   private readonly FinalsType _finalsType;
    
    private List<VersusMatch> _positions;
 
@@ -38,81 +56,95 @@ public sealed class SingleEliminationDraw
    }
 
    private Dictionary<int, DrawMatch> _matches = new();
+
+   public List<DrawMatch> GetMatchesInRound(int round)
+   {
+      return _matches
+         .Where(x => x.Value.Round == round)
+         .Select(x => x.Value)
+         .ToList();
+   }
    
    public SingleEliminationDraw(ParticipantPositions positions, DrawSize size, FinalsType finalsType = FinalsType.OneOfOne)
    {
       _positions = positions.Matches;
       _drawSize = size;
-      _totalRounds = size.ToTotalRounds();
-
-      _matches = new();
-      CreateMatchProgressions(CreateMatchIds());
-   }
-
-   
-   public Dictionary<int, List<int>> CreateMatchIds()
-   {
-      int localMatchId = 1;
-      var ids = new List<int>();
-      
-      // round number = list of match ids
-      Dictionary<int, List<int>> matchIds = new();
-      for (int round = 1; round <= _totalRounds; round++)
-      {
-         var totalMatches = GetTotalMatchesInRound(round);
-         for (int j = 0; j < totalMatches; j++)
-         {
-            ids.Add(localMatchId);
-            localMatchId++;
-         }
-         matchIds.TryAdd(round, ids);
-         ids.Clear();
-      }
-      
-      return matchIds;
+      _finalsType = finalsType;
+      _totalRounds = _drawSize.ToTotalRounds();
    }
 
    public void CreateMatchProgressions(Dictionary<int, List<int>> matchIds)
    {
-      int prevId = 0;
       for (int round = 1; round < _totalRounds; round++)
       {
-            // Get Match Ids for the Current and Next Round (after current round)
-         var curMatchIds = matchIds[round];
-         var nextMatchIds = matchIds[round + 1];
-
-
-            // Create Sets of 2 (MatchIds) 
-         var chunkPairs = curMatchIds.Chunk<int>(2);
-
-            // Number of Pairs in the Current should match the Next Round
-         if (chunkPairs.ToList().Count != nextMatchIds.Count)
+         if (!matchIds.ContainsKey(round) || !matchIds.ContainsKey(round + 1))
          {
-            throw new CurrentDoesntMatchNextException("Mismatch Current with Next Round");
+            continue;
          }
          
-            // Loop thru the Sets in the Current Round
-         foreach (var pair in chunkPairs)
+            // Get Match Ids for the Current and Next Round (after current round)
+         AddMatches(round, matchIds[round], matchIds[round + 1]);
+      }
+      
+         // ToDo: Verify Last Match
+      AddFinalsMatches(matchIds[_totalRounds][0], _totalRounds);
+   }
+
+   void AddMatches(int round, List<int> curMatchIds, List<int> nextMatchIds)
+   {
+      int prevId = 0;
+      var chunkPairs = curMatchIds.Chunk<int>(2);
+
+         // Number of Pairs in the Current should match the Next Round
+      if (chunkPairs.ToList().Count != nextMatchIds.Count)
+      {
+         throw new CurrentDoesntMatchNextException("Mismatch Current with Next Round");
+      }
+      
+      foreach (var pair in chunkPairs)
+      {
+         var progressMatchId = nextMatchIds.ToArray()[prevId];
+         foreach (var matchId in pair)
          {
-            var progressMatchId = nextMatchIds[prevId];
-            foreach (var matchId in pair)
+            if (round == 1)
             {
-               _matches.Add(matchId, new DrawMatch(matchId, round, progressMatchId));
+               var match = new DrawMatch(matchId, 
+                  progressMatchId, 
+                  _positions[matchId - 1].FirstParticipant,
+                  _positions[matchId - 1].SecondParticipant);
+               
+               _matches.Add(matchId, match);
             }
-            prevId++;
+            else
+            {
+               var match = new DrawMatch(matchId, round, progressMatchId);
+               _matches.Add(matchId, match);
+            }
+
          }
+         prevId++;
       }
    }
 
-   public int GetTotalMatchesInRound(int round) => (int)_drawSize.Value / (int)Math.Pow(2, round);
-   
-   
-   public static RoundId MatchCountToRoundId(int numMatches) => numMatches switch
+   void AddFinalsMatches(int matchId, int round)
    {
-      1 => RoundId.Finals,
-      2 => RoundId.Semifinals,
-      4 => RoundId.Quarterfinals,
-      8 => RoundId.RoundOf16,
-      _ => throw new Exception("bad rounds")
-   };
+      switch (_finalsType)
+      {
+         case FinalsType.OneOfOne:
+            _matches.Add(matchId, new DrawMatch(matchId, round));
+            break;
+         case FinalsType.TwoOfThree:
+            _matches.Add(matchId, new DrawMatch(matchId, round, matchId + 1));
+            _matches.Add(matchId + 1, new DrawMatch(matchId + 1, round + 1, matchId + 2));
+            _matches.Add(matchId + 2, new DrawMatch(matchId + 2, round + 2));
+            break;
+         case FinalsType.ThreeOfFive:
+            _matches.Add(matchId, new DrawMatch(matchId, round, matchId + 1));
+            _matches.Add(matchId + 1, new DrawMatch(matchId + 1, round + 1, matchId + 2));
+            _matches.Add(matchId + 2, new DrawMatch(matchId + 2, round + 2, matchId + 3));
+            _matches.Add(matchId + 3, new DrawMatch(matchId + 3, round + 3, matchId + 4));
+            _matches.Add(matchId + 4, new DrawMatch(matchId + 4, round + 4));
+            break;
+      }
+   }
 }

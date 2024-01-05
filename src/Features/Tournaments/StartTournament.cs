@@ -3,6 +3,7 @@ using OpenTournament.Common.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
+using DrawSize = OpenTournament.Common.Draw.Layout.DrawSize;
 
 namespace Features.Tournaments;
 
@@ -43,18 +44,21 @@ public static class StartTournament
             var opponents = new List<Opponent>();
             var order = ParticipantOrder.Order.Random;
             var participantOrder = ParticipantOrder.Create(order, opponents);
-           // DrawSize size = DrawSize.CreateFromParticipants(6);
+            DrawSize drawSize = DrawSize.CreateFromParticipants(participants.Count);
 
-            /*
-            var draw = new SingleEliminationDraw(new ParticipantPositions(size));
-            foreach(KeyValuePair<int, DrawMatch> entry in draw.Matches)
+            var positions = new ParticipantPositions(drawSize);
+            var draw = new SingleEliminationDraw(positions, drawSize);
+            
+            foreach(var drawMatch in draw.GetMatchesInRound(1))
             {
-                var matchId = entry.Key;
-                var match = entry.Value;
-                
-                //entry.Value
-                //_dbContext.Add(match);
-            }*/
+                var match = new Match();
+                match.LocalMatchId = drawMatch.Id;
+                match.State = MatchState.Ready;
+                match.Id = MatchId.Create();
+                //match.Opponent1 = ;
+                //match.Opponent2 = ;
+                _dbContext.Add(match);
+            }
 
             // Save
             tournament.Status = Status.InProcess;

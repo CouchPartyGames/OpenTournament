@@ -27,6 +27,7 @@ public sealed class Match
 
     public MatchState State { get; set; } = MatchState.Ready;
     
+    public int LocalMatchId { get; set; }
     
     //Progression WinProgression;
     //Progression LoseProgression;
