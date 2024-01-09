@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Storage.Json;
 using OpenTournament.Common;
 using OpenTournament.Common.Models;
 using OpenTournament.Common.Draw.Layout;
@@ -48,23 +49,30 @@ public static class StartTournament
             DrawSize drawSize = DrawSize.CreateFromParticipants(participants.Count);
 
             var positions = new ParticipantPositions(drawSize);
+            var localMatchIds = new LocalMatchIds(drawSize);
             var draw = new SingleEliminationDraw(positions, drawSize);
+            draw.CreateMatchProgressions(localMatchIds.CreateMatchIds());
             
+                // Add Matches (1st Round)
             foreach(var drawMatch in draw.GetMatchesInRound(1))
             {
                 var match = new Match();
                 match.LocalMatchId = drawMatch.Id;
                 match.State = MatchState.Ready;
                 match.Id = MatchId.Create();
-                //match.Opponent1 = ;
-                //match.Opponent2 = ;
-                Console.WriteLine($"{drawMatch.Id}");
+                //match.Opponent1 = drawMatch.Opponent1;
+                //match.Opponent2 = drawMatch.Opponent2;
                 _dbContext.Add(match);
             }
 
-            // Save
+                // Clear Registration
+            _dbContext.Remove(participants); 
+            
+                // Update Tournament
             tournament.DrawSize = OpenTournament.Common.Models.DrawSize.Size8;
             tournament.Status = Status.InProcess;
+            
+                // Make Changes
             var results = await _dbContext.SaveChangesAsync(token);
                 
             return true;

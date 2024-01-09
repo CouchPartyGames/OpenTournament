@@ -29,6 +29,9 @@ public sealed class Match
     
     public int LocalMatchId { get; set; }
     
+    public ParticipantId Opponent1 { get; set; }
+    
+    public ParticipantId Opponent2 { get; set; }
     //Progression WinProgression;
     //Progression LoseProgression;
 }
