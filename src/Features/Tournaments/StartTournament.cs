@@ -30,8 +30,9 @@ public static class StartTournament
 
             var participants = _dbContext
                 .Registrations
-                .Select(x => x.TournamentId == tournament.Id)
                 .ToList();
+                //.Find()
+                //.Where(x => x.TournamentId == command.Id)
             
                 // Apply Rules
             var engine = new RuleEngine();
@@ -57,10 +58,12 @@ public static class StartTournament
                 match.Id = MatchId.Create();
                 //match.Opponent1 = ;
                 //match.Opponent2 = ;
+                Console.WriteLine($"{drawMatch.Id}");
                 _dbContext.Add(match);
             }
 
             // Save
+            tournament.DrawSize = OpenTournament.Common.Models.DrawSize.Size8;
             tournament.Status = Status.InProcess;
             var results = await _dbContext.SaveChangesAsync(token);
                 

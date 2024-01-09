@@ -5,10 +5,18 @@ namespace OpenTournament.Common;
 
 public sealed class AppDbContext : DbContext
 {
-    public AppDbContext() { }
-    
+    private ILogger<AppDbContext> _logger;
+
+    public AppDbContext(ILogger<AppDbContext> logger)
+    {
+        _logger = logger;  
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder options)
-        => options.UseSqlite($"Data Source=tourny.db");
+    {
+        //options.UseLoggerFactory(_logger);
+        options.UseSqlite($"Data Source=tourny.db");
+    }
 
     public DbSet<Tournament> Tournaments { get; set; }
     
@@ -63,7 +71,7 @@ public sealed class AppDbContext : DbContext
         
             // Registration
         modelBuilder.Entity<Registration>()
-            .HasKey(r => r.TournamentId);
+            .HasKey(r => new { r.TournamentId, r.ParticipantId });
         
         modelBuilder.Entity<Registration>()
             .Property(p => p.TournamentId)

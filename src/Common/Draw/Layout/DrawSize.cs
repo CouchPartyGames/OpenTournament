@@ -28,7 +28,7 @@ public sealed record DrawSize
         var size = (Size)BitOperations.RoundUpToPowerOf2((uint)numParticipants);
         if (!Enum.IsDefined(typeof(Size), size))
         {
-            throw new InvalidDrawSizeException($"Unable to handle draw of size: ${size}");
+            throw new InvalidDrawSizeException($"Unable to handle draw of size: {size}");
         }
             //https://learn.microsoft.com/en-us/dotnet/api/system.enum.isdefined?view=net-8.0&redirectedfrom=MSDN#System_Enum_IsDefined_System_Type_System_Object_
         return new(size);
