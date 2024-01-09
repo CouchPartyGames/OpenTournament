@@ -5,15 +5,15 @@ using OpenTournament.Common.Draw.Layout;
 public class ParticipantDrawPositionsTest
 {
     [Theory]
-    [InlineData(16, 8)]
-    [InlineData(32, 16)]
-    [InlineData(64, 32)]
-    [InlineData(128, 64)]
-    public void GetDrawSize_ShouldMatch_WhenDrawSize(int size, int expectedMatchCount)
+    [InlineData(DrawSize.Size.Size16, 8)]
+    [InlineData(DrawSize.Size.Size32, 16)]
+    [InlineData(DrawSize.Size.Size64, 32)]
+    [InlineData(DrawSize.Size.Size128, 64)]
+    public void GetDrawSize_ShouldMatch_WhenDrawSize(DrawSize.Size size, int expectedMatchCount)
     {
 
         // Arrange
-        DrawSize drawSize = DrawSize.Create((DrawSize.Size) size);
+        DrawSize drawSize = DrawSize.Create(size);
         
         // Act
         var positions = new ParticipantPositions(drawSize);
