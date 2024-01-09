@@ -68,6 +68,8 @@ public sealed class AppDbContext : DbContext
             .Property(p => p.Id)
             .HasConversion(v => v.Value,
                 v => new ParticipantId(v));
+
+        modelBuilder.Entity<Participant>().HasData(new Participant { Id = ParticipantId.TryParse("f924898c-249c-4ff3-b483-5dfe2819a66d"), Name = "Bye" });
         
             // Registration
         modelBuilder.Entity<Registration>()

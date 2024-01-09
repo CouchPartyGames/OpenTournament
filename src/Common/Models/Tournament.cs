@@ -1,4 +1,5 @@
 
+using System.ComponentModel.DataAnnotations.Schema;
 using OneOf.Types;
 
 namespace OpenTournament.Common.Models;
@@ -51,6 +52,7 @@ public enum RegistrationMode
 
 public sealed class Tournament
 {
+    [Column(TypeName = "varchar(36)")]
     public TournamentId Id { get; set; }
     
     public required string Name { get; set; }
