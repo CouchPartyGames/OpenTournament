@@ -18,8 +18,8 @@ public abstract class ParticipantOrder
     {
         return order switch
         {
-            Order.Random => new RandomParticipantOrder(opponents),
-            Order.Ranked => new RankedParticipantOrder(opponents)
+            Order.Ranked => new RankedParticipantOrder(opponents),
+            _ => new RandomParticipantOrder(opponents)
         };
     }
 }
