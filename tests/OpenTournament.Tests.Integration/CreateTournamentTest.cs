@@ -1,22 +1,18 @@
-using Features.Tournaments;
-
 namespace OpenTournament.Tests.Integration;
 
-public class CreateTournamentTest
+public class CreateTournamentTest : TournamentApiFactory
 {
-    private readonly WebApplicationFactory<IApiMarker> _factory = new();
-
     private readonly HttpClient _httpClient;
 
-    public CreateTournamentTest()
+
+    public CreateTournamentTest(WebApplicationFactory<IApiMarker> factory)
     {
-        _httpClient = _factory.CreateClient();
+        _httpClient = factory.CreateClient();
     }
-    
+
     [Fact]
     public async Task Endpoint_ShouldReturn201_WhenSendingValidTournament()
     {
-        
         StringContent jsonContent = new(
             JsonSerializer.Serialize(new
             {
