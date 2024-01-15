@@ -1,11 +1,13 @@
+using Microsoft.EntityFrameworkCore;
+using OpenTournament.Common;
+
 namespace OpenTournament.Tests.Integration;
 
-public class CreateTournamentTest : TournamentApiFactory
+public class CreateTournamentTest : IClassFixture<TournamentApiFactory>
 {
     private readonly HttpClient _httpClient;
 
-
-    public CreateTournamentTest(WebApplicationFactory<IApiMarker> factory)
+    public CreateTournamentTest(TournamentApiFactory factory)
     {
         _httpClient = factory.CreateClient();
     }
