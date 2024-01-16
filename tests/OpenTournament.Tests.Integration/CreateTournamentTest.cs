@@ -6,10 +6,12 @@ namespace OpenTournament.Tests.Integration;
 public class CreateTournamentTest : IClassFixture<TournamentApiFactory>
 {
     private readonly HttpClient _httpClient;
+    private readonly ITestOutputHelper _output;
 
-    public CreateTournamentTest(TournamentApiFactory factory)
+    public CreateTournamentTest(TournamentApiFactory factory, ITestOutputHelper output)
     {
         _httpClient = factory.CreateClient();
+        _output = output;
     }
 
     [Fact]

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using OpenTournament.Common;
 
 
@@ -14,21 +16,17 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
         .WithUsername("tourny")
         .WithPassword("tourny").Build();
 
+    private readonly ITestOutputHelper _output;
+
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureTestServices(services =>
         {
-            var descriptor = services
-                .SingleOrDefault(s => s.ServiceType == typeof(DbContextOptions<AppDbContext>));
-            if (descriptor is not null)
-            {
-                services.Remove(descriptor);
-            }
+            services.RemoveAll(typeof(AppDbContext));
 
             services.AddDbContext<AppDbContext>(options =>
             {
-                //var connectionString = $"file:{Guid.NewGuid()}?mode=memory?cache=shared";
-                //options.UseSqlite(connectionString);
                 options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
             });
             services.AddSingleton<AppDbContext>();
@@ -41,6 +39,7 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await dbContext.Database.MigrateAsync();
+        //Console.WriteLine(_postgreSqlContainer.GetConnectionString());
     }
 
     public async Task DisposeAsync()
