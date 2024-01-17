@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore.Storage.Json;
-using OpenTournament.Common;
+using OpenTournament.Common.Data;
 using OpenTournament.Common.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using OpenTournament.Common;
+using OpenTournament.Common.Data;
 
 
 namespace OpenTournament.Tests.Integration;
@@ -28,8 +28,7 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
-            });
-            services.AddSingleton<AppDbContext>();
+            }, ServiceLifetime.Singleton);
         });
     }
     
@@ -39,7 +38,6 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await dbContext.Database.MigrateAsync();
-        //Console.WriteLine(_postgreSqlContainer.GetConnectionString());
     }
 
     public async Task DisposeAsync()

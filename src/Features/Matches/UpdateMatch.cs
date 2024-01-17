@@ -1,5 +1,5 @@
 using OpenTournament.Common.Models;
-using OpenTournament.Common;
+using OpenTournament.Common.Data;
 
 namespace Features.Matches;
 

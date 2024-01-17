@@ -6,13 +6,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
 using OpenTournament.Authentication;
 using OpenTournament.Common.Exceptions;
-using OpenTournament.Common;
+using OpenTournament.Common.Data;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseSqlite("Data Source=tourny.db");
+}, ServiceLifetime.Singleton);
+builder.Services.AddSingleton<AppDbContext>();
 builder.Services.AddMediator();
 builder.Services.AddHealthChecks();
 builder.Services.AddHttpLogging((options) =>
@@ -20,8 +23,8 @@ builder.Services.AddHttpLogging((options) =>
     options.CombineLogs = true;
     options.LoggingFields = HttpLoggingFields.All;
 });
-builder.Services.AddDbContext<AppDbContext>();
-builder.Services.AddSingleton<AppDbContext>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 /*
     Firebase Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

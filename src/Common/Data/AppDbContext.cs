@@ -1,22 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Common.Models;
 
-namespace OpenTournament.Common;
+namespace OpenTournament.Common.Data;
 
-public sealed class AppDbContext : DbContext
+public class AppDbContext : DbContext
 {
-    private ILogger<AppDbContext> _logger;
+    public AppDbContext() { }
+    
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
-    public AppDbContext(ILogger<AppDbContext> logger)
-    {
-        _logger = logger;  
-    }
-
+    /*
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
-        //options.UseLoggerFactory(_logger);
-        options.UseSqlite($"Data Source=tourny.db");
-    }
+        if (!options.IsConfigured)
+        {
+            //options.UseNpgsql();
+            options.UseSqlite($"Data Source=tourny.db");
+        }
+    }*/
 
     public DbSet<Tournament> Tournaments { get; set; }
     

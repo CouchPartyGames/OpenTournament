@@ -1,6 +1,6 @@
 using Features.Matches;
 using OneOf.Types;
-using OpenTournament.Common;
+using OpenTournament.Common.Data;
 using OpenTournament.Common.Models;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
