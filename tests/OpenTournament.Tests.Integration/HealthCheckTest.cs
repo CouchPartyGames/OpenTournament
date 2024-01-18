@@ -15,7 +15,7 @@ public class HealthCheckTest : IClassFixture<TournamentApiFactory>
         // Act
         var response = await _httpClient.GetAsync("/health");
 
-        // Assert
+        // Assertt
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }

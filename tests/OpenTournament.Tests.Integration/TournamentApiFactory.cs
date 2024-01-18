@@ -27,7 +27,10 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
 
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
+                options.UseSqlite("Filename=:memory:");
+                options.EnableDetailedErrors(true);
+                
+                //options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
             }, ServiceLifetime.Singleton);
         });
     }
