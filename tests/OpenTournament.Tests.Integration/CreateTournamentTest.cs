@@ -1,3 +1,4 @@
+using Features.Tournaments;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Common;
 
@@ -15,8 +16,9 @@ public class CreateTournamentTest : IClassFixture<TournamentApiFactory>
     }
 
     [Fact]
-    public async Task Endpoint_ShouldReturn201_WhenSendingValidTournament()
+    public async Task Endpoint_ShouldCreateTournament_WhenDataIsValid()
     {
+        //Faker<CreateTournament.CreateTournamentCommand> command = new Faker<CreateTournament.CreateTournamentCommand>().RuleFor()
         StringContent jsonContent = new(
             JsonSerializer.Serialize(new
             {

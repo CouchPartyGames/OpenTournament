@@ -18,6 +18,7 @@ public static class GetMatch
         {
             var match = await _dbContext
                 .Matches
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == request.Id);
 
             if (match is null)

@@ -21,6 +21,7 @@ public static class GetTournament
         {
             var tournament = await _dbContext
                 .Tournaments
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == request.Id);
 
             if (tournament is null)
