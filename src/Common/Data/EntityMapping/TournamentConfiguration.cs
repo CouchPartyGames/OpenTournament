@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using OpenTournament.Common.Data.ValueConverters;
 using OpenTournament.Common.Models;
 
 namespace OpenTournament.Common.Data.EntityMapping;
@@ -9,11 +10,10 @@ public class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
     {
             // Tournaments
         builder.HasKey(t => t.Id);
-        
+
         builder
             .Property(t => t.Id)
-            .HasConversion(v => v.Value,
-                v => new TournamentId(v));
+            .HasConversion<TournamentIdConverter>();
         
         builder
             .Property(b => b.Name)

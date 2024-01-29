@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using OpenTournament.Common.Data.ValueConverters;
 using OpenTournament.Common.Models;
 
 namespace OpenTournament.Common.Data.EntityMapping;
@@ -12,12 +13,10 @@ public class RegistrationConfiguration : IEntityTypeConfiguration<Registration>
         
         builder
             .Property(p => p.TournamentId)
-            .HasConversion(v => v.Value,
-                v => new TournamentId(v));
+            .HasConversion<TournamentIdConverter>();
         
         builder
             .Property(p => p.ParticipantId)
-            .HasConversion(v => v.Value,
-                v => new ParticipantId(v));
+            .HasConversion<ParticipantId>();
     }
 }
