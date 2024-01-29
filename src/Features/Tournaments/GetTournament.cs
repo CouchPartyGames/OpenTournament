@@ -1,5 +1,4 @@
-using OpenTournament.Common.Data;
-using OpenTournament.Common.Models;
+using OpenTournament.Models;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
 namespace Features.Tournaments;

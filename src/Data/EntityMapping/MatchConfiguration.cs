@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using OpenTournament.Common.Models;
+using OpenTournament.Models;
 
-namespace OpenTournament.Common.Data.EntityMapping;
+namespace OpenTournament.Data.EntityMapping;
 
 public class MatchConfiguration : IEntityTypeConfiguration<Match>
 {

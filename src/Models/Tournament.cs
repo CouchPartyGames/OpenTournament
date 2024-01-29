@@ -1,8 +1,7 @@
-
 using System.ComponentModel.DataAnnotations.Schema;
 using OneOf.Types;
 
-namespace OpenTournament.Common.Models;
+namespace OpenTournament.Models;
 
 public sealed record TournamentId(Guid Value)
 {

@@ -1,7 +1,6 @@
 using Features.Matches;
-using OpenTournament.Common.Data;
 using OpenTournament.Common.Rules;
-using OpenTournament.Common.Models;
+using OpenTournament.Models;
 
 namespace Features.Tournaments;
 

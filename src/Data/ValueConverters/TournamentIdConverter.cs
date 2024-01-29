@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using OpenTournament.Common.Models;
+using OpenTournament.Models;
 
-namespace OpenTournament.Common.Data.ValueConverters;
+namespace OpenTournament.Data.ValueConverters;
 
 
 public sealed class TournamentIdConverter : ValueConverter<TournamentId, Guid>

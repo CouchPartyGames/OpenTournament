@@ -1,9 +1,8 @@
-using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
-using OpenTournament.Common.Data.EntityMapping;
-using OpenTournament.Common.Models;
+using OpenTournament.Data.EntityMapping;
+using OpenTournament.Models;
 
-namespace OpenTournament.Common.Data;
+namespace OpenTournament.Data;
 
 public class AppDbContext : DbContext
 {

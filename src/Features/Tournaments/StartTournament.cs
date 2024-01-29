@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore.Storage.Json;
-using OpenTournament.Common.Data;
-using OpenTournament.Common.Models;
+using OpenTournament.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
@@ -69,7 +68,7 @@ public static class StartTournament
             _dbContext.Remove(participants); 
             
                 // Update Tournament
-            tournament.DrawSize = OpenTournament.Common.Models.DrawSize.Size8;
+            tournament.DrawSize = OpenTournament.Models.DrawSize.Size8;
             tournament.Status = Status.InProcess;
             
                 // Make Changes
