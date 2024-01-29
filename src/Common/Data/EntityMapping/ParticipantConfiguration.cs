@@ -17,7 +17,7 @@ public class ParticipantConfiguration : IEntityTypeConfiguration<Participant>
 
         builder.HasData(new Participant
         {
-            Id = ParticipantId.TryParse("f924898c-249c-4ff3-b483-5dfe2819a66d"), 
+            Id = ParticipantId.TryParse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), 
             Name = "Bye"
         });
     }

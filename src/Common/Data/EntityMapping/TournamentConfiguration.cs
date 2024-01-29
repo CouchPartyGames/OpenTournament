@@ -22,6 +22,7 @@ public class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
         builder
             .Property(t => t.EliminationMode)
             .HasConversion<int>();
+            //.HasDefaultValue(EliminationMode.);
         
         builder
             .Property(t => t.DrawSize)
