@@ -6,17 +6,23 @@ public static class Layout
 {
     public static IServiceCollection AddTournamentLayouts(this IServiceCollection services)
     {
-        services.AddKeyedSingleton(LayoutConstants.Single4,
-            new SingleEliminationDraw(
-                new ParticipantPositions(
-                    DrawSize.Create(DrawSize.Size.Size4)), 
-                    DrawSize.Create(DrawSize.Size.Size4)));
-        
-        services.AddKeyedSingleton(LayoutConstants.Single8,
-            new SingleEliminationDraw(
-                new ParticipantPositions(
-                    DrawSize.Create(DrawSize.Size.Size8)), 
-                    DrawSize.Create(DrawSize.Size.Size8)));
+        Dictionary<DrawSize.Size, string> combos = new()
+        {
+            { DrawSize.Size.Size4, LayoutConstants.Single4 },
+            { DrawSize.Size.Size8, LayoutConstants.Single8 },
+            { DrawSize.Size.Size16, LayoutConstants.Single16 },
+            { DrawSize.Size.Size32, LayoutConstants.Single32 },
+            { DrawSize.Size.Size64, LayoutConstants.Single64 },
+            { DrawSize.Size.Size128, LayoutConstants.Single128 },
+        };
+
+        foreach (var item in combos)
+        {
+            services.AddKeyedSingleton(item.Value,
+                new SingleEliminationDraw(
+                    new ParticipantPositions(DrawSize.Create(item.Key)),
+                    DrawSize.Create(item.Key)));
+        }
         
         return services;
     }
@@ -31,7 +37,6 @@ public static class LayoutConstants
     public const string Single32 = "Single32";
     public const string Single64 = "Single64";
     public const string Single128 = "Single128";
-    public const string Single256 = "Single256";
     
     public const string Double4 = "Double4";
     public const string Double8 = "Double8";
@@ -39,5 +44,4 @@ public static class LayoutConstants
     public const string Double32 = "Double32";
     public const string Double64 = "Double64";
     public const string Double128 = "Double128";
-    public const string Double256 = "Double256";
 }
