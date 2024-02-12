@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
 using OpenTournament.Authentication;
 using OpenTournament.Common.Exceptions;
+using OpenTournament.Configurations;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
@@ -24,6 +25,7 @@ builder.Services.AddHttpLogging((options) =>
 });
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.AddTournamentLayouts();
 /*
     Firebase Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
