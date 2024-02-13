@@ -4,6 +4,10 @@ namespace OpenTournament.Common.Draw.Layout;
 
 public sealed class InvalidDrawSizeException(string message) : Exception(message);
 
+
+// <summary>
+// Size of the draw
+// </summary>
 public sealed record DrawSize
 {
     public enum Size

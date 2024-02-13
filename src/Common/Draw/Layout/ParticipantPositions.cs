@@ -13,8 +13,8 @@ public sealed record VersusMatch(int FirstParticipant, int SecondParticipant);
 // </summary>
 public sealed class ParticipantPositions(DrawSize drawSize)
 {
-	private readonly DrawSize drawSize = drawSize;
-	
+	public DrawSize DrawSize { get; init; } = drawSize;
+
 	public List<VersusMatch> Matches
 	{
 		get

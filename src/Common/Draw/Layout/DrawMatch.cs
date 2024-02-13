@@ -1,5 +1,8 @@
 namespace OpenTournament.Common.Draw.Layout;
 
+// <summary>
+//
+// </summary>
 public sealed class DrawMatch
 {
     public int Id { get; } 

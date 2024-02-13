@@ -1,6 +1,9 @@
 ﻿namespace OpenTournament.Common.Draw.Layout;
 
-public class LocalMatchIds(DrawSize drawSize)
+// <summary>
+// Create list of matches with matchId
+// </summary>
+public sealed class LocalMatchIds(DrawSize drawSize)
 {
    private readonly DrawSize drawSize = drawSize;
     
