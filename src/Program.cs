@@ -4,7 +4,10 @@ using FirebaseAdmin;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTournament.Authentication;
+using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
 using OpenTournament.Configurations;
 
@@ -26,6 +29,20 @@ builder.Services.AddHttpLogging((options) =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddTournamentLayouts();
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(o =>
+    {
+        o.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
+        o.AddMeter("Microsoft.AspNetCore.Hosting",
+            "System.Net.Http");
+
+        o.AddOtlpExporter(export =>
+        {
+            var addr = builder.Configuration["OpenTelemetry:Endpoint"] ?? "http://localhost";
+            export.Endpoint = new Uri(addr);
+        });
+    });
+
 /*
     Firebase Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
