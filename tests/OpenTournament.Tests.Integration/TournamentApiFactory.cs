@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using OpenTournament.Common.Data;
+using OpenTournament.Data;
 
 
 namespace OpenTournament.Tests.Integration;
