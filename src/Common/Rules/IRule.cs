@@ -1,6 +1,6 @@
 namespace OpenTournament.Common.Rules;
 
-using OpenTournament.Common.Models;
+using OpenTournament.Models;
 
 public sealed record RuleError(string Name, string Message, string Field);
 
