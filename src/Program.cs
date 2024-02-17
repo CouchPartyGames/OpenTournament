@@ -10,6 +10,7 @@ using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
 using OpenTournament.Configurations;
+using OpenTournament.Identity;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
@@ -43,19 +44,25 @@ builder.Services.AddOpenTelemetry()
         });
     });
 
+//builder.Services.AddSingleton(FirebaseApp.Create());
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(IdentityData.ParticipantPolicyName, policyBuilder =>
+    {
+        policyBuilder.RequireAuthenticatedUser();
+    });
+    
+    options.AddPolicy(IdentityData.ServerPolicyName, policyBuilder =>
+    {
+        policyBuilder.RequireClaim(IdentityData.ServerClaimName, "server");
+    });
+});
+
 /*
     Firebase Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddScheme<AuthenticationSchemeOptions, FirebaseAuthenticationHandler>(JwtBearerDefaults.AuthenticationScheme);
-builder.Services.AddSingleton(FirebaseApp.Create());
-    OR
-builder.Services.AddSingleton(FirebaseApp.Create(new AppOptions
-{
-    Credential = null,
-    ProjectId = null,
-    ServiceAccountId = null,
-    HttpClientFactory = null
-}));
 */
 
 builder.Services.AddEndpointsApiExplorer();

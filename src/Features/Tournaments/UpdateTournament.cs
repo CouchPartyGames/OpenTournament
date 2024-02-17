@@ -74,7 +74,7 @@ public static class UpdateTournament
             IMediator mediator,
             CancellationToken token) =>
          {
-            return UpdateTournament.Endpoint(id, request, mediator, token);
+            return await UpdateTournament.Endpoint(id, request, mediator, token);
          })
          .WithTags("Tournament")
          .WithDescription("Update a Tournament")
