@@ -69,15 +69,16 @@ public static class UpdateTournament
 
    public static void MapEndpoint(this IEndpointRouteBuilder app)
    {
-      app.MapPut("tournaments/{id}", async (string id, 
-         UpdateTournamentCommand request, 
-         IMediator mediator,
-         CancellationToken token) => 
+      app.MapPut("tournaments/{id}", async (string id,
+            UpdateTournamentCommand request,
+            IMediator mediator,
+            CancellationToken token) =>
          {
-            return UpdateTournament.Endpoint(id, request, mediator, token); 
+            return UpdateTournament.Endpoint(id, request, mediator, token);
          })
          .WithTags("Tournament")
-         .WithDescription("Update a Tournament");
+         .WithDescription("Update a Tournament")
+         .RequireAuthorization();
    }
 
    public static async Task<Results<NoContent, NotFound>> Endpoint(string id,

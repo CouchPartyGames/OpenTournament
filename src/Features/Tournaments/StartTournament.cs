@@ -77,12 +77,13 @@ public static class StartTournament
             return true;
         }
     }
-    
-    
+
+
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPut("/tournament/{id}/start", Endpoint)
             .WithTags("Tournament")
-            .WithDescription("Start a tournament");
+            .WithDescription("Start a tournament")
+            .RequireAuthorization();
     
 
     public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id,

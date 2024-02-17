@@ -35,7 +35,8 @@ public static class LeaveRegistration
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapDelete("registrations/{id}/leave", Endpoint)
-            .WithTags("Registration");
+            .WithTags("Registration")
+            .RequireAuthorization();
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id,
         IMediator mediator,

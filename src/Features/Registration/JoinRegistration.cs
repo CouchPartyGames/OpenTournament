@@ -52,7 +52,9 @@ public static class JoinRegistration
     }
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("registrations/{id}/join", Endpoint).WithTags("Registration");
+        app.MapPut("registrations/{id}/join", Endpoint)
+            .WithTags("Registration")
+            .RequireAuthorization();
 
     
     public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id, 

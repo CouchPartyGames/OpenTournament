@@ -41,13 +41,16 @@ public static class UpdateMatch
     }
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("matches/{id}", (string id, 
-            UpdateMatchCommand cmd,
-            IMediator mediator,
-            CancellationToken token) =>
-        {
-            return Endpoint(id, cmd, mediator, token);
-        }).WithTags("Match").WithDescription("Update a Match");
+        app.MapPut("matches/{id}", (string id,
+                UpdateMatchCommand cmd,
+                IMediator mediator,
+                CancellationToken token) =>
+            {
+                return Endpoint(id, cmd, mediator, token);
+            })
+            .WithTags("Match")
+            .WithDescription("Update a Match")
+            .RequireAuthorization();
 
     public static async Task<Results<NoContent, NotFound, ValidationProblem>> Endpoint(string id,
         UpdateMatchCommand request,

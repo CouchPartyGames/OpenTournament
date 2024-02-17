@@ -41,7 +41,8 @@ public static class DeleteTournament
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapDelete("tournaments/{id}", Endpoint)
-            .WithTags("Tournament");
+            .WithTags("Tournament")
+            .RequireAuthorization();
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id, IMediator mediator, CancellationToken token)
     {

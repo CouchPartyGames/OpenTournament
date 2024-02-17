@@ -58,8 +58,10 @@ public static class CreateTournament
 		}
 	}
 
-	public static void MapEndpoint(this IEndpointRouteBuilder app) => 
-		app.MapPost("tournaments", EndPoint).WithTags("Tournament");
+	public static void MapEndpoint(this IEndpointRouteBuilder app) =>
+		app.MapPost("tournaments", EndPoint)
+			.WithTags("Tournament")
+			.RequireAuthorization();
 	
 	
 	public static async Task<Results<Created, ProblemHttpResult>> EndPoint(CreateTournamentCommand request, 
