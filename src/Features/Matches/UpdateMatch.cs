@@ -49,7 +49,8 @@ public static class UpdateMatch
                 return Endpoint(id, cmd, mediator, token);
             })
             .WithTags("Match")
-            .WithDescription("Update a Match")
+            .WithDescription("Update Individual Match")
+            .WithOpenApi()
             .RequireAuthorization();
 
     public static async Task<Results<NoContent, NotFound, ValidationProblem>> Endpoint(string id,

@@ -83,6 +83,7 @@ public static class StartTournament
         app.MapPut("/tournament/{id}/start", Endpoint)
             .WithTags("Tournament")
             .WithDescription("Start a tournament")
+            .WithOpenApi()
             .RequireAuthorization();
     
 

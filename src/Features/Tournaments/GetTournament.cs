@@ -32,9 +32,13 @@ public static class GetTournament
         }
     }
 
-    
-    public static void MapEndpoint(this IEndpointRouteBuilder app) => 
-        app.MapGet("tournaments/{id}", Endpoint).WithTags("Tournament");
+
+    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
+        app.MapGet("tournaments/{id}", Endpoint)
+            .WithTags("Tournament")
+            .WithDescription("Get Tournament")
+            .WithOpenApi()
+            .AllowAnonymous();
 	
 	
     

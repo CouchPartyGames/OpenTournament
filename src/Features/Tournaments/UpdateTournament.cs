@@ -78,6 +78,7 @@ public static class UpdateTournament
          })
          .WithTags("Tournament")
          .WithDescription("Update a Tournament")
+         .WithOpenApi()
          .RequireAuthorization();
    }
 

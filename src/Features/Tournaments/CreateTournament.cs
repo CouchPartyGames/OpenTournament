@@ -58,9 +58,14 @@ public static class CreateTournament
 		}
 	}
 
+	// <summary>
+	// Create a Tournament
+	// </summary>
 	public static void MapEndpoint(this IEndpointRouteBuilder app) =>
 		app.MapPost("tournaments", EndPoint)
 			.WithTags("Tournament")
+			.WithDescription("Create a Tournament")
+			.WithOpenApi()
 			.RequireAuthorization();
 	
 	

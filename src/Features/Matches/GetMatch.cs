@@ -32,7 +32,9 @@ public static class GetMatch
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapGet("matches/{id}", Endpoint)
             .WithTags("Match")
-            .WithDescription("Update a Match");
+            .WithDescription("Update a Match")
+            .WithOpenApi()
+            .AllowAnonymous();
 
     public static async Task<Results<Ok<Match>, NotFound>> Endpoint(string id,
         IMediator mediator,
