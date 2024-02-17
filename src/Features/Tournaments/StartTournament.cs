@@ -82,7 +82,8 @@ public static class StartTournament
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPut("/tournament/{id}/start", Endpoint)
             .WithTags("Tournament")
-            .WithDescription("Start a tournament")
+            .WithSummary("Start Tournament")
+            .WithDescription("Mark the tournament as ready to begin")
             .WithOpenApi()
             .RequireAuthorization();
     

@@ -36,7 +36,8 @@ public static class GetTournament
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapGet("tournaments/{id}", Endpoint)
             .WithTags("Tournament")
-            .WithDescription("Get Tournament")
+            .WithSummary("Get Tournament")
+            .WithDescription("Return an existing tournament.")
             .WithOpenApi()
             .AllowAnonymous();
 	

@@ -77,7 +77,8 @@ public static class UpdateTournament
             return await UpdateTournament.Endpoint(id, request, mediator, token);
          })
          .WithTags("Tournament")
-         .WithDescription("Update a Tournament")
+         .WithSummary("Update Tournament")
+         .WithDescription("Update Tournament settings")
          .WithOpenApi()
          .RequireAuthorization();
    }

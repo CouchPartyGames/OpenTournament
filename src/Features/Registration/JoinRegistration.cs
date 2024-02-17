@@ -54,6 +54,7 @@ public static class JoinRegistration
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPut("registrations/{id}/join", Endpoint)
             .WithTags("Registration")
+            .WithSummary("Join Tournament")
             .WithDescription("Join a tournament")
             .WithOpenApi()
             .RequireAuthorization();

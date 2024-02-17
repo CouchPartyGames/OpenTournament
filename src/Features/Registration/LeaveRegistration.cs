@@ -36,6 +36,7 @@ public static class LeaveRegistration
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapDelete("registrations/{id}/leave", Endpoint)
             .WithTags("Registration")
+            .WithSummary("Leave Tournament")
             .WithDescription("Leave Tournament")
             .WithOpenApi()
             .RequireAuthorization();
