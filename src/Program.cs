@@ -3,6 +3,7 @@ using Features.Tournaments;
 using FirebaseAdmin;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -11,6 +12,7 @@ using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
 using OpenTournament.Configurations;
 using OpenTournament.Identity;
+using OpenTournament.Identity.Authorization;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
@@ -45,6 +47,7 @@ builder.Services.AddOpenTelemetry()
     });
 
 //builder.Services.AddSingleton(FirebaseApp.Create());
+builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization(options =>
 {

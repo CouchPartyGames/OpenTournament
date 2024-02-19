@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using OpenTournament.Models;
 using OpenTournament.Data;
 
@@ -11,6 +12,8 @@ public static class UpdateMatch
     internal sealed class Handler : IRequestHandler<UpdateMatchCommand, OneOf<bool, OneOf.Types.NotFound, OneOf.Types.None>>
     {
         private readonly AppDbContext _dbContext;
+
+        private readonly IAuthorizationService _authorizationService;
 
         public Handler(AppDbContext dbContext)
         {
@@ -28,6 +31,13 @@ public static class UpdateMatch
             {
                 return new OneOf.Types.NotFound();
             }
+            
+            /* Is user allowed to update match
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, document, new EditRequirement());
+            if (!authorizationResult.Succeeded)
+            {
+                return new OneOf.Types.Error<>();
+            }*/
             
             //match.Status
             var result = await _dbContext.SaveChangesAsync(token);
@@ -51,8 +61,7 @@ public static class UpdateMatch
             .WithTags("Match")
             .WithSummary("Update Tournament")
             .WithDescription("Update Individual Match")
-            .WithOpenApi()
-            .RequireAuthorization();
+            .WithOpenApi();
 
     public static async Task<Results<NoContent, NotFound, ValidationProblem>> Endpoint(string id,
         UpdateMatchCommand request,

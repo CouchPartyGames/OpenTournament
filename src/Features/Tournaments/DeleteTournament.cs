@@ -1,4 +1,5 @@
 using Features.Matches;
+using Microsoft.AspNetCore.Authorization;
 using OneOf.Types;
 using OpenTournament.Data;
 using OpenTournament.Models;
@@ -14,6 +15,7 @@ public static class DeleteTournament
     internal sealed class Handler : IRequestHandler<DeleteTournamentCommand, OneOf<Success, OneOf.Types.NotFound>>
     {
         private readonly AppDbContext _dbContext;
+        private readonly IAuthorizationService _authorizationService;
 
         public Handler(AppDbContext dbContext) => _dbContext = dbContext;
         
@@ -28,6 +30,14 @@ public static class DeleteTournament
                 return new OneOf.Types.NotFound();
             }
             
+                // Check if allowed to delete
+                /*
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User, document, new EditRequirement());
+            if (!authorizationResult.Succeeded)
+            {
+                return new OneOf.Types.Error<ForbidResult>();
+            }*/
+
             _dbContext.Remove(tournament);
             var result = await _dbContext.SaveChangesAsync(token);
             if (result == 0)
@@ -44,8 +54,7 @@ public static class DeleteTournament
             .WithTags("Tournament")
             .WithSummary("Delete Tournament")
             .WithDescription("Delete an existing tournament")
-            .WithOpenApi()
-            .RequireAuthorization();
+            .WithOpenApi();
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id, IMediator mediator, CancellationToken token)
     {
