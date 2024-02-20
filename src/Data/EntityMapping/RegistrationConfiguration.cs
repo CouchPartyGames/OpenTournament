@@ -17,6 +17,6 @@ public class RegistrationConfiguration : IEntityTypeConfiguration<Registration>
         
         builder
             .Property(p => p.ParticipantId)
-            .HasConversion<ParticipantId>();
+            .HasConversion<ParticipantIdConverter>();
     }
 }
