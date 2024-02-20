@@ -2,7 +2,7 @@ using OpenTournament.Common.Draw.Layout;
 
 namespace OpenTournament.Configurations;
 
-public static class Layout
+public static class TournamentLayout
 {
     public static IServiceCollection AddTournamentLayouts(this IServiceCollection services)
     {
