@@ -13,10 +13,14 @@ using OpenTournament.Common.Exceptions;
 using OpenTournament.Configurations;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
+using OpenTournament.Options;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
+builder.Services.Configure<FirebaseAuthenticationOptions>(
+    builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
+
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlite("Data Source=tourny.db");
@@ -48,7 +52,23 @@ builder.Services.AddOpenTelemetry()
 
 //builder.Services.AddSingleton(FirebaseApp.Create());
 builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
-builder.Services.AddAuthentication();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+    var firebaseAuth = builder.Configuration
+        .GetSection(FirebaseAuthenticationOptions.SectionName)
+        .Get<FirebaseAuthenticationOptions>();
+
+    options.Authority = firebaseAuth.Authority;
+    options.TokenValidationParameters = new()
+    {
+        ValidIssuer = firebaseAuth.Issuer,
+        ValidAudience = firebaseAuth.Audience,
+        
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true
+    };
+});
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(IdentityData.ParticipantPolicyName, policyBuilder =>
@@ -62,12 +82,6 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
-/*
-    Firebase Auth
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddScheme<AuthenticationSchemeOptions, FirebaseAuthenticationHandler>(JwtBearerDefaults.AuthenticationScheme);
-*/
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -79,7 +93,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseExceptionHandler(options => {});
 app.MapHealthChecks("/health");
 
