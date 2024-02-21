@@ -61,9 +61,11 @@ public static class JoinRegistration
 
     
     public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id, 
+        HttpContext context,
         IMediator mediator, 
         CancellationToken token)
     {
+        
         if (!Guid.TryParse(id, out Guid guid))
         {
             return TypedResults.NotFound();

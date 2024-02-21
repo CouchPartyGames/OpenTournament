@@ -1,3 +1,4 @@
+using OpenTournament.Common;
 using OpenTournament.Models;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
@@ -48,7 +49,11 @@ public static class GetTournament
     {
         if (!Guid.TryParse(id, out Guid guid))
         {
-            // Invalid Input
+            Dictionary<string, string[]> errors = new()
+            {
+                { "guid", ["invalid guid"] }
+            };
+            //return TypedResults.ValidationProblem(errors: errors, detail: "Invalid input", title:"invalid input");
             return TypedResults.NotFound();
         }
         Console.WriteLine("Hello");

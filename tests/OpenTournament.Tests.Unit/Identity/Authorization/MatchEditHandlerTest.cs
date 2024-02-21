@@ -12,4 +12,9 @@ public class MatchEditHandlerTest
     {
         
     }
+
+    public void HandleRequirementAsync_ShouldNotSuccess_WhenWrongOwner()
+    {
+        
+    }
 }

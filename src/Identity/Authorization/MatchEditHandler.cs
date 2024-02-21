@@ -9,7 +9,7 @@ public sealed class MatchEditHandler : AuthorizationHandler<MatchEditRequirement
       MatchEditRequirement requirement,
       Match match)
    {
-      if (context.User.HasClaim(c => c.Subject.Name == "placeholder" ))
+      if (context.User.HasClaim(c => c.Subject.Name == match.Id.Value.ToString() ))
       {
          context.Succeed(requirement);
       }

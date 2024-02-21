@@ -30,10 +30,11 @@ public static class StartTournament
 
             var participants = await _dbContext
                 .Registrations
-                .Where(x => x.TournamentId == command.Id)
+                //.Where(x => x.TournamentId == command.Id)
                 .ToListAsync();
                 //.Find()
             
+            Console.WriteLine("hello");
                 // Apply Rules
             var engine = new RuleEngine();
             engine.Add(new TournamentInRegistrationState(tournament.Status));
@@ -41,6 +42,7 @@ public static class StartTournament
             {
                 return new RuleFailure(engine.Errors);
             }
+            Console.WriteLine("hello2");
 
             //var numParticipant = participants.Count;
             var numParticipants = 4;
@@ -50,11 +52,13 @@ public static class StartTournament
             var participantOrder = ParticipantOrder.Create(order, opponents);
             DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
 
+            Console.WriteLine("hello3");
             var positions = new ParticipantPositions(drawSize);
             var localMatchIds = new LocalMatchIds(drawSize);
             var draw = new SingleEliminationDraw(positions, drawSize);
             draw.CreateMatchProgressions(localMatchIds.CreateMatchIds());
             
+            Console.WriteLine("hello4");
                 // Add Matches (1st Round)
             foreach(var drawMatch in draw.GetMatchesInRound(1))
             {
@@ -67,11 +71,12 @@ public static class StartTournament
                 _dbContext.Add(match);
             }
 
+            Console.WriteLine("hello5");
                 // Clear Registration
-            _dbContext.Remove(participants); 
+            //_dbContext.Remove(participants); 
             
                 // Update Tournament
-            tournament.DrawSize = OpenTournament.Models.DrawSize.Size8;
+            //tournament.DrawSize = drawSize;
             tournament.Status = Status.InProcess;
             
                 // Make Changes
