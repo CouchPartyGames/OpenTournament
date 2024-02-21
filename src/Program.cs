@@ -21,6 +21,11 @@ builder.Logging.AddJsonConsole();
 builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
 
+builder.Services.AddHttpLogging((options) =>
+{
+    options.CombineLogs = true;
+    options.LoggingFields = HttpLoggingFields.All;
+});
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlite("Data Source=tourny.db");
@@ -28,11 +33,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<AppDbContext>();
 builder.Services.AddMediator();
 builder.Services.AddHealthChecks();
-builder.Services.AddHttpLogging((options) =>
-{
-    options.CombineLogs = true;
-    options.LoggingFields = HttpLoggingFields.All;
-});
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddTournamentLayouts();
@@ -95,6 +95,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
 app.MapHealthChecks("/health");
 

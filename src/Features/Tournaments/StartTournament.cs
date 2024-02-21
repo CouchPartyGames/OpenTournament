@@ -28,11 +28,11 @@ public static class StartTournament
                 return new OneOf.Types.NotFound();
             }
 
-            var participants = _dbContext
+            var participants = await _dbContext
                 .Registrations
-                .ToList();
+                .Where(x => x.TournamentId == command.Id)
+                .ToListAsync();
                 //.Find()
-                //.Where(x => x.TournamentId == command.Id)
             
                 // Apply Rules
             var engine = new RuleEngine();
@@ -42,10 +42,13 @@ public static class StartTournament
                 return new RuleFailure(engine.Errors);
             }
 
+            //var numParticipant = participants.Count;
+            var numParticipants = 4;
+
             var opponents = new List<Opponent>();
             var order = ParticipantOrder.Order.Random;
             var participantOrder = ParticipantOrder.Create(order, opponents);
-            DrawSize drawSize = DrawSize.CreateFromParticipants(participants.Count);
+            DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
 
             var positions = new ParticipantPositions(drawSize);
             var localMatchIds = new LocalMatchIds(drawSize);
@@ -80,7 +83,7 @@ public static class StartTournament
 
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("/tournament/{id}/start", Endpoint)
+        app.MapPut("/tournaments/{id}/start", Endpoint)
             .WithTags("Tournament")
             .WithSummary("Start Tournament")
             .WithDescription("Mark the tournament as ready to begin")
@@ -92,12 +95,13 @@ public static class StartTournament
         IMediator mediator,
         CancellationToken token)
     {
-        if (!Guid.TryParse(id, out Guid guid))
+        var tournyId = TournamentId.TryParse(id);
+        if (tournyId is null)
         {
             return TypedResults.NotFound();
         }
         
-        var request = new StartTournamentCommand(new TournamentId(guid));
+        var request = new StartTournamentCommand(tournyId);
         var result = await mediator.Send(request, token);
         return result.Match<Results<NoContent, NotFound, ProblemHttpResult>> (
             _ => TypedResults.NoContent(),

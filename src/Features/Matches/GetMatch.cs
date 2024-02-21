@@ -41,7 +41,7 @@ public static class GetMatch
         IMediator mediator,
         CancellationToken token)
     {
-        if (Guid.TryParse(id, out Guid guidOutput))
+        if (!Guid.TryParse(id, out Guid guidOutput))
         {
             return TypedResults.NotFound();
         }

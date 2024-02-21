@@ -14,9 +14,10 @@ public class RegistrationConfiguration : IEntityTypeConfiguration<Registration>
         builder
             .Property(p => p.TournamentId)
             .HasConversion<TournamentIdConverter>();
-        
+
         builder
             .Property(p => p.ParticipantId)
             .HasConversion<ParticipantIdConverter>();
+            //.HasColumnType("varchar(30)");
     }
 }

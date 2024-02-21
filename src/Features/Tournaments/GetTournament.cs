@@ -20,7 +20,6 @@ public static class GetTournament
         {
             var tournament = await _dbContext
                 .Tournaments
-                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == request.Id);
 
             if (tournament is null)
@@ -34,7 +33,7 @@ public static class GetTournament
 
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapGet("tournaments/{id}", Endpoint)
+        app.MapGet("tournaments/{id}/", Endpoint)
             .WithTags("Tournament")
             .WithSummary("Get Tournament")
             .WithDescription("Return an existing tournament.")
@@ -47,10 +46,12 @@ public static class GetTournament
         IMediator mediator, 
         CancellationToken token)
     {
-        if (Guid.TryParse(id, out Guid guid))
+        if (!Guid.TryParse(id, out Guid guid))
         {
+            // Invalid Input
             return TypedResults.NotFound();
         }
+        Console.WriteLine("Hello");
         
         var request = new GetTournamentQuery(new TournamentId(guid));
         var result = await mediator.Send(request, token);

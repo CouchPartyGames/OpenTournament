@@ -18,8 +18,8 @@ public static class LeaveRegistration
         {
             var registration = await _dbContext
                 .Registrations
-                .FirstOrDefaultAsync(r => r.ParticipantId == command.ParticiantId 
-                                          && r.TournamentId == command.TournamentId);
+                .FirstOrDefaultAsync(r => /*r.ParticipantId == command.ParticiantId 
+                                          && */ r.TournamentId == command.TournamentId);
             
             if (registration is null)
             {
@@ -45,11 +45,13 @@ public static class LeaveRegistration
         IMediator mediator,
         CancellationToken token)
     {
-
-        var tournGuid = Guid.NewGuid();
         var partGuid = Guid.NewGuid();
+        if (!Guid.TryParse(id, out Guid tournyGuid))
+        {
+            return TypedResults.NotFound();
+        }
         
-        var command = new LeaveTournamentCommand(new TournamentId(tournGuid),
+        var command = new LeaveTournamentCommand(new TournamentId(tournyGuid),
             new ParticipantId(partGuid));
         var result = await mediator.Send(command, token);
         return result.Match<Results<NoContent, NotFound>>(
