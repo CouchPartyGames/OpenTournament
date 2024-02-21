@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Components.Web;
+
 namespace OpenTournament.Common;
 
 public sealed class HttpProblemUtility
@@ -37,4 +39,11 @@ public sealed class HttpProblemUtility
             title: "Input Validation Failure",
             extensions: errors);
     }
+
+    /*
+    public static ProblemHttpResult ConflictProblemDetails(List<string> errors)
+    {
+        
+        return TypedResults.Conflict()
+    }*/
 }

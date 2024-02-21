@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace OpenTournament.Models;
+namespace OpenTournament.Data.Models;
 
 public sealed record MatchId(Guid Value)
 {
@@ -32,9 +32,9 @@ public sealed class Match
     
     public int LocalMatchId { get; set; }
     
-    //public ParticipantId Opponent1 { get; set; }
+    public ParticipantId Opponent1 { get; set; }
     
-    //public ParticipantId Opponent2 { get; set; }
+    public ParticipantId Opponent2 { get; set; }
     //Progression WinProgression;
     //Progression LoseProgression;
 }

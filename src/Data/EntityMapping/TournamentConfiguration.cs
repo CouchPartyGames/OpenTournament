@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OpenTournament.Data.ValueConverters;
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 
 namespace OpenTournament.Data.EntityMapping;
 

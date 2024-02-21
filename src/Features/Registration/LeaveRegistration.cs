@@ -1,4 +1,4 @@
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 
 namespace Features.Tournaments;
 
@@ -18,8 +18,8 @@ public static class LeaveRegistration
         {
             var registration = await _dbContext
                 .Registrations
-                .FirstOrDefaultAsync(r => /*r.ParticipantId == command.ParticiantId 
-                                          && */ r.TournamentId == command.TournamentId);
+                .FirstOrDefaultAsync(r => r.ParticipantId == command.ParticiantId 
+                                          && r.TournamentId == command.TournamentId);
             
             if (registration is null)
             {
@@ -43,16 +43,17 @@ public static class LeaveRegistration
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id,
         IMediator mediator,
+        HttpContext context,
         CancellationToken token)
     {
-        var partGuid = Guid.NewGuid();
+        var participantId = context.User.Claims.FirstOrDefault(c => c.Type == "user_id");
         if (!Guid.TryParse(id, out Guid tournyGuid))
         {
             return TypedResults.NotFound();
         }
         
         var command = new LeaveTournamentCommand(new TournamentId(tournyGuid),
-            new ParticipantId(partGuid));
+            new ParticipantId(participantId.Value));
         var result = await mediator.Send(command, token);
         return result.Match<Results<NoContent, NotFound>>(
             _ => TypedResults.NoContent(),

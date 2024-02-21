@@ -1,8 +1,7 @@
 using Features.Matches;
 using Microsoft.AspNetCore.Authorization;
 using OneOf.Types;
-using OpenTournament.Data;
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
 namespace Features.Tournaments;

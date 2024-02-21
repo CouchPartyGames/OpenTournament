@@ -1,3 +1,5 @@
 namespace OpenTournament.Common;
 
-public record Action();
+public sealed record Action(string Name, string Uri, string Method);
+
+public sealed record ActionList(List<Action> Actions);

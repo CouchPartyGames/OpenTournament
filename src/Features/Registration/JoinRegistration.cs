@@ -1,12 +1,12 @@
 using Features.Matches;
 using OpenTournament.Common.Rules;
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 
 namespace Features.Tournaments;
 
 public static class JoinRegistration
 {
-    public sealed record JoinTournamentCommand(TournamentId Id) : IRequest<OneOf<bool, OneOf.Types.NotFound, RuleFailure>>;
+    public sealed record JoinTournamentCommand(TournamentId TournamentId, ParticipantId ParticipantId) : IRequest<OneOf<bool, OneOf.Types.NotFound, RuleFailure>>;
 
     internal sealed class Handler : IRequestHandler<JoinTournamentCommand, OneOf<bool, OneOf.Types.NotFound, RuleFailure>>
     {
@@ -20,7 +20,7 @@ public static class JoinRegistration
             
             var tournament = await _dbContext
                 .Tournaments
-                .FirstOrDefaultAsync(m => m.Id == command.Id);
+                .FirstOrDefaultAsync(m => m.Id == command.TournamentId);
             if (tournament is null)
             {
                 return new OneOf.Types.NotFound();
@@ -37,8 +37,8 @@ public static class JoinRegistration
                 // Add User/Participant
             var registration = new Registration
             {
-                TournamentId = tournament.Id,
-                ParticipantId = new ParticipantId(Guid.NewGuid())
+                TournamentId = command.TournamentId,
+                ParticipantId = command.ParticipantId
             };
             
             _dbContext.Add(registration);
@@ -65,20 +65,21 @@ public static class JoinRegistration
         IMediator mediator, 
         CancellationToken token)
     {
-        
+
+        var participantId = context.User.Claims.FirstOrDefault(c => c.Type == "user_id");
         if (!Guid.TryParse(id, out Guid guid))
         {
             return TypedResults.NotFound();
         }
         
-        var command = new JoinTournamentCommand(new TournamentId(guid));
+        var command = new JoinTournamentCommand(new TournamentId(guid), new ParticipantId(participantId?.Value));
         var result = await mediator.Send(command, token);
         return result.Match<Results<NoContent, NotFound, ProblemHttpResult>> (
             _ => TypedResults.NoContent(),
             _ => TypedResults.NotFound(),
             errors =>
             {
-                return TypedResults.Problem("Rule Failure");
+                return TypedResults.Problem(errors.Errors.FirstOrDefault()?.Message, title: "invalid state", statusCode: StatusCodes.Status409Conflict);
             });
     }
 }

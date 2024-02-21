@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 using OpenTournament.Data;
 
 namespace Features.Matches;

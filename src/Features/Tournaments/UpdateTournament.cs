@@ -1,4 +1,4 @@
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 
 namespace Features.Tournaments;
 

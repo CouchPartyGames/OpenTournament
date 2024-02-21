@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 
 namespace OpenTournament.Data.ValueConverters;
 

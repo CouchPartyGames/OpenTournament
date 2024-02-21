@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OpenTournament.Data.ValueConverters;
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 
 namespace OpenTournament.Data.EntityMapping;
 
@@ -17,7 +17,7 @@ public class ParticipantConfiguration : IEntityTypeConfiguration<Participant>
 
         builder.HasData(new Participant
         {
-            Id = ParticipantId.TryParse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), 
+            Id = new ParticipantId("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), 
             Name = "Bye"
         });
     }

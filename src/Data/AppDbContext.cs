@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Data.EntityMapping;
-using OpenTournament.Models;
+using OpenTournament.Data.Models;
 
 namespace OpenTournament.Data;
 
