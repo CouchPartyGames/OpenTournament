@@ -20,6 +20,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
 builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
+    //.ValidateDataAnnotations().ValidateOnStart();
 
 builder.Services.AddHttpLogging((options) =>
 {

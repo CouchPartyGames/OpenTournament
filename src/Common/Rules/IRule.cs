@@ -10,7 +10,7 @@ public interface IRule
     public RuleError Error { get;  }
 }
 
-public class RuleEngine
+public sealed class RuleEngine
 {
     private List<IRule> _rules = new();
 
