@@ -31,5 +31,6 @@ public class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
         builder
             .Property(t => t.RegistrationMode)
             .HasConversion<int>();
+        
     }
 }

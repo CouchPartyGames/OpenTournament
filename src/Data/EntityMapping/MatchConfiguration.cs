@@ -22,5 +22,6 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder
             .Property(m => m.Opponent2)
             .HasConversion<ParticipantIdConverter>();
+        
     }
 }

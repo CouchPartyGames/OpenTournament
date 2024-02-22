@@ -1,8 +1,10 @@
+using System.Net;
 using Microsoft.EntityFrameworkCore.Storage.Json;
 using OpenTournament.Data.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
+using OpenTournament.Common.Rules.Tournaments;
 using DrawSize = OpenTournament.Common.Draw.Layout.DrawSize;
 
 namespace Features.Tournaments;
@@ -29,25 +31,24 @@ public static class StartTournament
             }
 
             var participants = await _dbContext
-                .Registrations
-                //.Where(x => x.TournamentId == command.Id)
+                .Participants
                 .ToListAsync();
-                //.Find()
+            
+            var numParticipants = participants.Count;
             
                 // Apply Rules
             var engine = new RuleEngine();
             engine.Add(new TournamentInRegistrationState(tournament.Status));
+            engine.Add(new TournamentHasMinimumParticipants(numParticipants, tournament.MinParticipants));
             if (!engine.Evaluate())
             {
                 return new RuleFailure(engine.Errors);
             }
 
-            //var numParticipant = participants.Count;
-            var numParticipants = 4;
 
             var opponents = new List<Opponent>();
             var order = ParticipantOrder.Order.Random;
-            var participantOrder = ParticipantOrder.Create(order, opponents);
+            var participantOrder = ParticipantOrder.Create(order, participants);
             DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
 
             var positions = new ParticipantPositions(drawSize);
@@ -106,9 +107,11 @@ public static class StartTournament
         return result.Match<Results<NoContent, NotFound, ProblemHttpResult>> (
             _ => TypedResults.NoContent(),
             _ => TypedResults.NotFound(),
-            ruleErrs =>
+            ruleErrors =>
             {
-                return TypedResults.Problem("Rule Failures");
+                return TypedResults.Problem(title: "Rule Failures", 
+                    detail: ruleErrors.Errors[0].ToString(),
+                    statusCode: (int)HttpStatusCode.PreconditionFailed);
             });
     }
 }

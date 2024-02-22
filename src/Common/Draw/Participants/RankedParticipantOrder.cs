@@ -1,14 +1,16 @@
+using OpenTournament.Data.Models;
+
 namespace OpenTournament.Common.Draw.Participants;
 
 // <summary>
 // Ranked Order of Participants
 // </summary>
-public sealed class RankedParticipantOrder(List<Opponent> opponents) : ParticipantOrder
+public sealed class RankedParticipantOrder(List<Participant> opponents) : ParticipantOrder
 {
     // <summary>
     // Dictionary of ordered opponents
     // </summary>
-    public override Dictionary<OpponentOrder, Opponent> Opponents
+    public override Dictionary<OpponentOrder, Participant> Opponents
     {
         get
         {
@@ -18,8 +20,8 @@ public sealed class RankedParticipantOrder(List<Opponent> opponents) : Participa
             }
 
             int i = _startIndex;
-            var orderedOpponents = new Dictionary<OpponentOrder, Opponent>();
-            foreach (Opponent opp in opponents.OrderByDescending(o => o.Rank))
+            var orderedOpponents = new Dictionary<OpponentOrder, Participant>();
+            foreach (var opp in opponents.OrderByDescending(o => o.Rank))
             {
                 orderedOpponents.Add(new OpponentOrder(i), opp);
                 i++;

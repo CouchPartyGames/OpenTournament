@@ -1,14 +1,16 @@
+using OpenTournament.Data.Models;
+
 namespace OpenTournament.Common.Draw.Participants;
 
 // <summary>
 // Random ordering of Participants (Blind Draw Seeding)
 // </summary>
-public sealed class RandomParticipantOrder(List<Opponent> opponents) : ParticipantOrder
+public sealed class RandomParticipantOrder(List<Participant> opponents) : ParticipantOrder
 {
     // <summary>
     // Dictionary of ordered opponents
     // </summary>
-    public override Dictionary<OpponentOrder, Opponent> Opponents
+    public override Dictionary<OpponentOrder, Participant> Opponents
     {
         get
         {
@@ -18,10 +20,10 @@ public sealed class RandomParticipantOrder(List<Opponent> opponents) : Participa
             }
             
             Random rng = new Random();
-            var orderedOpps = new Dictionary<OpponentOrder, Opponent>();
+            var orderedOpps = new Dictionary<OpponentOrder, Participant>();
 
             int i = _startIndex;
-            foreach (Opponent opp in opponents.OrderBy(a => rng.Next()).ToList() )
+            foreach (var opp in opponents.OrderBy(a => rng.Next()).ToList() )
             {
                 orderedOpps.Add(new OpponentOrder(i), opp);
                 i++;

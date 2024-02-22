@@ -20,7 +20,7 @@ public sealed record TournamentId(Guid Value)
 
 public enum Status
 {
-    Registration,
+    Registration = 0,
     InProcess,
     Completed
 }
@@ -30,6 +30,11 @@ public enum EliminationMode
     Single = 0,
     Double
 };
+
+public enum DrawSeeding {
+    Random = 0,
+    Seeded
+}
 
 public enum DrawSize
 {
@@ -67,6 +72,8 @@ public sealed class Tournament
     public EliminationMode EliminationMode = EliminationMode.Single;
 
     public DrawSize DrawSize = DrawSize.NotSet;
+
+    public DrawSeeding DrawSeeding = DrawSeeding.Random;
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
 }

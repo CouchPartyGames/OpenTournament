@@ -1,3 +1,5 @@
+using OpenTournament.Data.Models;
+
 namespace OpenTournament.Common.Draw.Participants;
 
 public sealed class EmptyListOfOpponentsException(string message) : Exception(message);
@@ -12,9 +14,9 @@ public abstract class ParticipantOrder
         Ranked
     };
 
-    public abstract Dictionary<OpponentOrder, Opponent> Opponents { get; }
+    public abstract Dictionary<OpponentOrder, Participant> Opponents { get; }
     
-    public static ParticipantOrder Create(Order order, List<Opponent> opponents)
+    public static ParticipantOrder Create(Order order, List<Participant> opponents)
     {
         return order switch
         {
