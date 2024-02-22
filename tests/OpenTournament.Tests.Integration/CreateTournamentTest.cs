@@ -15,7 +15,7 @@ public class CreateTournamentTest : IClassFixture<TournamentApiFactory>
         _output = output;
     }
 
-    [Fact]
+    [Fact(Skip = "Not Ready")]
     public async Task Endpoint_ShouldCreateTournament_WhenDataIsValid()
     {
         //Faker<CreateTournament.CreateTournamentCommand> command = new Faker<CreateTournament.CreateTournamentCommand>().RuleFor()

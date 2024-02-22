@@ -1,7 +1,5 @@
 namespace OpenTournament.Common.Rules;
 
-using OpenTournament.Data.Models;
-
 public sealed record RuleError(string Name, string Message, string Field);
 
 public sealed record RuleFailure(List<RuleError> Errors);
@@ -36,17 +34,3 @@ public class RuleEngine
     }
 }
 
-public sealed class TournamentInRegistrationState : IRule
-{
-    public RuleError Error { get; private set; }
-
-    private readonly Status _status;
-    public TournamentInRegistrationState(Status status)
-    {
-        _status = status;
-        Error = new RuleError(nameof(TournamentInRegistrationState),
-            "Tournament is not in a registration state", "tournament.status");
-    }
-    
-    public bool Evaluate() => _status == Status.Registration;
-}
