@@ -1,4 +1,4 @@
-﻿namespace OpenTournament.Tests.Unit;
+﻿namespace OpenTournament.Tests.Unit.Common.Draw.Layout;
 
 using OpenTournament.Common.Draw.Layout;
 
