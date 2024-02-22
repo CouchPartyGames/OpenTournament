@@ -1,12 +1,17 @@
+using System.Net;
+using OneOf.Types;
+using OpenTournament.Common.Rules;
+using OpenTournament.Common.Rules.Tournaments;
 using OpenTournament.Data.Models;
+using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
 namespace Features.Tournaments;
 
 public static class UpdateTournament
 {
-   public sealed record UpdateTournamentCommand(TournamentId Id, string Name) : IRequest<OneOf<bool, OneOf.Types.NotFound>>;
+   public sealed record UpdateTournamentCommand(TournamentId Id, string Name) : IRequest<OneOf<bool, OneOf.Types.NotFound, RuleFailure>>;
    
-   internal sealed class Handler : IRequestHandler<UpdateTournamentCommand, OneOf<bool, OneOf.Types.NotFound>>
+   internal sealed class Handler : IRequestHandler<UpdateTournamentCommand, OneOf<bool, OneOf.Types.NotFound, RuleFailure>>
    {
       private readonly AppDbContext _dbContext;
       
@@ -16,7 +21,7 @@ public static class UpdateTournament
       }
 
 		
-      public async ValueTask<OneOf<bool, OneOf.Types.NotFound>> Handle(UpdateTournamentCommand command, 
+      public async ValueTask<OneOf<bool, OneOf.Types.NotFound, RuleFailure>> Handle(UpdateTournamentCommand command, 
          CancellationToken cancellationToken)
       {
          Validator validator = new();
@@ -37,6 +42,13 @@ public static class UpdateTournament
          if (tournament is null)
          {
             return new OneOf.Types.NotFound();
+         }
+
+         var engine = new RuleEngine();
+         engine.Add(new TournamentInRegistrationState(tournament.Status));
+         if (!engine.Evaluate())
+         {
+            return new RuleFailure(engine.Errors);
          }
 
          tournament.Name = command.Name;
@@ -83,7 +95,7 @@ public static class UpdateTournament
          .RequireAuthorization();
    }
 
-   public static async Task<Results<NoContent, NotFound>> Endpoint(string id,
+   public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id,
       UpdateTournamentCommand request,
       IMediator mediator,
       CancellationToken token)
@@ -96,8 +108,14 @@ public static class UpdateTournament
          
       var commandRequest = request with { Id = tournamentId };
       var result = await mediator.Send(commandRequest, token);
-      return result.Match<Results<NoContent, NotFound>>(
+      return result.Match<Results<NoContent, NotFound, ProblemHttpResult>>(
          sucessful => TypedResults.NoContent(),
-         _ => TypedResults.NotFound()); 
+         _ => TypedResults.NotFound(),
+         errors =>
+         {
+            return TypedResults.Problem(title: "Rule Failures", 
+               detail: errors.Errors[0].ToString(),
+               statusCode: (int)HttpStatusCode.PreconditionFailed);
+         }); 
    }
 }

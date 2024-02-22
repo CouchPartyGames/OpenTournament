@@ -1,6 +1,6 @@
 using OpenTournament.Common.Draw.Layout;
 
-namespace OpenTournament.Configurations;
+namespace OpenTournament.Services;
 
 public static class TournamentLayout
 {

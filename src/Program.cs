@@ -10,7 +10,7 @@ using OpenTelemetry.Resources;
 using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
-using OpenTournament.Configurations;
+using OpenTournament.Services;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
 using OpenTournament.Options;
@@ -101,7 +101,7 @@ app.MapHealthChecks("/health");
 
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
-//UpdateTournament.MapEndpoint(app);
+UpdateTournament.MapEndpoint(app);
 DeleteTournament.MapEndpoint(app);
 StartTournament.MapEndpoint(app);
 
