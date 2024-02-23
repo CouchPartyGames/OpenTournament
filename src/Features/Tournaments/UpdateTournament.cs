@@ -113,9 +113,9 @@ public static class UpdateTournament
          _ => TypedResults.NotFound(),
          errors =>
          {
-            return TypedResults.Problem(title: "Rule Failures", 
+            return TypedResults.Problem(title: "Rule Failures",
                detail: errors.Errors[0].ToString(),
-               statusCode: (int)HttpStatusCode.PreconditionFailed);
+               statusCode: StatusCodes.Status400BadRequest);
          }); 
    }
 }

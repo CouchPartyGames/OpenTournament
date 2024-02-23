@@ -1,4 +1,3 @@
-using Features.Matches;
 using Microsoft.AspNetCore.Authorization;
 using OneOf.Types;
 using OpenTournament.Data.Models;

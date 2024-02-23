@@ -1,5 +1,3 @@
-using System.Net;
-using Microsoft.EntityFrameworkCore.Storage.Json;
 using OpenTournament.Data.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
@@ -109,9 +107,9 @@ public static class StartTournament
             _ => TypedResults.NotFound(),
             ruleErrors =>
             {
-                return TypedResults.Problem(title: "Rule Failures", 
+                return TypedResults.Problem(title: "Rule Fggailures",
                     detail: ruleErrors.Errors[0].ToString(),
-                    statusCode: (int)HttpStatusCode.PreconditionFailed);
+                    statusCode: StatusCodes.Status400BadRequest);
             });
     }
 }

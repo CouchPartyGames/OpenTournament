@@ -1,4 +1,3 @@
-using OpenTournament.Common;
 using OpenTournament.Data.Models;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
