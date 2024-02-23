@@ -2,23 +2,23 @@ namespace OpenTournament.Authentication;
 
 public static class FirebaseAuthenticationExtensions
 {
-    public static string GetUserId(this IHttpContextAccessor httpContextAccessor)
+    public static string GetUserId(this HttpContext httpContext)
     {
-        return httpContextAccessor.HttpContext.User
+        return httpContext.User
             .Claims
             .FirstOrDefault(c => c.Type == "user_id")?.Value;
     }
 
-    public static string GetEmail(this IHttpContextAccessor httpContextAccessor)
+    public static string GetEmail(this HttpContext httpContext)
     {
-        return httpContextAccessor.HttpContext.User
+        return httpContext.User
             .Claims
             .FirstOrDefault(c => c.Type == "email")?.Value;
     }
     
-    public static string GetEmailVerified(this IHttpContextAccessor httpContextAccessor)
+    public static string GetEmailVerified(this HttpContext httpContext)
     {
-        return httpContextAccessor.HttpContext.User
+        return httpContext.User
             .Claims
             .FirstOrDefault(c => c.Type == "email_verified")?.Value;
     }

@@ -1,3 +1,4 @@
+using OpenTournament.Authentication;
 using OpenTournament.Data.Models;
 
 namespace Features.Tournaments;
@@ -31,7 +32,8 @@ public static class CreateTournament
 				return new ValidationFailure();
 			}
 			
-			var creatorId = _httpContext.User.Claims.FirstOrDefault(c => c.Type == "user_id")?.Value;
+			//var creatorId = _httpContext.User.Claims.FirstOrDefault(c => c.Type == "user_id")?.Value;
+			var creatorId = _httpContext.GetUserId();
 			var tourny = new Tournament
 			{
 				Id = TournamentId.Create(),
