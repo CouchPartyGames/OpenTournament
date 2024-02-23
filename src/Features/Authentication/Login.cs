@@ -23,9 +23,11 @@ public static class Login
         {
             var userId = new ParticipantId("aldfadsf");
             var name = "hello";
+            
             var participant = await _dbContext
                 .Participants
                 .FirstOrDefaultAsync(p => p.Id == userId);
+            
             if (participant is null)
             {
                 
@@ -47,11 +49,12 @@ public static class Login
         app.MapPost("/auth/login", Endpoint)
             .WithTags("Auth")
             .WithSummary("Login")
-            .WithDescription("Login/Register")
+            .WithDescription("Login/Register a user")
             .WithOpenApi()
             .RequireAuthorization();
 
-    public static async Task<Results<NoContent, NotFound>> Endpoint(IMediator mediator, CancellationToken token)
+    public static async Task<Results<NoContent, NotFound>> Endpoint(IMediator mediator, 
+        CancellationToken token)
     {
         var command = new AuthCommand();
         var result = await mediator.Send(command, token);

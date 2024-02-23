@@ -76,4 +76,6 @@ public sealed class Tournament
     public DrawSeeding DrawSeeding = DrawSeeding.Random;
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
+
+    public ParticipantId CreatorId;
 }

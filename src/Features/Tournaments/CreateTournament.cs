@@ -11,8 +11,13 @@ public static class CreateTournament
 	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<TournamentId, ValidationFailure, ProblemDetails>>
 	{
 		private readonly AppDbContext _dbContext;
-		
-		public Handler(AppDbContext dbContext) => _dbContext = dbContext;
+		private readonly HttpContext _httpContext;
+
+		public Handler(AppDbContext dbContext, HttpContext httpContext)
+		{
+			_dbContext = dbContext;
+			_httpContext = httpContext;
+		}
 		
 		public async ValueTask<OneOf<TournamentId, ValidationFailure, ProblemDetails>> Handle(CreateTournamentCommand request, 
 			CancellationToken cancellationToken)
@@ -26,10 +31,12 @@ public static class CreateTournament
 				return new ValidationFailure();
 			}
 			
+			var creatorId = _httpContext.User.Claims.FirstOrDefault(c => c.Type == "user_id")?.Value;
 			var tourny = new Tournament
 			{
 				Id = TournamentId.Create(),
-				Name = request.Name
+				Name = request.Name,
+				CreatorId = new ParticipantId(creatorId)
 			};
 
 			_dbContext.Add(tourny);
@@ -72,6 +79,7 @@ public static class CreateTournament
 	
 	public static async Task<Results<Created, ProblemHttpResult>> EndPoint(CreateTournamentCommand request, 
 		IMediator mediator, 
+		HttpContext httpContext,
 		CancellationToken token)
 	{
 		var result = await mediator.Send(request, token);
