@@ -8,8 +8,9 @@ public class RankedParticipantOrderTest
 {
 
     [Fact]
-    public void METHOD()
+    public void Opponents_ShouldReturn_When()
     {
+        //var participants = new RankedParticipantOrder().Opponents;
         
     }
 }

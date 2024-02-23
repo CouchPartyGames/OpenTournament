@@ -10,6 +10,7 @@ using OpenTelemetry.Resources;
 using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
+using OpenTournament.Features.Authentication;
 using OpenTournament.Services;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
@@ -111,5 +112,7 @@ JoinRegistration.MapEndpoint(app);
 
 GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);
+
+//Login.MapEndpoint(app);
 
 app.Run();

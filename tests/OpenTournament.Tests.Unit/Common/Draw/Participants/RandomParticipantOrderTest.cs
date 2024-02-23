@@ -8,8 +8,8 @@ public class RandomParticipantOrderTest
 {
 
     [Fact]
-    public void METHOD()
+    public void Opponents_ShouldReturnParticipants_WhenRandom()
     {
-        
+        //var participants = new RandomParticipantOrder().Opponents;
     }
 }

@@ -8,7 +8,7 @@ public static class GetMatch
 
     internal sealed class Handler : IRequestHandler<GetMatchQuery, OneOf<Match, OneOf.Types.NotFound>>
     {
-        private AppDbContext _dbContext;
+        private readonly AppDbContext _dbContext;
         
         public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 
@@ -17,7 +17,6 @@ public static class GetMatch
         {
             var match = await _dbContext
                 .Matches
-                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.Id == request.Id);
 
             if (match is null)
