@@ -20,8 +20,7 @@ public static class TournamentLayout
         {
             services.AddKeyedSingleton(item.Value,
                 new SingleEliminationDraw(
-                    new ParticipantPositions(DrawSize.Create(item.Key)),
-                    DrawSize.Create(item.Key)));
+                    new FirstRoundPositions(DrawSize.Create(item.Key))));
         }
         
         return services;

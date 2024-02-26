@@ -49,9 +49,9 @@ public static class StartTournament
             var participantOrder = ParticipantOrder.Create(order, participants);
             DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
 
-            var positions = new ParticipantPositions(drawSize);
+            var positions = new FirstRoundPositions(drawSize);
             var localMatchIds = new LocalMatchIds(drawSize);
-            var draw = new SingleEliminationDraw(positionst );
+            var draw = new SingleEliminationDraw(positions);
             draw.CreateMatchProgressions(localMatchIds.CreateMatchIds());
             
                 // Add Matches (1st Round)

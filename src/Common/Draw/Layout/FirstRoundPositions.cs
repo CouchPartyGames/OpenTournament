@@ -11,12 +11,13 @@ public sealed record VersusMatch(int FirstParticipant, int SecondParticipant);
 // <summary>
 // Get Player Seeding/Positions in the Tournament's First Round depending on player/draw size
 // </summary>
-public sealed class ParticipantPositions
+public sealed class FirstRoundPositions
 {
 	private readonly DrawSize _drawSize;
+	
 	private readonly List<VersusMatch> _matches;
 
-	public ParticipantPositions(DrawSize drawSize)
+	public FirstRoundPositions(DrawSize drawSize)
 	{
 		_drawSize = drawSize;
 		_matches = _drawSize.Value switch

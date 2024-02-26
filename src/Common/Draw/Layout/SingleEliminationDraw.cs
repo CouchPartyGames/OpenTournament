@@ -34,7 +34,7 @@ public sealed class SingleEliminationDraw
          .ToList();
    }
    
-   public SingleEliminationDraw(ParticipantPositions positions, FinalsType finalsType = FinalsType.OneOfOne)
+   public SingleEliminationDraw(FirstRoundPositions positions, FinalsType finalsType = FinalsType.OneOfOne)
    {
       _positions = positions.Matches;
       _drawSize = positions.DrawSize;
