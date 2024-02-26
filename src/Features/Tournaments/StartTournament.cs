@@ -51,7 +51,7 @@ public static class StartTournament
 
             var positions = new ParticipantPositions(drawSize);
             var localMatchIds = new LocalMatchIds(drawSize);
-            var draw = new SingleEliminationDraw(positions, drawSize);
+            var draw = new SingleEliminationDraw(positionst );
             draw.CreateMatchProgressions(localMatchIds.CreateMatchIds());
             
                 // Add Matches (1st Round)

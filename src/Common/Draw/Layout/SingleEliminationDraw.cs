@@ -34,10 +34,10 @@ public sealed class SingleEliminationDraw
          .ToList();
    }
    
-   public SingleEliminationDraw(ParticipantPositions positions, DrawSize size, FinalsType finalsType = FinalsType.OneOfOne)
+   public SingleEliminationDraw(ParticipantPositions positions, FinalsType finalsType = FinalsType.OneOfOne)
    {
       _positions = positions.Matches;
-      _drawSize = size;
+      _drawSize = positions.DrawSize;
       _finalsType = finalsType;
       _totalRounds = _drawSize.ToTotalRounds();
    }
