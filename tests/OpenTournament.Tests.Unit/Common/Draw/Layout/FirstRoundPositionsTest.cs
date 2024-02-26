@@ -34,6 +34,21 @@ public class FirstRoundPositionsTest
             }
         };
     
+    
+
+    [Theory]
+    [MemberData(nameof(positions))]
+    public void Constructor_ShouldSetMatches_WhenDrawSizeSet(int numParticipants, List<VersusMatch> expectedMatches)
+    {
+        // Act
+        DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
+        var positions = new FirstRoundPositions(drawSize);
+        var matches = positions.Matches;
+
+        // Assert
+        positions.Matches.Should().BeEquivalentTo(expectedMatches);
+    }
+    
     [Theory]
     [InlineData(DrawSize.Size.Size2, 1)]
     [InlineData(DrawSize.Size.Size4, 2)]
@@ -55,19 +70,5 @@ public class FirstRoundPositionsTest
             .NotBeEmpty()
             .And.HaveCount(expectedMatchCount)
             .And.ContainItemsAssignableTo<VersusMatch>();
-    }
-    
-
-    [Theory]
-    [MemberData(nameof(positions))]
-    public void Constructor_ShouldSetMatches_WhenDrawSizeSet(int numParticipants, List<VersusMatch> expectedMatches)
-    {
-        // Act
-        DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
-        var positions = new FirstRoundPositions(drawSize);
-        var matches = positions.Matches;
-
-        // Assert
-        positions.Matches.Should().BeEquivalentTo(expectedMatches);
     }
 }
