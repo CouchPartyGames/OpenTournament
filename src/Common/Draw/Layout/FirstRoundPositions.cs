@@ -1,11 +1,8 @@
-using System.Collections.Frozen;
-using System.Numerics;
-
 namespace OpenTournament.Common.Draw.Layout;
 
 public sealed class InvalidSeedingSizeException(string message) : Exception(message);
 
-public sealed record VersusMatch(int FirstParticipant, int SecondParticipant);
+public sealed record VersusMatch(int FirstParticipant, int SecondParticipant, int Round = 1);
 
 
 // <summary>
