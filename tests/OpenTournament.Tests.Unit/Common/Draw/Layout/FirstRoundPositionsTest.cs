@@ -31,7 +31,22 @@ public class FirstRoundPositionsTest
                     new(4, 5),
                     new(7, 2)
                 }
-            }
+            },
+            new object[]
+            {
+                16,
+                new List<VersusMatch> { 
+                    new(1, 16),
+                    new(9, 8),
+                    new(4, 13),
+                    new(5, 12),
+
+                    new(3, 14),
+                    new(11,6),
+                    new(7,10),
+                    new(2,15)
+                }
+            },
         };
     
     
