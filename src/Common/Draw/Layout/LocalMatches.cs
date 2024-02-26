@@ -11,32 +11,44 @@ public sealed class LocalMatches
    
     public List<LocalMatch> Matches { get; set; } = new();
 
+    private int _matchId = 1;
+    
     public LocalMatches(FirstRoundPositions positions)
     {
         DrawSize = positions.DrawSize;
-        CreateMatchIds(positions);
+        CreateFirstRoundMatches(positions);
+
+        int totalRounds = DrawSize.ToTotalRounds();
+        if (totalRounds > 1) {
+            CreateNextRoundMatches(totalRounds);
+        }
     }
 
-   
-    public void CreateMatchIds(FirstRoundPositions positions)
+    private void CreateFirstRoundMatches(FirstRoundPositions positions)
     {
-        int matchId = 1;
-        int totalRounds = DrawSize.ToTotalRounds(); 
-
         foreach (var match in positions.Matches)
         {
-            Matches.Add(new(1, matchId, match.FirstParticipant,match.SecondParticipant) );
-            matchId++;
+            AddMatch(new(1, _matchId, 
+                match.FirstParticipant,
+                match.SecondParticipant) );
         }
-
-        if (totalRounds > 1)
+    }
+   
+    private void CreateNextRoundMatches(int totalRounds)
+    {
+        for (int round = 2; round <= totalRounds; round++)
         {
-            for (int round = 2; round <= totalRounds; round++)
+            for (int i = 0; i < GetTotalMatchesInRound(round); i++)
             {
-                Matches.Add(new(round, matchId)); 
-                matchId++;
+                AddMatch(new(round, _matchId));
             }
         }
+    }
+
+    private void AddMatch(LocalMatch match)
+    {
+        Matches.Add(match);
+        _matchId++;
     }
    
     int GetTotalMatchesInRound(int round) => (int)DrawSize.Value / (int)Math.Pow(2, round);
