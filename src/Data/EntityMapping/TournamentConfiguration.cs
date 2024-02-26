@@ -12,6 +12,12 @@ public class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
         builder.HasKey(t => t.Id);
 
         builder
+            .HasMany(t => t.Matches)
+            .WithOne(m => m.Tournament)
+            .HasForeignKey(m => m.TournamentId)
+            .HasPrincipalKey(t => t.Id);
+
+        builder
             .Property(t => t.Id)
             .HasConversion<TournamentIdConverter>();
         

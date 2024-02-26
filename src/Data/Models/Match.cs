@@ -37,4 +37,8 @@ public sealed class Match
     public ParticipantId Opponent2 { get; set; }
     //Progression WinProgression;
     //Progression LoseProgression;
+    
+    public Tournament Tournament { get; set; }
+    
+    public TournamentId TournamentId { get; set; }
 }
