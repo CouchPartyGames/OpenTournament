@@ -20,6 +20,7 @@ public static class GetTournament
         {
             var tournament = await _dbContext
                 .Tournaments
+                .Include(m => m.Matches)
                 .FirstOrDefaultAsync(m => m.Id == request.Id);
 
             if (tournament is null)
@@ -55,7 +56,6 @@ public static class GetTournament
             //return TypedResults.ValidationProblem(errors: errors, detail: "Invalid input", title:"invalid input");
             return TypedResults.NotFound();
         }
-        Console.WriteLine("Hello");
         
         var request = new GetTournamentQuery(new TournamentId(guid));
         var result = await mediator.Send(request, token);

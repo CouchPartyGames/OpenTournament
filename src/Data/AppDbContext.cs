@@ -7,8 +7,10 @@ namespace OpenTournament.Data;
 public class AppDbContext : DbContext
 {
     public AppDbContext() { }
-    
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
 
     public DbSet<Tournament> Tournaments { get; set; }
     
@@ -17,7 +19,15 @@ public class AppDbContext : DbContext
     public DbSet<Participant> Participants { get; set; }
     
     public DbSet<Registration> Registrations { get; set; }
-    
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder
+            .UseSqlite("Data Source=tourny.db")
+            .EnableDetailedErrors()
+            .EnableSensitiveDataLogging();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new TournamentConfiguration());

@@ -28,7 +28,7 @@ public static class GetMatch
     }
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapGet("matches/{id}", Endpoint)
+        app.MapGet("matches/{id}/", Endpoint)
             .WithTags("Match")
             .WithSummary("Get Matches")
             .WithDescription("Get Matches")

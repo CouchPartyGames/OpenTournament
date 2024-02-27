@@ -10,6 +10,7 @@ using OpenTelemetry.Resources;
 using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
+using OpenTournament.Data.Models;
 using OpenTournament.Features.Authentication;
 using OpenTournament.Services;
 using OpenTournament.Identity;
@@ -18,7 +19,8 @@ using OpenTournament.Options;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
-builder.Logging.AddJsonConsole();
+//builder.Logging.AddJsonConsole();
+builder.Logging.AddConsole();
 builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
     //.ValidateDataAnnotations().ValidateOnStart();
@@ -28,11 +30,7 @@ builder.Services.AddHttpLogging((options) =>
     options.CombineLogs = true;
     options.LoggingFields = HttpLoggingFields.All;
 });
-builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    options.UseSqlite("Data Source=tourny.db");
-}, ServiceLifetime.Singleton);
-builder.Services.AddSingleton<AppDbContext>();
+builder.Services.AddDbContext<AppDbContext>((Action<DbContextOptionsBuilder>?)null, ServiceLifetime.Singleton);
 builder.Services.AddMediator();
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -52,7 +50,6 @@ builder.Services.AddOpenTelemetry()
         });
     });
 
-//builder.Services.AddSingleton(FirebaseApp.Create());
 builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -113,6 +110,6 @@ JoinRegistration.MapEndpoint(app);
 GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);
 
-//Login.MapEndpoint(app);
+Login.MapEndpoint(app);
 
 app.Run();

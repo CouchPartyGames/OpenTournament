@@ -4,7 +4,7 @@ namespace OpenTournament.Data.Models;
 
 public sealed record MatchId(Guid Value)
 {
-    public static MatchId TryParse(string id)
+    public static MatchId? TryParse(string id)
     {
         if (!Guid.TryParse(id, out Guid guid))
         {
@@ -13,7 +13,7 @@ public sealed record MatchId(Guid Value)
         return new MatchId(guid);
     }
 
-    public static MatchId Create() => new MatchId(Guid.NewGuid());
+    public static MatchId Create() => new (Guid.NewGuid());
 }
 
 public enum MatchState
@@ -31,7 +31,6 @@ public class Match
     public MatchState State { get; set; } = MatchState.Ready;
     
     public int LocalMatchId { get; set; }
-    
     
     [DeleteBehavior(DeleteBehavior.NoAction)]
     public Participant Participant1 { get; set; }

@@ -1,5 +1,6 @@
 ﻿using FirebaseAdmin.Auth;
 using OneOf.Types;
+using OpenTournament.Authentication;
 using OpenTournament.Data.Models;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
@@ -8,7 +9,7 @@ namespace OpenTournament.Features.Authentication;
 public static class Login
 {
 
-    public sealed record AuthCommand() : IRequest<bool>;
+    public sealed record AuthCommand(ParticipantId Id) : IRequest<bool>;
 
     internal sealed class Handler : IRequestHandler<AuthCommand, bool>
     {
@@ -21,20 +22,17 @@ public static class Login
 
         public async ValueTask<bool> Handle(AuthCommand request, CancellationToken cancellationToken)
         {
-            var userId = new ParticipantId("aldfadsf");
-            var name = "hello";
-            
             var participant = await _dbContext
                 .Participants
-                .FirstOrDefaultAsync(p => p.Id == userId);
+                .FirstOrDefaultAsync(p => p.Id == request.Id);
             
             if (participant is null)
             {
                 
                 var newParticipant = new Participant()
                 {
-                    Id = userId,
-                    Name = name,
+                    Id = request.Id,
+                    Name = "hello",
                     Rank = 1
                 };
                 _dbContext.Add(newParticipant);
@@ -54,9 +52,11 @@ public static class Login
             .RequireAuthorization();
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(IMediator mediator, 
+        HttpContext httpContext,
         CancellationToken token)
     {
-        var command = new AuthCommand();
+        var userId = httpContext.GetUserId();
+        var command = new AuthCommand(new ParticipantId(userId));
         var result = await mediator.Send(command, token);
         return TypedResults.NoContent();
     }

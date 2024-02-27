@@ -12,12 +12,11 @@ public static class CreateTournament
 	internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<TournamentId, ValidationFailure, ProblemDetails>>
 	{
 		private readonly AppDbContext _dbContext;
-		private readonly HttpContext _httpContext;
 
-		public Handler(AppDbContext dbContext, HttpContext httpContext)
+		public Handler(AppDbContext dbContext)
 		{
 			_dbContext = dbContext;
-			_httpContext = httpContext;
+			//_httpContext = httpContext;
 		}
 		
 		public async ValueTask<OneOf<TournamentId, ValidationFailure, ProblemDetails>> Handle(CreateTournamentCommand request, 
@@ -33,12 +32,11 @@ public static class CreateTournament
 			}
 			
 			//var creatorId = _httpContext.User.Claims.FirstOrDefault(c => c.Type == "user_id")?.Value;
-			var creatorId = _httpContext.GetUserId();
+			//var creatorId = _httpContext.GetUserId();
 			var tourny = new Tournament
 			{
 				Id = TournamentId.Create(),
-				Name = request.Name,
-				CreatorId = new ParticipantId(creatorId)
+				Name = request.Name
 			};
 
 			_dbContext.Add(tourny);

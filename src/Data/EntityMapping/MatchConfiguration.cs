@@ -16,11 +16,22 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             .HasConversion<MatchIdConverter>();
 
 
+        builder
+            .Property(m => m.TournamentId)
+            .HasConversion<TournamentIdConverter>();
+
+        builder
+            .Property(m => m.State)
+            .HasConversion<int>();
+
+        builder
+            .Property(m => m.LocalMatchId)
+            .IsRequired();
         /*
         builder
             .HasOne(e => e.Participant1)
             .WithMany();
-        
+
         builder
             .HasOne(e => e.Participant2)
             .WithMany();
