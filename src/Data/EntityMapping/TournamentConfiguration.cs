@@ -13,9 +13,9 @@ public class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
 
         builder
             .HasMany(t => t.Matches)
-            .WithOne(m => m.Tournament)
+            .WithOne()
             .HasForeignKey(m => m.TournamentId)
-            .HasPrincipalKey(t => t.Id);
+            .IsRequired();
 
         builder
             .Property(t => t.Id)
@@ -37,6 +37,10 @@ public class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
         builder
             .Property(t => t.RegistrationMode)
             .HasConversion<int>();
-        
+
+        /*builder
+            .Property(t => t.CreatorId)
+            .HasConversion<ParticipantIdConverter>();*/
+
     }
 }

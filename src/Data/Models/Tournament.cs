@@ -77,7 +77,8 @@ public sealed class Tournament
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
 
-    public ParticipantId CreatorId;
+    //public Participant Creator { get; set; }
+    //public ParticipantId CreatorId { get; set; }
 
-    public ICollection<Match> Matches { get; set; }
+    public ICollection<Match> Matches { get; set; } 
 }

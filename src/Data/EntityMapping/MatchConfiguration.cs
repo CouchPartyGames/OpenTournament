@@ -15,13 +15,16 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
             .Property(m => m.Id)
             .HasConversion<MatchIdConverter>();
 
+
+        /*
         builder
-            .Property(m => m.Opponent1)
-            .HasConversion<ParticipantIdConverter>();
+            .HasOne(e => e.Participant1)
+            .WithMany();
         
         builder
-            .Property(m => m.Opponent2)
-            .HasConversion<ParticipantIdConverter>();
-        
+            .HasOne(e => e.Participant2)
+            .WithMany();
+            //.OnDelete(DeleteBehavior.NoAction);
+            */
     }
 }

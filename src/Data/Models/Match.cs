@@ -23,7 +23,7 @@ public enum MatchState
     Complete
 };
 
-public sealed class Match
+public class Match
 {
     [Column(TypeName = "varchar(36)")]
     public MatchId Id { get; set; }
@@ -32,13 +32,16 @@ public sealed class Match
     
     public int LocalMatchId { get; set; }
     
-    public ParticipantId Opponent1 { get; set; }
     
-    public ParticipantId Opponent2 { get; set; }
+    [DeleteBehavior(DeleteBehavior.NoAction)]
+    public Participant Participant1 { get; set; }
+    
+    [DeleteBehavior(DeleteBehavior.NoAction)]
+    public Participant Participant2 { get; set; }
+    
     //Progression WinProgression;
     //Progression LoseProgression;
     
-    public Tournament Tournament { get; set; }
     
     public TournamentId TournamentId { get; set; }
 }
