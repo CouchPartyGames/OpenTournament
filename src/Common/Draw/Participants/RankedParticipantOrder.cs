@@ -10,7 +10,7 @@ public sealed class RankedParticipantOrder(List<Participant> opponents) : Partic
     // <summary>
     // Dictionary of ordered opponents
     // </summary>
-    public override Dictionary<OpponentOrder, Participant> Opponents
+    public override Dictionary<int, Participant> Opponents
     {
         get
         {
@@ -20,10 +20,10 @@ public sealed class RankedParticipantOrder(List<Participant> opponents) : Partic
             }
 
             int i = _startIndex;
-            var orderedOpponents = new Dictionary<OpponentOrder, Participant>();
+            var orderedOpponents = new Dictionary<int, Participant>();
             foreach (var opp in opponents.OrderByDescending(o => o.Rank))
             {
-                orderedOpponents.Add(new OpponentOrder(i), opp);
+                orderedOpponents.Add(i, opp);
                 i++;
             }
 

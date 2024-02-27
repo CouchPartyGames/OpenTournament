@@ -44,7 +44,6 @@ public static class StartTournament
             }
 
 
-            var opponents = new List<Opponent>();
             var order = ParticipantOrder.Order.Random;
             var participantOrder = ParticipantOrder.Create(order, participants);
             DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
@@ -61,8 +60,9 @@ public static class StartTournament
                 match.LocalMatchId = drawMatch.Id;
                 match.State = MatchState.Ready;
                 match.Id = MatchId.Create();
-                //match.Opponent1 = drawMatch.Opponent1;
-                //match.Opponent2 = drawMatch.Opponent2;
+                match.Participant1Id = participantOrder.Opponents[drawMatch.Opponent1].Id;
+                match.Participant2Id = participantOrder.Opponents[drawMatch.Opponent2].Id;
+                match.TournamentId = tournament.Id;
                 _dbContext.Add(match);
             }
 

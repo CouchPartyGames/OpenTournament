@@ -10,7 +10,7 @@ public sealed class RandomParticipantOrder(List<Participant> opponents) : Partic
     // <summary>
     // Dictionary of ordered opponents
     // </summary>
-    public override Dictionary<OpponentOrder, Participant> Opponents
+    public override Dictionary<int, Participant> Opponents
     {
         get
         {
@@ -20,12 +20,12 @@ public sealed class RandomParticipantOrder(List<Participant> opponents) : Partic
             }
             
             Random rng = new Random();
-            var orderedOpps = new Dictionary<OpponentOrder, Participant>();
+            var orderedOpps = new Dictionary<int, Participant>();
 
             int i = _startIndex;
             foreach (var opp in opponents.OrderBy(a => rng.Next()).ToList() )
             {
-                orderedOpps.Add(new OpponentOrder(i), opp);
+                orderedOpps.Add(i, opp);
                 i++;
             }
 

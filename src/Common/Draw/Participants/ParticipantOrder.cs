@@ -6,7 +6,7 @@ public sealed class EmptyListOfOpponentsException(string message) : Exception(me
 
 public abstract class ParticipantOrder
 {
-    protected const int _startIndex = 0;
+    protected const int _startIndex = 1;
     
     public enum Order
     {
@@ -14,14 +14,11 @@ public abstract class ParticipantOrder
         Ranked
     };
 
-    public abstract Dictionary<OpponentOrder, Participant> Opponents { get; }
-    
-    public static ParticipantOrder Create(Order order, List<Participant> opponents)
+    public abstract Dictionary<int, Participant> Opponents { get; }
+
+    public static ParticipantOrder Create(Order order, List<Participant> participants) => order switch
     {
-        return order switch
-        {
-            Order.Ranked => new RankedParticipantOrder(opponents),
-            _ => new RandomParticipantOrder(opponents)
-        };
-    }
+        Order.Ranked => new RankedParticipantOrder(participants),
+        _ => new RandomParticipantOrder(participants)
+    };
 }
