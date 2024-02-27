@@ -32,14 +32,18 @@ public class Match
     
     public int LocalMatchId { get; set; }
     
-    [DeleteBehavior(DeleteBehavior.NoAction)]
-    public Participant Participant1 { get; set; }
+    public ParticipantId Participant1Id { get; set; }
     
-    [DeleteBehavior(DeleteBehavior.NoAction)]
-    public Participant Participant2 { get; set; }
+    //[DeleteBehavior(DeleteBehavior.NoAction)]
+    //public Participant Participant1 { get; set; }
     
-    //Progression WinProgression;
-    //Progression LoseProgression;
+    public ParticipantId Participant2Id { get; set; }
+    
+    //[DeleteBehavior(DeleteBehavior.NoAction)]
+    //public Participant Participant2 { get; set; }
+    
+    public int WinProgression { get; set; }
+    public int LoseProgression { get; set; }
     
     
     public TournamentId TournamentId { get; set; }

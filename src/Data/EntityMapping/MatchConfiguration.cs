@@ -27,6 +27,15 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder
             .Property(m => m.LocalMatchId)
             .IsRequired();
+
+        builder
+            .Property(m => m.Participant1Id)
+            .HasConversion<ParticipantIdConverter>();
+        
+        builder
+            .Property(m => m.Participant2Id)
+            .HasConversion<ParticipantIdConverter>();
+        
         /*
         builder
             .HasOne(e => e.Participant1)
