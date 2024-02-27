@@ -17,6 +17,8 @@ public static class GetMatch
         {
             var match = await _dbContext
                 .Matches
+                .Include(m => m.Participant1)
+                .Include(m => m.Participant2)
                 .FirstOrDefaultAsync(m => m.Id == request.Id);
 
             if (match is null)

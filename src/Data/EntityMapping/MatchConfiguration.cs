@@ -40,11 +40,12 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder
             .HasOne(e => e.Participant1)
             .WithMany();
+            */
 
+        /*
         builder
             .HasOne(e => e.Participant2)
             .WithMany();
-            //.OnDelete(DeleteBehavior.NoAction);
             */
     }
 }

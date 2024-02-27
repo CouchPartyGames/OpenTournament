@@ -35,12 +35,12 @@ public class Match
     public ParticipantId Participant1Id { get; set; }
     
     //[DeleteBehavior(DeleteBehavior.NoAction)]
-    //public Participant Participant1 { get; set; }
+    public Participant Participant1 { get; set; }
     
     public ParticipantId Participant2Id { get; set; }
     
     //[DeleteBehavior(DeleteBehavior.NoAction)]
-    //public Participant Participant2 { get; set; }
+    public Participant Participant2 { get; set; }
     
     public int WinProgression { get; set; }
     public int LoseProgression { get; set; }
