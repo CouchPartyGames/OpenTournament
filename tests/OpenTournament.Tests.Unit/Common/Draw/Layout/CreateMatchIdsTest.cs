@@ -22,8 +22,8 @@ public class CreateMatchIdsTest
                 4,
                 new List<CreateMatchIds.MatchWithId>
                 {
-                    new(1, 1),
-                    new(1, 2),
+                    new(1, 1, 1, 4),
+                    new(1, 2, 3, 2),
                     new(2, 3)
                 }
             }
