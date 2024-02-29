@@ -2,7 +2,7 @@ namespace OpenTournament.Common.Draw.Layout;
 
 public sealed class CreateProgressionMatches
 {
-    public List<SingleEliminationMatch> MatchWithProgressions { get; private set; }
+    public List<SingleEliminationMatch> MatchWithProgressions { get; private set; } = new();
     
     public sealed record SingleEliminationMatch(int Round, int MatchId, int WinMatchId, int Position1 = -1, int Position2 = -1)
     {
@@ -10,10 +10,17 @@ public sealed class CreateProgressionMatches
             new(match.Round, match.MatchId, winMatchId, match.Position1, match.Position2);
     }
     
-    public CreateProgressionMatches(List<CreateMatchIds.MatchWithId> matches, int totalRounds)
+    public CreateProgressionMatches(List<CreateMatchIds.MatchWithId> matches)
     {
         int round = 1;
         int nextRound = 2;
+
+        int totalRounds = matches.Max(m => m.Round);
+        if (totalRounds == 1)
+        {
+            SingleRound(matches[0]);
+            return;
+        }
 
         for (round = 1; round < totalRounds; round++)
         {
@@ -49,8 +56,14 @@ public sealed class CreateProgressionMatches
                 i++;
             }
         }
+        SingleRound(matches.Last());
     }
 
+    void SingleRound(CreateMatchIds.MatchWithId match)
+    {
+        MatchWithProgressions.Add(SingleEliminationMatch.Create(match, -1));             
+    }
+    
     void AddProgression(CreateMatchIds.MatchWithId match, int winMatchId)
     {
         MatchWithProgressions.Add(SingleEliminationMatch.Create(match, winMatchId));
