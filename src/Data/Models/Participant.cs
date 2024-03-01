@@ -13,4 +13,13 @@ public sealed class Participant
     public string Name { get; set; }
 
     public int Rank { get; set; } = 3;
+
+    public static Participant CreateBye()
+    {
+        return new() { 
+            Id = new ParticipantId("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"),
+            Name = "Bye",
+            Rank = int.MaxValue
+        };
+    }
 }

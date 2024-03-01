@@ -15,10 +15,6 @@ public class ParticipantConfiguration : IEntityTypeConfiguration<Participant>
             .Property(p => p.Id)
             .HasConversion<ParticipantIdConverter>();
 
-        builder.HasData(new Participant
-        {
-            Id = new ParticipantId("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), 
-            Name = "Bye"
-        });
+        builder.HasData(Participant.CreateBye());
     }
 }

@@ -19,5 +19,6 @@ public class RegistrationConfiguration : IEntityTypeConfiguration<Registration>
             .Property(p => p.ParticipantId)
             .HasConversion<ParticipantIdConverter>();
             //.HasColumnType("varchar(30)");
+            
     }
 }

@@ -29,8 +29,11 @@ public static class StartTournament
             }
 
             var participants = await _dbContext
-                .Participants
+                .Registrations
+                .Where(x => x.TournamentId == tournament.Id)
+                .Select(x => x.Participant)
                 .ToListAsync();
+            
             
             var numParticipants = participants.Count;
             
@@ -49,6 +52,8 @@ public static class StartTournament
             DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
 
             var positions = new FirstRoundPositions(drawSize);
+            var matches = new CreateProgressionMatches(new CreateMatchIds(positions).MatchByIds);
+            
             var localMatchIds = new LocalMatchIds(drawSize);
             var draw = new SingleEliminationDraw(positions);
             draw.CreateMatchProgressions(localMatchIds.CreateMatchIds());
@@ -107,7 +112,7 @@ public static class StartTournament
             _ => TypedResults.NotFound(),
             ruleErrors =>
             {
-                return TypedResults.Problem(title: "Rule Fggailures",
+                return TypedResults.Problem(title: "Rule Failures",
                     detail: ruleErrors.Errors[0].ToString(),
                     statusCode: StatusCodes.Status400BadRequest);
             });
