@@ -2,11 +2,11 @@ namespace OpenTournament.Common.Draw.Layout;
 
 public sealed class CreateProgressionMatches
 {
-    public List<SingleEliminationMatch> MatchWithProgressions { get; private set; } = new();
+    public List<ProgressionMatch> MatchWithProgressions { get; private set; } = new();
     
-    public sealed record SingleEliminationMatch(int Round, int MatchId, int WinMatchId, int Position1 = -1, int Position2 = -1)
+    public sealed record ProgressionMatch(int Round, int MatchId, int WinMatchId, int Position1 = -1, int Position2 = -1)
     {
-        public static SingleEliminationMatch Create(CreateMatchIds.MatchWithId match, int winMatchId) => 
+        public static ProgressionMatch Create(CreateMatchIds.MatchWithId match, int winMatchId) => 
             new(match.Round, match.MatchId, winMatchId, match.Position1, match.Position2);
     }
     
@@ -18,7 +18,7 @@ public sealed class CreateProgressionMatches
         int totalRounds = matches.Max(m => m.Round);
         if (totalRounds == 1)
         {
-            SingleRound(matches[0]);
+            AddNoProgression(matches[0]);
             return;
         }
 
@@ -56,16 +56,16 @@ public sealed class CreateProgressionMatches
                 i++;
             }
         }
-        SingleRound(matches.Last());
+        AddNoProgression(matches.Last());
     }
 
-    void SingleRound(CreateMatchIds.MatchWithId match)
+    void AddNoProgression(CreateMatchIds.MatchWithId match)
     {
-        MatchWithProgressions.Add(SingleEliminationMatch.Create(match, -1));             
+        MatchWithProgressions.Add(ProgressionMatch.Create(match, -1));             
     }
     
     void AddProgression(CreateMatchIds.MatchWithId match, int winMatchId)
     {
-        MatchWithProgressions.Add(SingleEliminationMatch.Create(match, winMatchId));
+        MatchWithProgressions.Add(ProgressionMatch.Create(match, winMatchId));
     }
 }

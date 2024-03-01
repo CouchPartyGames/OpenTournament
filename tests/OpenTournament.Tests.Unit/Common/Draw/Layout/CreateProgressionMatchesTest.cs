@@ -13,7 +13,7 @@ public class CreateProgressionMatchesTest
             new object[]
             {
                 2,
-                new List<CreateProgressionMatches.SingleEliminationMatch>
+                new List<CreateProgressionMatches.ProgressionMatch>
                 {
                     new(1, 1, -1, 1, 2)
                 }
@@ -21,7 +21,7 @@ public class CreateProgressionMatchesTest
             new object[]
             {
                 4,
-                new List<CreateProgressionMatches.SingleEliminationMatch>
+                new List<CreateProgressionMatches.ProgressionMatch>
                 {
                     new(1, 1, 3, 1, 4),
                     new(1, 2, 3, 3, 2),
@@ -31,7 +31,7 @@ public class CreateProgressionMatchesTest
             new object[]
             {
                 8,
-                new List<CreateProgressionMatches.SingleEliminationMatch>
+                new List<CreateProgressionMatches.ProgressionMatch>
                 {
                     new(1, 1, 5, 1, 8),
                     new(1, 2, 5, 6, 3),
@@ -49,7 +49,7 @@ public class CreateProgressionMatchesTest
     [Theory]
     [MemberData(nameof(testData))]
     public void MatchWithProgressions_Should_When(int numParticipants, 
-        List<CreateProgressionMatches.SingleEliminationMatch> expected)
+        List<CreateProgressionMatches.ProgressionMatch> expected)
     {
         // Arrange
         var positions = new FirstRoundPositions(DrawSize.CreateFromParticipants(numParticipants));

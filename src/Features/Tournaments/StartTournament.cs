@@ -36,12 +36,10 @@ public static class StartTournament
                 .ToListAsync();
             
             
-            var numParticipants = participants.Count;
-            
                 // Apply Rules
             var engine = new RuleEngine();
             engine.Add(new TournamentInRegistrationState(tournament.Status));
-            engine.Add(new TournamentHasMinimumParticipants(numParticipants, tournament.MinParticipants));
+            engine.Add(new TournamentHasMinimumParticipants(participants.Count, tournament.MinParticipants));
             if (!engine.Evaluate())
             {
                 return new RuleFailure(engine.Errors);
@@ -50,28 +48,19 @@ public static class StartTournament
 
             var order = ParticipantOrder.Order.Random;
             var participantOrder = ParticipantOrder.Create(order, participants);
-            DrawSize drawSize = DrawSize.CreateFromParticipants(numParticipants);
+            DrawSize drawSize = DrawSize.CreateFromParticipants(participants.Count);
 
             var positions = new FirstRoundPositions(drawSize);
             var matches = new CreateProgressionMatches(new CreateMatchIds(positions).MatchByIds);
-            
-            var localMatchIds = new LocalMatchIds(drawSize);
-            var draw = new SingleEliminationDraw(positions);
-            draw.CreateMatchProgressions(localMatchIds.CreateMatchIds());
+            var draw = new SingleEliminationFirstRound(matches.MatchWithProgressions, participantOrder);
             
             await using var transaction = _dbContext.Database.BeginTransaction();
             try
             {
                 // Add Matches (1st Round)
-                foreach (var drawMatch in draw.GetMatchesInRound(1))
+                foreach (var drawMatch in draw.Matches)
                 {
-                    var match = new Match();
-                    match.LocalMatchId = drawMatch.Id;
-                    match.State = MatchState.Ready;
-                    match.Id = MatchId.Create();
-                    match.Participant1Id = participantOrder.Opponents[drawMatch.Opponent1].Id;
-                    match.Participant2Id = participantOrder.Opponents[drawMatch.Opponent2].Id;
-                    match.TournamentId = tournament.Id;
+                    var match = Match.Create(tournament.Id, drawMatch);
                     _dbContext.Add(match);
                 }
 
@@ -81,11 +70,14 @@ public static class StartTournament
 
                 // Make Changes
                 await _dbContext.SaveChangesAsync(token);
-                transaction.Commit();
+                await transaction.CommitAsync();
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                await transaction.RollbackAsync();
                 // To Do, handle failure
+                Console.WriteLine(e); 
+                return false;
             }
 
             return true;

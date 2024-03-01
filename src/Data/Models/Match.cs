@@ -50,8 +50,8 @@ public class Match
     
     public TournamentId TournamentId { get; set; }
 
-    /*
-    public static Match Create(TournamentId tournamentId, SingleElimationMatch match)
+    
+    public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)
     {
         return new()
         {
@@ -59,9 +59,9 @@ public class Match
             LocalMatchId = match.MatchId,
             TournamentId = tournamentId,
             State = MatchState.Ready,
-            Participant1Id = new ParticipantId(match.Opponent1),
-            Participant2Id = new ParticipantId(match.Opponent2),
+            Participant1Id = match.Opp1.Id,
+            Participant2Id = match.Opp2.Id,
             WinMatchId = match.WinMatchId
         };
-    }*/
+    }
 }
