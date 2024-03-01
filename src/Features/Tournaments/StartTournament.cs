@@ -4,6 +4,7 @@ using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
 using DrawSize = OpenTournament.Common.Draw.Layout.DrawSize;
+using DrawSizeModel = OpenTournament.Data.Models.DrawSize;
 
 namespace Features.Tournaments;
 
@@ -58,29 +59,35 @@ public static class StartTournament
             var draw = new SingleEliminationDraw(positions);
             draw.CreateMatchProgressions(localMatchIds.CreateMatchIds());
             
-                // Add Matches (1st Round)
-            foreach(var drawMatch in draw.GetMatchesInRound(1))
+            await using var transaction = _dbContext.Database.BeginTransaction();
+            try
             {
-                var match = new Match();
-                match.LocalMatchId = drawMatch.Id;
-                match.State = MatchState.Ready;
-                match.Id = MatchId.Create();
-                match.Participant1Id = participantOrder.Opponents[drawMatch.Opponent1].Id;
-                match.Participant2Id = participantOrder.Opponents[drawMatch.Opponent2].Id;
-                match.TournamentId = tournament.Id;
-                _dbContext.Add(match);
-            }
+                // Add Matches (1st Round)
+                foreach (var drawMatch in draw.GetMatchesInRound(1))
+                {
+                    var match = new Match();
+                    match.LocalMatchId = drawMatch.Id;
+                    match.State = MatchState.Ready;
+                    match.Id = MatchId.Create();
+                    match.Participant1Id = participantOrder.Opponents[drawMatch.Opponent1].Id;
+                    match.Participant2Id = participantOrder.Opponents[drawMatch.Opponent2].Id;
+                    match.TournamentId = tournament.Id;
+                    _dbContext.Add(match);
+                }
 
                 // Clear Registration
-            //_dbContext.Remove(participants); 
-            
-                // Update Tournament
-            //tournament.DrawSize = drawSize;
-            tournament.Status = Status.InProcess;
-            
+                //_dbContext.Remove(participants); 
+                tournament.Start((DrawSizeModel) drawSize.Value);
+
                 // Make Changes
-            var results = await _dbContext.SaveChangesAsync(token);
-                
+                await _dbContext.SaveChangesAsync(token);
+                transaction.Commit();
+            }
+            catch (Exception)
+            {
+                // To Do, handle failure
+            }
+
             return true;
         }
     }

@@ -15,7 +15,7 @@ public class CreateProgressionMatchesTest
                 2,
                 new List<CreateProgressionMatches.SingleEliminationMatch>
                 {
-                    new(1, 1, -1, 1, Position2:2)
+                    new(1, 1, -1, 1, 2)
                 }
             },
             new object[]
@@ -26,6 +26,22 @@ public class CreateProgressionMatchesTest
                     new(1, 1, 3, 1, 4),
                     new(1, 2, 3, 3, 2),
                     new(2, 3, -1, -1, -1)
+                }
+            },
+            new object[]
+            {
+                8,
+                new List<CreateProgressionMatches.SingleEliminationMatch>
+                {
+                    new(1, 1, 5, 1, 8),
+                    new(1, 2, 5, 6, 3),
+                    new(1, 3, 6, 4, 5),
+                    new(1, 4, 6, 7, 2),
+                    
+                    new(2, 5, 7, -1, -1),
+                    new(2, 6, 7, -1, -1),
+                    
+                    new(3, 7, -1, -1, -1)
                 }
             },
         };

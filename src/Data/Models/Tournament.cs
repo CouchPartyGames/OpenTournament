@@ -80,5 +80,11 @@ public sealed class Tournament
     //public Participant Creator { get; set; }
     //public ParticipantId CreatorId { get; set; }
 
-    public ICollection<Match> Matches { get; set; } 
+    public ICollection<Match> Matches { get; set; }
+
+    public void Start(DrawSize size)
+    {
+        DrawSize = size;
+        Status = Status.InProcess;
+    }
 }

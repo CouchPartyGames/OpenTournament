@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using OpenTournament.Common.Draw.Layout;
 
 namespace OpenTournament.Data.Models;
 
@@ -42,9 +43,25 @@ public class Match
     //[DeleteBehavior(DeleteBehavior.NoAction)]
     public Participant Participant2 { get; set; }
     
-    public int WinProgression { get; set; }
-    public int LoseProgression { get; set; }
+    public int WinMatchId { get; set; }
+    
+    public int LoseMatchId { get; set; }
     
     
     public TournamentId TournamentId { get; set; }
+
+    /*
+    public static Match Create(TournamentId tournamentId, SingleElimationMatch match)
+    {
+        return new()
+        {
+            Id = MatchId.Create(),
+            LocalMatchId = match.MatchId,
+            TournamentId = tournamentId,
+            State = MatchState.Ready,
+            Participant1Id = new ParticipantId(match.Opponent1),
+            Participant2Id = new ParticipantId(match.Opponent2),
+            WinMatchId = match.WinMatchId
+        };
+    }*/
 }
