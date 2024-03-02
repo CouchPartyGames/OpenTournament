@@ -106,6 +106,7 @@ StartTournament.MapEndpoint(app);
 
 LeaveRegistration.MapEndpoint(app);
 JoinRegistration.MapEndpoint(app);
+ListRegistration.MapEndpoint(app);
 
 GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);

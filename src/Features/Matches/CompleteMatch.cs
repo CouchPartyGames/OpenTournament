@@ -5,7 +5,7 @@ namespace Features.Matches;
 
 public static class CompleteMatch
 {
-    public sealed record CompleteMatchCommand() : IRequest<bool>;
+    public sealed record CompleteMatchCommand(MatchId MatchId) : IRequest<bool>;
 
     internal sealed class
         Handler : IRequestHandler<CompleteMatchCommand, bool>
@@ -75,8 +75,8 @@ public static class CompleteMatch
             return TypedResults.NotFound();
         }
 
-        //var command = request with { Id = new MatchId(guid) };
-        var result = await mediator.Send(request, token);
+        var command = new CompleteMatchCommand(new MatchId(guid));
+        var result = await mediator.Send(command, token);
         return TypedResults.Ok();
         /*
         return result.Match<bool>(

@@ -47,6 +47,7 @@ public class Match
     
     public int LoseMatchId { get; init; }
     
+    public ParticipantId WinnerId { get; private set; }
     
     public TournamentId TournamentId { get; init; }
 
@@ -68,5 +69,6 @@ public class Match
     public void Complete(ParticipantId winnerId)
     {
         State = MatchState.Complete;
+        WinnerId = winnerId;
     }
 }
