@@ -58,7 +58,7 @@ public static class UpdateMatch
                 return Endpoint(id, cmd, mediator, token);
             })
             .WithTags("Match")
-            .WithSummary("Update Tournament")
+            .WithSummary("Update Match")
             .WithDescription("Update Individual Match")
             .WithOpenApi();
 

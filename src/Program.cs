@@ -109,6 +109,7 @@ JoinRegistration.MapEndpoint(app);
 
 GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);
+CompleteMatch.MapEndpoint(app);
 
 Login.MapEndpoint(app);
 

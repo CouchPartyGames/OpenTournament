@@ -65,7 +65,7 @@ public class Match
         };
     }
 
-    public void Complete()
+    public void Complete(ParticipantId winnerId)
     {
         State = MatchState.Complete;
     }
