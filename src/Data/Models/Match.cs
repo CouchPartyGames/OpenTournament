@@ -27,28 +27,28 @@ public enum MatchState
 public class Match
 {
     [Column(TypeName = "varchar(36)")]
-    public MatchId Id { get; set; }
+    public MatchId Id { get; init; }
 
-    public MatchState State { get; set; } = MatchState.Ready;
+    public MatchState State { get; private set; } = MatchState.Ready;
     
-    public int LocalMatchId { get; set; }
+    public int LocalMatchId { get; init; }
     
-    public ParticipantId Participant1Id { get; set; }
-    
-    //[DeleteBehavior(DeleteBehavior.NoAction)]
-    public Participant Participant1 { get; set; }
-    
-    public ParticipantId Participant2Id { get; set; }
+    public ParticipantId Participant1Id { get; init; }
     
     //[DeleteBehavior(DeleteBehavior.NoAction)]
-    public Participant Participant2 { get; set; }
+    public Participant Participant1 { get; init; }
     
-    public int WinMatchId { get; set; }
+    public ParticipantId Participant2Id { get; init; }
     
-    public int LoseMatchId { get; set; }
+    //[DeleteBehavior(DeleteBehavior.NoAction)]
+    public Participant Participant2 { get; init; }
+    
+    public int WinMatchId { get; init; }
+    
+    public int LoseMatchId { get; init; }
     
     
-    public TournamentId TournamentId { get; set; }
+    public TournamentId TournamentId { get; init; }
 
     
     public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)
@@ -63,5 +63,10 @@ public class Match
             Participant2Id = match.Opp2.Id,
             WinMatchId = match.WinMatchId
         };
+    }
+
+    public void Complete()
+    {
+        State = MatchState.Complete;
     }
 }

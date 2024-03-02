@@ -57,17 +57,17 @@ public enum RegistrationMode
 public sealed class Tournament
 {
     [Column(TypeName = "varchar(36)")]
-    public TournamentId Id { get; set; }
+    public TournamentId Id { get; init; }
     
     public required string Name { get; set; }
 
-    public Status Status { get; set; } = Status.Registration;
+    public Status Status { get; private set; } = Status.Registration;
     
-    public DateTime StartTime { get; set;  }
+    public DateTime StartTime { get; init;  }
 
-    public int MinParticipants { get; set; } = 2;
+    public int MinParticipants { get; init; } = 2;
 
-    public int MaxParticipants { get; set; } = 8;
+    public int MaxParticipants { get; init; } = 8;
 
     public EliminationMode EliminationMode = EliminationMode.Single;
 
@@ -80,7 +80,7 @@ public sealed class Tournament
     //public Participant Creator { get; set; }
     //public ParticipantId CreatorId { get; set; }
 
-    public ICollection<Match> Matches { get; set; }
+    public ICollection<Match> Matches { get; init; }
 
     public void Start(DrawSize size)
     {

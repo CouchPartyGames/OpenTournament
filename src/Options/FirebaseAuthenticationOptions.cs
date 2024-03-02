@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Options;
+
 namespace OpenTournament.Options;
 
 public sealed class FirebaseAuthenticationOptions
@@ -12,3 +14,8 @@ public sealed class FirebaseAuthenticationOptions
 
     public string Audience { get; init; } = String.Empty;
 }
+
+/*
+[OptionsValidator]
+public partial class FirebaseAuthenticationOptionsValidator : IValidateOptions<FirebaseAuthenticationOptions> {}
+*/

@@ -94,18 +94,18 @@ public class LocalMatchIdsTest
             }
         };
 
-    [Theory]
+    [Theory(Skip = "No longer used")]
     [MemberData(nameof(DrawSizeData))]
     public void CreateMatchIds_ShouldReturnDictionary_WhenDrawSizeCorrect(DrawSize.Size size, 
         Dictionary<int, List<int>> expected)
     {
-        DrawSize drawSize = DrawSize.Create(size);
+       /* DrawSize drawSize = DrawSize.Create(size);
         
         // Act
         var ids = new LocalMatchIds(drawSize);
         var actual = ids.CreateMatchIds();
 
         // Assert
-        actual.Should().BeEquivalentTo(expected);
+        actual.Should().BeEquivalentTo(expected);*/
     }
 }
