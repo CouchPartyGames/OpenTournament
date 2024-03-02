@@ -15,7 +15,7 @@ public sealed record TournamentId(Guid Value)
         return new(guid);
     }
     
-    public static TournamentId Create() => new(Guid.NewGuid());
+    public static TournamentId NewTournamentId() => new(Guid.NewGuid());
 }
 
 public enum Status

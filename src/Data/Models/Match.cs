@@ -14,7 +14,7 @@ public sealed record MatchId(Guid Value)
         return new MatchId(guid);
     }
 
-    public static MatchId Create() => new (Guid.NewGuid());
+    public static MatchId NewMatchId() => new (Guid.NewGuid());
 }
 
 public enum MatchState
@@ -55,7 +55,7 @@ public class Match
     {
         return new()
         {
-            Id = MatchId.Create(),
+            Id = MatchId.NewMatchId(),
             LocalMatchId = match.MatchId,
             TournamentId = tournamentId,
             State = MatchState.Ready,

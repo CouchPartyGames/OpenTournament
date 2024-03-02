@@ -35,7 +35,7 @@ public static class CreateTournament
 			//var creatorId = _httpContext.GetUserId();
 			var tourny = new Tournament
 			{
-				Id = TournamentId.Create(),
+				Id = TournamentId.NewTournamentId(),
 				Name = request.Name
 			};
 
