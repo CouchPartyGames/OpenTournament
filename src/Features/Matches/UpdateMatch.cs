@@ -25,7 +25,7 @@ public static class UpdateMatch
         {
             var match = await _dbContext
                 .Matches
-                .FirstOrDefaultAsync(m => m.Id == command.Id);
+                .FirstOrDefaultAsync(m => m.Id == command.Id, token);
             if (match is null)
             {
                 return new OneOf.Types.NotFound();

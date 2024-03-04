@@ -5,10 +5,10 @@ namespace Features.Matches;
 
 public static class CompleteMatch
 {
-    public sealed record CompleteMatchCommand(MatchId MatchId) : IRequest<bool>;
+    public sealed record CompleteMatchCommand(MatchId MatchId) : IRequest<Results<Ok, NotFound>>;
 
     internal sealed class
-        Handler : IRequestHandler<CompleteMatchCommand, bool>
+        Handler : IRequestHandler<CompleteMatchCommand, Results<Ok, NotFound>>
     {
         private readonly AppDbContext _dbContext;
 
@@ -19,12 +19,17 @@ public static class CompleteMatch
             _dbContext = dbContext;
         }
 
-        public async ValueTask<bool> Handle(CompleteMatchCommand command,
+        public async ValueTask<Results<Ok, NotFound>> Handle(CompleteMatchCommand command,
             CancellationToken token)
         {
-            /*
-            var match = await _dbContext.Matches.FirstOrDefaultAsync(x => x.Id == matchId);
+            var match = await _dbContext
+                .Matches
+                .FirstOrDefaultAsync(x => x.Id == command.MatchId, token);
+            if (match is null) {
+                return TypedResults.NotFound();
+            }
 
+            /*
             using var transaction = _dbContext.Database.BeginTransactionAsync();
             try
             {
@@ -36,6 +41,8 @@ public static class CompleteMatch
                     var nextMatch = Match.Create(tournamentId);
                     _dbContext.AddAsync(nextMatch);
                 }
+                
+                //new MatchCompletedEvent(matchId);
 
                 await _dbContext.SaveChangesAsync(token);
                 await transaction.CommitAsync();
@@ -47,18 +54,17 @@ public static class CompleteMatch
             */
                 
 
-            return true;
+            return TypedResults.Ok();
         }
     }
 
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPut("matches/{id}/complete", (string id,
-                CompleteMatchCommand cmd,
                 IMediator mediator,
                 CancellationToken token) =>
             {
-                return Endpoint(id, cmd, mediator, token);
+                return Endpoint(id, mediator, token);
             })
             .WithTags("Match")
             .WithSummary("Complete Match")
@@ -66,16 +72,20 @@ public static class CompleteMatch
             .WithOpenApi();
     
     public static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
-            CompleteMatchCommand request,
             IMediator mediator,
             CancellationToken token)
     {
-        if (!Guid.TryParse(id, out Guid guid))
+        var matchId = MatchId.TryParse(id);
+        if (matchId is null)
         {
-            return TypedResults.NotFound();
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    { "match id", [ "invalid format" ] }
+                });
         }
 
-        var command = new CompleteMatchCommand(new MatchId(guid));
+        var command = new CompleteMatchCommand(matchId);
         var result = await mediator.Send(command, token);
         return TypedResults.Ok();
         /*

@@ -6,10 +6,13 @@ namespace OpenTournament.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext() { }
+    private readonly IConfiguration _configuration;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    public AppDbContext(IConfiguration configuration) => _configuration = configuration;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration) : base(options)
     {
+        _configuration = configuration;
     }
 
     public DbSet<Tournament> Tournaments { get; set; }
@@ -23,9 +26,16 @@ public class AppDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
+            .UseNpgsql(@"Server=localhost;Port=5432;Database=tournament;User Id=opentournament;Password=somepassword")
+            .EnableSensitiveDataLogging()
+            .EnableDetailedErrors();
+        
+        /*
+        optionsBuilder
             .UseSqlite("Data Source=tourny.db")
             .EnableDetailedErrors()
             .EnableSensitiveDataLogging();
+            */
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -34,10 +34,9 @@ public static class UpdateTournament
          }
 
 
-         //command.Id;
          var tournament = await _dbContext
             .Tournaments
-            .FirstOrDefaultAsync(m => m.Id == command.Id);
+            .FirstOrDefaultAsync(m => m.Id == command.Id, cancellationToken);
          
          if (tournament is null)
          {
@@ -95,7 +94,7 @@ public static class UpdateTournament
          .RequireAuthorization();
    }
 
-   public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id,
+   public static async Task<Results<NoContent, NotFound, ProblemHttpResult, ValidationProblem>> Endpoint(string id,
       UpdateTournamentCommand request,
       IMediator mediator,
       CancellationToken token)
@@ -103,12 +102,16 @@ public static class UpdateTournament
       var tournamentId = TournamentId.TryParse(id);
       if (tournamentId is null)
       {
-         return TypedResults.NotFound();
+         return TypedResults.ValidationProblem(
+            new Dictionary<string, string[]>
+            {
+               { "tournament id", [ "invalid format" ] }
+            });
       }
          
       var commandRequest = request with { Id = tournamentId };
       var result = await mediator.Send(commandRequest, token);
-      return result.Match<Results<NoContent, NotFound, ProblemHttpResult>>(
+      return result.Match<Results<NoContent, NotFound, ProblemHttpResult, ValidationProblem>>(
          sucessful => TypedResults.NoContent(),
          _ => TypedResults.NotFound(),
          errors =>

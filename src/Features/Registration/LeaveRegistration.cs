@@ -1,3 +1,4 @@
+using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
 
 namespace Features.Tournaments;
@@ -19,13 +20,14 @@ public static class LeaveRegistration
             var registration = await _dbContext
                 .Registrations
                 .FirstOrDefaultAsync(r => r.ParticipantId == command.ParticiantId 
-                                          && r.TournamentId == command.TournamentId);
+                                          && r.TournamentId == command.TournamentId, token);
             
             if (registration is null)
             {
                 return new OneOf.Types.NotFound();
             }
 
+            //new LeftTournamentEvent(command.TournamentId, command.ParticiantId);
             _dbContext.Remove(registration);
             var result = await _dbContext.SaveChangesAsync(token);
             

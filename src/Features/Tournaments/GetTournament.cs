@@ -5,17 +5,19 @@ namespace Features.Tournaments;
 
 public static class GetTournament
 {
-    public sealed record GetTournamentQuery(TournamentId Id) : IRequest<OneOf<Tournament, OneOf.Types.NotFound>>;
+    public sealed record GetTournamentQuery(TournamentId Id) : IRequest<OneOf<Tournament, OneOf.Types.NotFound, ValidationProblem>>;
 
+    public sealed record GetTournamentResponse(Tournament Tournament);
+    
 
     internal sealed class
-        Handler : IRequestHandler<GetTournamentQuery, OneOf<Tournament, OneOf.Types.NotFound>>
+        Handler : IRequestHandler<GetTournamentQuery, OneOf<Tournament, OneOf.Types.NotFound, ValidationProblem>>
     {
         private readonly AppDbContext _dbContext;
 
         public Handler(AppDbContext dbContext) => _dbContext = dbContext;
 
-        public async ValueTask<OneOf<Tournament, OneOf.Types.NotFound>> Handle(GetTournamentQuery request,
+        public async ValueTask<OneOf<Tournament, OneOf.Types.NotFound, ValidationProblem>> Handle(GetTournamentQuery request,
             CancellationToken cancellationToken)
         {
             var tournament = await _dbContext
@@ -43,24 +45,26 @@ public static class GetTournament
 	
 	
     
-    public static async Task<Results<Ok<Tournament>, NotFound>> Endpoint(string id, 
+    public static async Task<Results<Ok<Tournament>, NotFound, ValidationProblem>> Endpoint(string id, 
         IMediator mediator, 
         CancellationToken token)
     {
-        if (!Guid.TryParse(id, out Guid guid))
+        var tournamentId = TournamentId.TryParse(id);
+        if (tournamentId is null)
         {
-            Dictionary<string, string[]> errors = new()
-            {
-                { "guid", ["invalid guid"] }
-            };
-            //return TypedResults.ValidationProblem(errors: errors, detail: "Invalid input", title:"invalid input");
-            return TypedResults.NotFound();
+            return TypedResults.ValidationProblem(
+                new Dictionary<string, string[]>
+                {
+                    { "tournament id", [ "invalid format" ] }
+                });
         }
-        
-        var request = new GetTournamentQuery(new TournamentId(guid));
+
+
+        var request = new GetTournamentQuery(tournamentId);
         var result = await mediator.Send(request, token);
-        return result.Match<Results<Ok<Tournament>, NotFound>>(
+        return result.Match<Results<Ok<Tournament>, NotFound, ValidationProblem>>(
             tournament => TypedResults.Ok(tournament),
-            _ => TypedResults.NotFound());
+            _ => TypedResults.NotFound(),
+            _ => TypedResults.ValidationProblem(new Dictionary<string, string[]>()));
     }
 }

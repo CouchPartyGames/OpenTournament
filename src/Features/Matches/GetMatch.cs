@@ -6,6 +6,8 @@ public static class GetMatch
 {
     public sealed record GetMatchQuery(MatchId Id) : IRequest<OneOf<Match, OneOf.Types.NotFound>>;
 
+    public sealed record GetMatchResponse(Match Match);
+
     internal sealed class Handler : IRequestHandler<GetMatchQuery, OneOf<Match, OneOf.Types.NotFound>>
     {
         private readonly AppDbContext _dbContext;
@@ -19,7 +21,7 @@ public static class GetMatch
                 .Matches
                 .Include(m => m.Participant1)
                 .Include(m => m.Participant2)
-                .FirstOrDefaultAsync(m => m.Id == request.Id);
+                .FirstOrDefaultAsync(m => m.Id == request.Id, token);
 
             if (match is null)
             {

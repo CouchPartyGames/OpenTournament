@@ -11,7 +11,6 @@ public sealed record TournamentId(Guid Value)
         {
             return null;
         }
-
         return new(guid);
     }
     

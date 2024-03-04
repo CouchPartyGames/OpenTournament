@@ -1,5 +1,6 @@
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
+using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
 
 namespace Features.Tournaments;
@@ -20,7 +21,7 @@ public static class JoinRegistration
             
             var tournament = await _dbContext
                 .Tournaments
-                .FirstOrDefaultAsync(m => m.Id == command.TournamentId);
+                .FirstOrDefaultAsync(m => m.Id == command.TournamentId, token);
             if (tournament is null)
             {
                 return new OneOf.Types.NotFound();
@@ -34,6 +35,7 @@ public static class JoinRegistration
                 return new RuleFailure(engine.Errors);
             }
 
+            //new JoinedTournamentEvent(command.TournamentId, command.ParticipantId);
             _dbContext.Add(Registration.Create(command.TournamentId, command.ParticipantId));
             var result = await _dbContext.SaveChangesAsync(token);
             if (result < 1)
