@@ -33,15 +33,8 @@ public static class JoinRegistration
             {
                 return new RuleFailure(engine.Errors);
             }
-            
-                // Add User/Participant
-            var registration = new Registration
-            {
-                TournamentId = command.TournamentId,
-                ParticipantId = command.ParticipantId
-            };
-            
-            _dbContext.Add(registration);
+
+            _dbContext.Add(Registration.Create(command.TournamentId, command.ParticipantId));
             var result = await _dbContext.SaveChangesAsync(token);
             if (result < 1)
             {

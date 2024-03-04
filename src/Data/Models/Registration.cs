@@ -7,4 +7,7 @@ public sealed class Registration
     public ParticipantId ParticipantId { get; init; }
     
     public Participant Participant { get; init; }
+
+    public static Registration Create(TournamentId tournamentId, ParticipantId participantId) =>
+        new Registration { TournamentId = tournamentId, ParticipantId = participantId };
 }
