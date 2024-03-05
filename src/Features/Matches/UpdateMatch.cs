@@ -67,12 +67,13 @@ public static class UpdateMatch
         IMediator mediator,
         CancellationToken token)
     {
-        if (!Guid.TryParse(id, out Guid guid))
+        var matchId = MatchId.TryParse(id);
+        if (matchId is null)
         {
             return TypedResults.NotFound();
         }
 
-        var command = request with { Id = new MatchId(guid) };
+        var command = request with { Id = matchId };
         var result = await mediator.Send(command, token);
         return result.Match<Results<NoContent, NotFound, ValidationProblem>>(
             _ => TypedResults.NoContent(),

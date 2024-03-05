@@ -62,12 +62,13 @@ public static class JoinRegistration
     {
 
         var participantId = context.User.Claims.FirstOrDefault(c => c.Type == "user_id");
-        if (!Guid.TryParse(id, out Guid guid))
+        var tournamentId = TournamentId.TryParse(id);
+        if (tournamentId is null)
         {
             return TypedResults.NotFound();
         }
         
-        var command = new JoinTournamentCommand(new TournamentId(guid), new ParticipantId(participantId?.Value));
+        var command = new JoinTournamentCommand(tournamentId, new ParticipantId(participantId?.Value));
         var result = await mediator.Send(command, token);
         return result.Match<Results<NoContent, NotFound, ProblemHttpResult>> (
             _ => TypedResults.NoContent(),

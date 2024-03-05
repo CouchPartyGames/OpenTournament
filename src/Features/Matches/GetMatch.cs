@@ -43,12 +43,13 @@ public static class GetMatch
         IMediator mediator,
         CancellationToken token)
     {
-        if (!Guid.TryParse(id, out Guid guidOutput))
+        var matchId = MatchId.TryParse(id);
+        if (matchId is null)
         {
             return TypedResults.NotFound();
         }
-        
-        var request = new GetMatchQuery(new MatchId(guidOutput));
+
+        var request = new GetMatchQuery(matchId);
         var result = await mediator.Send(request, token);
         return result.Match<Results<Ok<Match>, NotFound>>(
             match => TypedResults.Ok(match),

@@ -56,12 +56,13 @@ public static class DeleteTournament
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id, IMediator mediator, CancellationToken token)
     {
-        if (!Guid.TryParse(id, out Guid guid))
+        var tournamentId = TournamentId.TryParse(id);
+        if (tournamentId is null)
         {
             return TypedResults.NotFound();
         }
-        
-        var command = new DeleteTournamentCommand(new TournamentId(guid));
+
+        var command = new DeleteTournamentCommand(tournamentId);
         var result = await mediator.Send(command, token);
         return result.Match<Results<NoContent, NotFound>>(
             _ => TypedResults.NoContent(),

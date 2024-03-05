@@ -49,12 +49,13 @@ public static class LeaveRegistration
         CancellationToken token)
     {
         var participantId = context.User.Claims.FirstOrDefault(c => c.Type == "user_id");
-        if (!Guid.TryParse(id, out Guid tournyGuid))
+        var tournamentId = TournamentId.TryParse(id);
+        if (tournamentId is null)
         {
             return TypedResults.NotFound();
         }
         
-        var command = new LeaveTournamentCommand(new TournamentId(tournyGuid),
+        var command = new LeaveTournamentCommand(tournamentId,
             new ParticipantId(participantId.Value));
         var result = await mediator.Send(command, token);
         return result.Match<Results<NoContent, NotFound>>(

@@ -101,13 +101,13 @@ public static class StartTournament
         IMediator mediator,
         CancellationToken token)
     {
-        var tournyId = TournamentId.TryParse(id);
-        if (tournyId is null)
+        var tournamentId = TournamentId.TryParse(id);
+        if (tournamentId is null)
         {
             return TypedResults.NotFound();
         }
         
-        var request = new StartTournamentCommand(tournyId);
+        var request = new StartTournamentCommand(tournamentId);
         var result = await mediator.Send(request, token);
         return result.Match<Results<NoContent, NotFound, ProblemHttpResult>> (
             _ => TypedResults.NoContent(),
