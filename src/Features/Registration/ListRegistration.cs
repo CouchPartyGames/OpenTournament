@@ -4,28 +4,43 @@ namespace Features.Tournaments;
 
 public static class ListRegistration
 {
-    public sealed record ListRegistrationResponse();
+    public sealed record ListRegistrationQuery(string Id) : IRequest<OneOf<List<Participant>, ProblemDetails>>;
     
-    public sealed record ListRegistrationQuery(TournamentId TournamentId) : IRequest<ListRegistrationResponse>;
+    public sealed record ListRegistrationResponse(List<Participant> Registrations);
 
 
-    /*
     internal sealed class
-        Handler : IRequestHandler<ListRegistrationQuery, ListRegistrationResponse>
+        Handler : IRequestHandler<ListRegistrationQuery, OneOf<List<Participant>, ProblemDetails>>
     {
         private readonly AppDbContext _dbContext;
-        
-        public async ValueTask<> Handle(ListRegistrationQuery query, CancellationToken token) 
+
+        public Handler(AppDbContext appDbContext)
         {
-            var participants = await _dbContext.Registrations
-                .Where(x => x.TournamentId == query.TournamentId)
-                .Select(x => x.Participant)
-                .ToListAsync();
+            _dbContext = appDbContext;
+        }
+        
+        public async ValueTask<OneOf<List<Participant>, ProblemDetails>> Handle(ListRegistrationQuery query, CancellationToken token)
+        {
+            var tournamentId = TournamentId.TryParse(query.Id);
+            if (tournamentId is null)
+            {
+                return new ProblemDetails();
+            }
+            
+            /*
+            var participants = await _dbContext
+                .Registrations
+                .FirstOrDefaultAsync(x => x.TournamentId == tournamentId);
                 
-            return participants;
+                //.Where(x => x.TournamentId == tournamentId)
+                //.ToListAsync();
+            Console.WriteLine("hello");
+            */
+                
+            //return participants;
+            return new ProblemDetails();
         }
     }
-    */
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapGet("registrations/{id}/", Endpoint)
@@ -35,27 +50,20 @@ public static class ListRegistration
             .WithOpenApi()
             .RequireAuthorization();
 
-    public static async Task<Results<Ok<ListRegistrationResponse>, NotFound, ProblemHttpResult>> Endpoint(string id,
+    public static async Task<Results<Ok<ListRegistrationResponse>, ValidationProblem>> Endpoint(string id,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken token)
     {
-        
-        if (!Guid.TryParse(id, out Guid tournyGuid))
-        {
-            return TypedResults.Problem(new ProblemDetails());
-            return TypedResults.NotFound();
-        }
-        
-        var query = new ListRegistrationQuery(new TournamentId(tournyGuid));
-        /*
-        var result = await mediator.Send(query, token);
-        results.Match {
-            _ => TypedResults.Ok(),
-            validate => validate.ExecuteAsync(httpContext),
-            problem => problem.ExecuteAsync(httpContext)
-        }
-        */
-
-        return TypedResults.Ok(new ListRegistrationResponse());
+        var result = await mediator.Send(new ListRegistrationQuery(id), token);
+        return result.Match<Results<Ok<ListRegistrationResponse>, ValidationProblem>> (
+            participants =>
+            {
+                return TypedResults.Ok(new ListRegistrationResponse(participants));
+            },
+            _ =>
+            {
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>());
+            });
     }
 }
