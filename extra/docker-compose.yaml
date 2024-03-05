@@ -1,6 +1,10 @@
 # touch .env
-# docker volume create
-# mkdir ~/data/db_data
+# docker volume create redis_data
+# docker volume create postgres_data
+# mkdir ./data/db_data ./data/redis_data
+#
+# docker compose up
+# docker compose down
 
 version: '3.9'
 
@@ -24,7 +28,7 @@ services:
       - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD} 
     volumes: 
-      - cache:/data
+      - redis_data:/data
 
 volumes:
   db_data:
@@ -32,4 +36,11 @@ volumes:
     driver_opts:
       type: none
       device: ${PWD}/data/db_data
+      o: bind
+
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data/redis_data
       o: bind
