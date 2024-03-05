@@ -10,8 +10,8 @@ using OpenTelemetry.Resources;
 using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
-using OpenTournament.Data.Models;
 using OpenTournament.Features.Authentication;
+using OpenTournament.Features.Templates;
 using OpenTournament.Services;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
@@ -24,6 +24,9 @@ builder.Logging.AddConsole();
 builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
     //.ValidateDataAnnotations().ValidateOnStart();
+
+builder.Services.Configure<DatabaseOptions>(
+    builder.Configuration.GetSection(DatabaseOptions.SectionName));
 
 builder.Services.AddHttpLogging((options) =>
 {
@@ -111,6 +114,11 @@ ListRegistration.MapEndpoint(app);
 GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);
 CompleteMatch.MapEndpoint(app);
+
+//CreateTemplate.MapEndpoint(app);
+//DeleteTemplate.MapEndpoint(app);
+//ListTemplate.MapEndpoint(app);
+//UpdateTemplate.MapEndpoint(app);
 
 Login.MapEndpoint(app);
 
