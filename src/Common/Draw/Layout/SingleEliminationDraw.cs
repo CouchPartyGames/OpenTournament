@@ -9,7 +9,7 @@ public enum FinalsType
 };
 
 
-public sealed class CurrentDoesntMatchNextException(string message) : Exception(message);
+public sealed class MismatchChunkSize(string message) : Exception(message);
 
 public sealed class SingleEliminationDraw
 {
@@ -67,7 +67,7 @@ public sealed class SingleEliminationDraw
          // Number of Pairs in the Current should match the Next Round
       if (chunkPairs.ToList().Count != nextMatchIds.Count)
       {
-         throw new CurrentDoesntMatchNextException("Mismatch Current with Next Round");
+         throw new MismatchChunkSize("Mismatch Current with Next Round");
       }
       
       foreach (var pair in chunkPairs)

@@ -3,6 +3,7 @@ using OneOf.Types;
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
 using OpenTournament.Data.Models;
+using OpenTournament.Features;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
 namespace Features.Tournaments;
@@ -102,11 +103,7 @@ public static class UpdateTournament
       var tournamentId = TournamentId.TryParse(id);
       if (tournamentId is null)
       {
-         return TypedResults.ValidationProblem(
-            new Dictionary<string, string[]>
-            {
-               { "tournament id", [ "invalid format" ] }
-            });
+         return TypedResults.ValidationProblem(ValidationErrors.TournamentIdFailure);
       }
          
       var commandRequest = request with { Id = tournamentId };

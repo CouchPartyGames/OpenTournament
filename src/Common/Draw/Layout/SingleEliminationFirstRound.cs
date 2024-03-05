@@ -4,6 +4,10 @@ using OpenTournament.Data.Models;
 namespace OpenTournament.Common.Draw.Layout;
 
 
+public sealed class InvalidNumberOfMatches(string message) : Exception(message);
+
+public sealed class InvalidNumberOfParticipants(string message) : Exception(message);
+
 public sealed class SingleEliminationFirstRound
 {
    public sealed record SingleMatch(int Round, int MatchId, Participant Opp1, Participant Opp2, int WinMatchId)
@@ -16,10 +20,19 @@ public sealed class SingleEliminationFirstRound
 
    public Dictionary<int, Participant> Participants { get; init; }
 
-   public List<SingleMatch> Matches { get; init; }
+   public List<SingleMatch> Matches { get; init; } = new();
    
    public SingleEliminationFirstRound(List<CreateProgressionMatches.ProgressionMatch> matches, ParticipantOrder participants)
    {
+      if (matches.Count == 0)
+      {
+         throw new InvalidNumberOfMatches("Zero Progressive matches");
+      }
+
+      if (participants.Opponents.Count == 0)
+      {
+         throw new InvalidNumberOfParticipants("zero participants for draw");
+      }
       Participants = participants.Opponents;
       
          // Merge Participants and Matches in First Round

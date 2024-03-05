@@ -27,18 +27,13 @@ public static class ListRegistration
                 return new ProblemDetails();
             }
             
-            /*
             var participants = await _dbContext
                 .Registrations
-                .FirstOrDefaultAsync(x => x.TournamentId == tournamentId);
+                .Where(x => x.TournamentId == tournamentId)
+                .Select(x => x.Participant)
+                .ToListAsync();
                 
-                //.Where(x => x.TournamentId == tournamentId)
-                //.ToListAsync();
-            Console.WriteLine("hello");
-            */
-                
-            //return participants;
-            return new ProblemDetails();
+            return participants;
         }
     }
 

@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
 using OpenTournament.Data.Models;
+using OpenTournament.Features;
 
 namespace Features.Matches;
 
 public static class CompleteMatch
 {
-    public sealed record CompleteMatchCommand(MatchId MatchId) : IRequest<Results<Ok, NotFound>>;
+    public sealed record CompleteMatchCommand(MatchId MatchId, ParticipantId WinnerId) : IRequest<Results<Ok, NotFound>>;
 
     internal sealed class
         Handler : IRequestHandler<CompleteMatchCommand, Results<Ok, NotFound>>
@@ -22,6 +24,13 @@ public static class CompleteMatch
         public async ValueTask<Results<Ok, NotFound>> Handle(CompleteMatchCommand command,
             CancellationToken token)
         {
+            /*
+            var matchId = MatchId.TryParse(id);
+            if (matchId is null)
+            {
+                return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
+            }*/
+            
             var match = await _dbContext
                 .Matches
                 .FirstOrDefaultAsync(x => x.Id == command.MatchId, token);
@@ -61,10 +70,11 @@ public static class CompleteMatch
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPut("matches/{id}/complete", (string id,
+                CompleteMatchCommand command,
                 IMediator mediator,
                 CancellationToken token) =>
             {
-                return Endpoint(id, mediator, token);
+                return Endpoint(id, command, mediator, token);
             })
             .WithTags("Match")
             .WithSummary("Complete Match")
@@ -72,20 +82,10 @@ public static class CompleteMatch
             .WithOpenApi();
     
     public static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
-            IMediator mediator,
-            CancellationToken token)
+        CompleteMatchCommand command,
+        IMediator mediator,
+        CancellationToken token)
     {
-        var matchId = MatchId.TryParse(id);
-        if (matchId is null)
-        {
-            return TypedResults.ValidationProblem(
-                new Dictionary<string, string[]>
-                {
-                    { "match id", [ "invalid format" ] }
-                });
-        }
-
-        var command = new CompleteMatchCommand(matchId);
         var result = await mediator.Send(command, token);
         return TypedResults.Ok();
         /*

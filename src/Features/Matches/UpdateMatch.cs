@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using OpenTournament.Data.Models;
+using OpenTournament.Features;
 
 namespace Features.Matches;
 
@@ -69,8 +70,8 @@ public static class UpdateMatch
     {
         var matchId = MatchId.TryParse(id);
         if (matchId is null)
-        {
-            return TypedResults.NotFound();
+        { 
+            return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
         }
 
         var command = request with { Id = matchId };

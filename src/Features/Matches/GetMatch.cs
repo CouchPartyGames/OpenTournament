@@ -46,6 +46,7 @@ public static class GetMatch
         var matchId = MatchId.TryParse(id);
         if (matchId is null)
         {
+            //return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
             return TypedResults.NotFound();
         }
 
