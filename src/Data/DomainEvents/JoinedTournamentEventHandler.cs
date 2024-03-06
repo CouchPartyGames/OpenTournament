@@ -4,6 +4,7 @@ public sealed class JoinedTournamentEventHandler : INotificationHandler<JoinedTo
 {
     public ValueTask Handle(JoinedTournamentEvent notification, CancellationToken cancellationToken)
     {
+        // Notify Others
         throw new NotImplementedException();
     }
 }

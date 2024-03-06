@@ -42,7 +42,7 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         
         builder
             .Property(m => m.Created)
-            .HasDefaultValueSql("getdate()");
+            .HasDefaultValueSql("now()");
         /*
         builder
             .HasOne(e => e.Participant1)

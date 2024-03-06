@@ -6,6 +6,7 @@ public sealed class TournamentCompletedEventHandler(AppDbContext dbContext) : IN
     
     public ValueTask Handle(TournamentCompletedEvent notification, CancellationToken cancellationToken)
     {
+        // Notify Others
         throw new NotImplementedException();
     }
 }

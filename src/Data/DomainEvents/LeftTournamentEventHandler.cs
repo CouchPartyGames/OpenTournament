@@ -4,6 +4,7 @@ public sealed class LeftTournamentEventHandler : INotificationHandler<LeftTourna
 {
     public ValueTask Handle(LeftTournamentEvent notification, CancellationToken cancellationToken)
     {
+        // Notify Others
         throw new NotImplementedException();
     }
 }

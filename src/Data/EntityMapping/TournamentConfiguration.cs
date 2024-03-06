@@ -38,9 +38,11 @@ public class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
             .Property(t => t.RegistrationMode)
             .HasConversion<int>();
         
+        
         builder
             .Property(t => t.Created)
-            .HasDefaultValueSql("getdate()");
+            .ValueGeneratedOnAdd()
+            .HasDefaultValueSql("now()");
 
         /*builder
             .Property(t => t.CreatorId)

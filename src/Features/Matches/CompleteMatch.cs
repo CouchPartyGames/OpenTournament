@@ -7,23 +7,32 @@ namespace Features.Matches;
 
 public static class CompleteMatch
 {
-    public sealed record CompleteMatchCommand(MatchId MatchId, ParticipantId WinnerId) : IRequest<Results<Ok, NotFound>>;
+    public sealed record CompleteMatchCommand(MatchId MatchId, ParticipantId WinnerId) : IRequest<OneOf<Ok, NotFound>>;
 
     internal sealed class
-        Handler : IRequestHandler<CompleteMatchCommand, Results<Ok, NotFound>>
+        Handler : IRequestHandler<CompleteMatchCommand, OneOf<Ok, NotFound>>
     {
         private readonly AppDbContext _dbContext;
 
         private readonly IAuthorizationService _authorizationService;
 
-        public Handler(AppDbContext dbContext)
+        public Handler(AppDbContext dbContext, IAuthorizationService authorizationService)
         {
             _dbContext = dbContext;
+            _authorizationService = authorizationService;
         }
 
-        public async ValueTask<Results<Ok, NotFound>> Handle(CompleteMatchCommand command,
+        public async ValueTask<OneOf<Ok, NotFound>> Handle(CompleteMatchCommand command,
             CancellationToken token)
         {
+            /*
+            // Authorize Dedicated Hosts and Tournament Moderators
+            var authorizationResult = await _authorizationService.AuthorizeAsync(User);
+            if (!authorizationResult.Succeeded)
+            {
+               return Forbid(); 
+            }*/
+                
             /*
             var matchId = MatchId.TryParse(id);
             if (matchId is null)
@@ -38,17 +47,16 @@ public static class CompleteMatch
                 return TypedResults.NotFound();
             }
 
-            /*
-            using var transaction = _dbContext.Database.BeginTransactionAsync();
+            using var transaction = _dbContext.Database.BeginTransaction();
             try
             {
                 var createNextMatch = false;
-                match.Complete();
+                match.Complete(command.WinnerId);
 
                 if (createNextMatch)
                 {
-                    var nextMatch = Match.Create(tournamentId);
-                    _dbContext.AddAsync(nextMatch);
+                    //var nextMatch = Match.Create(match.TournamentId, match);
+                    //_dbContext.AddAsync(nextMatch);
                 }
                 
                 //new MatchCompletedEvent(matchId);
@@ -58,10 +66,9 @@ public static class CompleteMatch
             }
             catch (Exception e)
             {
-                transaction.RollbackAsync();
+                await transaction.RollbackAsync();
+                return TypedResults.NotFound();
             }
-            */
-                
 
             return TypedResults.Ok();
         }
@@ -87,12 +94,9 @@ public static class CompleteMatch
         CancellationToken token)
     {
         var result = await mediator.Send(command, token);
-        return TypedResults.Ok();
-        /*
-        return result.Match<bool>(
-            _ => TypedResults.NoContent(),
+        return result.Match<Results<Ok, NotFound, ValidationProblem>>(
+            _ => TypedResults.Ok(),
             _ => TypedResults.NotFound()
             ); 
-            */
     }
 }
