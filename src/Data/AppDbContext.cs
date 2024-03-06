@@ -8,13 +8,13 @@ namespace OpenTournament.Data;
 
 public class AppDbContext : DbContext
 {
-    private readonly IOptions<DatabaseOptions> _dbOptions;
+    private readonly DatabaseOptions _dbOptions;
 
-    public AppDbContext(IOptions<DatabaseOptions> dbOptions) => _dbOptions = dbOptions;
+    public AppDbContext(IOptions<DatabaseOptions> dbOptions) => _dbOptions = dbOptions.Value;
 
     public AppDbContext(DbContextOptions<AppDbContext> options, IOptions<DatabaseOptions> dbOptions) : base(options)
     {
-        _dbOptions = dbOptions;
+        _dbOptions = dbOptions.Value;
     }
 
     public DbSet<Tournament> Tournaments { get; set; }
@@ -28,11 +28,9 @@ public class AppDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            //.UseNpgsql(_dbOptions.ConnectionString)
-            .UseNpgsql(@"Server=localhost;Port=5432;Database=tournament;User Id=opentournament;Password=somepassword")
+            .UseNpgsql(_dbOptions.ConnectionString)
             .EnableSensitiveDataLogging()
             .EnableDetailedErrors();
-        
         /*
         optionsBuilder
             .UseSqlite("Data Source=tourny.db")

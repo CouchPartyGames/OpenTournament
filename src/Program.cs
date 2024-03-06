@@ -25,8 +25,8 @@ builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
     //.ValidateDataAnnotations().ValidateOnStart();
 
-//builder.Services.AddOptions<DatabaseOptions>(
-//    builder.Configuration.GetSection(DatabaseOptions.SectionName));
+builder.Services.Configure<DatabaseOptions>(
+    builder.Configuration.GetSection(DatabaseOptions.SectionName));
 
 builder.Services.AddHttpLogging((options) =>
 {
