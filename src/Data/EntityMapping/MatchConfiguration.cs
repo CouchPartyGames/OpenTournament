@@ -39,6 +39,10 @@ public class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder
             .Property(m => m.WinnerId)
             .HasConversion<ParticipantIdConverter>();
+        
+        builder
+            .Property(m => m.Created)
+            .HasDefaultValueSql("getdate()");
         /*
         builder
             .HasOne(e => e.Participant1)

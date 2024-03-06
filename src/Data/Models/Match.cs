@@ -50,6 +50,8 @@ public class Match
     public ParticipantId WinnerId { get; private set; }
     
     public TournamentId TournamentId { get; init; }
+    
+    public DateTime Created { get; init; }
 
     
     public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)

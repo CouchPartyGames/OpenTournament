@@ -76,6 +76,7 @@ public sealed class Tournament
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
 
+    public DateTime Created { get; init; }
     //public Participant Creator { get; set; }
     //public ParticipantId CreatorId { get; set; }
 
