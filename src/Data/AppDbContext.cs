@@ -17,26 +17,24 @@ public class AppDbContext : DbContext
         _dbOptions = dbOptions.Value;
     }
 
-    public DbSet<Tournament> Tournaments { get; set; }
+    public DbSet<Tournament> Tournaments { get; init; }
     
-    public DbSet<Match> Matches { get; set; }
+    public DbSet<Match> Matches { get; init; }
     
-    public DbSet<Participant> Participants { get; set; }
+    public DbSet<Participant> Participants { get; init; }
     
-    public DbSet<Registration> Registrations { get; set; }
+    public DbSet<Registration> Registrations { get; init; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
-            .UseNpgsql(_dbOptions.ConnectionString)
+            .UseNpgsql(_dbOptions.ConnectionString, opts =>
+            {
+                opts.EnableRetryOnFailure();
+                opts.CommandTimeout(10);    // in seconds
+            })
             .EnableSensitiveDataLogging()
             .EnableDetailedErrors();
-        /*
-        optionsBuilder
-            .UseSqlite("Data Source=tourny.db")
-            .EnableDetailedErrors()
-            .EnableSensitiveDataLogging();
-            */
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -45,5 +43,6 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new MatchConfiguration());
         modelBuilder.ApplyConfiguration(new ParticipantConfiguration());
         modelBuilder.ApplyConfiguration(new RegistrationConfiguration());
+        //modelBuilder.ApplyConfiguration(new TemplateConfiguration());
     }
 }

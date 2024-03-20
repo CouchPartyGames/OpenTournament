@@ -24,7 +24,7 @@ public enum MatchState
     Complete
 };
 
-public class Match
+public sealed class Match
 {
     [Column(TypeName = "varchar(36)")]
     public MatchId Id { get; init; }
@@ -52,6 +52,7 @@ public class Match
     public TournamentId TournamentId { get; init; }
     
     public DateTime Created { get; init; }
+    public DateTime Completed { get; init; }
 
     
     public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)

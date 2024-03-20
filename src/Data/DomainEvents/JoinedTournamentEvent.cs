@@ -2,4 +2,4 @@
 
 namespace OpenTournament.Data.DomainEvents;
 
-public sealed record JoinedTournamentEvent(TournamentId TournamentId, ParticipantId ParticipantId) : INotification;
+public sealed record JoinedTournamentEvent(TournamentId TournamentId, ParticipantId ParticipantId) : INotification, IDomainEvent;

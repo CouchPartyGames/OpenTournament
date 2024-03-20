@@ -2,4 +2,4 @@
 
 namespace OpenTournament.Data.DomainEvents;
 
-public sealed record MatchCompletedEvent(MatchId MatchId) : INotification;
+public sealed record MatchCompletedEvent(MatchId MatchId) : INotification, IDomainEvent;

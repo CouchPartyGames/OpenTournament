@@ -3,9 +3,6 @@ using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
-using OpenTournament.Data.DomainEvents;
-using DrawSize = OpenTournament.Common.Draw.Layout.DrawSize;
-using DrawSizeModel = OpenTournament.Data.Models.DrawSize;
 
 namespace Features.Tournaments;
 
@@ -67,7 +64,7 @@ public static class StartTournament
 
                 // Clear Registration
                 //_dbContext.Remove(participants); 
-                tournament.Start((DrawSizeModel) drawSize.Value);
+                tournament.Start(drawSize);
 
                 //new TournamentStartedEvent(tournament.Id);
 

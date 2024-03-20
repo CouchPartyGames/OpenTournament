@@ -1,3 +1,5 @@
+using Microsoft.IdentityModel.Tokens;
+
 namespace OpenTournament.Common.Rules;
 
 public sealed record RuleError(string Name, string Message, string Field);
@@ -14,7 +16,7 @@ public sealed class RuleEngine
 {
     private List<IRule> _rules = new();
 
-    public List<RuleError> Errors { get; private set; } = new();
+    public List<RuleError> Errors { get; } = new();
 
     public void Add(IRule rule) => _rules.Add(rule);
 
@@ -31,6 +33,17 @@ public sealed class RuleEngine
         }
 
         return result;
+    }
+
+    public Dictionary<string, object> ToProblemExtensions()
+    {
+        Dictionary<string, object> errors = new();
+        foreach (var error in Errors)
+        {
+           errors.Add(error.Field, $"{error.Message}");
+        }
+
+        return errors;
     }
 }
 

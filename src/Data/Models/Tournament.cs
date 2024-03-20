@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using OneOf.Types;
+using OpenTournament.Common.Draw.Layout;
 
 namespace OpenTournament.Data.Models;
 
@@ -35,17 +35,6 @@ public enum DrawSeeding {
     Seeded
 }
 
-public enum DrawSize
-{
-    NotSet = 0,
-    Size2 = 2,
-    Size4 = 4,
-    Size8 = 8,
-    Size16 = 16,
-    Size32 = 32,
-    Size64 = 64,
-    Size128 = 128
-};
 
 public enum RegistrationMode
 {
@@ -70,7 +59,7 @@ public sealed class Tournament
 
     public EliminationMode EliminationMode = EliminationMode.Single;
 
-    public DrawSize DrawSize = DrawSize.NotSet;
+    public DrawSize? DrawSize { get; set; }
 
     public DrawSeeding DrawSeeding = DrawSeeding.Random;
 
@@ -79,6 +68,7 @@ public sealed class Tournament
     public DateTime Created { get; init; }
     //public Participant Creator { get; set; }
     //public ParticipantId CreatorId { get; set; }
+    public DateTime Completed { get; init; }
 
     public ICollection<Match> Matches { get; init; }
 
@@ -86,5 +76,10 @@ public sealed class Tournament
     {
         DrawSize = size;
         Status = Status.InProcess;
+    }
+
+    public void Complete()
+    {
+        Status = Status.Completed;
     }
 }
