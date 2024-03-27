@@ -30,6 +30,13 @@ services:
     volumes: 
       - redis_data:/data
 
+  dashboard:
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.4
+    restart: always
+    ports:
+      - 18888:18888
+      - 4317:18889
+    
 volumes:
   db_data:
     driver: local # Define the driver and options under the volume name
