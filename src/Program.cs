@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
@@ -43,13 +44,24 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(o =>
     {
         o.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
-        o.AddMeter("Microsoft.AspNetCore.Hosting",
-            "System.Net.Http");
+        o.AddRuntimeInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddAspNetCoreInstrumentation();
 
         o.AddOtlpExporter(export =>
         {
-            var addr = builder.Configuration["OpenTelemetry:Endpoint"] ?? "http://localhost";
+            var addr = builder.Configuration["OpenTelemetry:Endpoint"] ?? "http://localhost:4317";
             export.Endpoint = new Uri(addr);
+        });
+    })
+    .WithTracing(opts =>
+    {
+        opts.SetSampler(new AlwaysOnSampler());
+        opts.AddHttpClientInstrumentation()
+            .AddAspNetCoreInstrumentation();
+        opts.AddOtlpExporter(export =>
+        {
+            export.Endpoint = new Uri("http://localhost:4317");
         });
     });
 
