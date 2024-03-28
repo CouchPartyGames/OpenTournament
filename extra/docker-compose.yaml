@@ -11,6 +11,7 @@ version: '3.9'
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: opentournament-postgres
     restart: always
     ports:
       - 5432:5432
@@ -23,6 +24,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: opentournament-redis
     restart: always
     ports:
       - '6379:6379'
@@ -30,8 +32,10 @@ services:
     volumes: 
       - redis_data:/data
 
+
   dashboard:
     image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.4
+    container_name: opentournament-dashboard
     restart: always
     ports:
       - 18888:18888
