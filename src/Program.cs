@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.Identity;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -20,8 +22,16 @@ using OpenTournament.Options;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
-//builder.Logging.AddJsonConsole();
-builder.Logging.AddConsole();
+builder.Logging.AddOpenTelemetry(opts =>
+{
+    opts.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
+    opts.IncludeScopes = true;
+    opts.IncludeFormattedMessage = true;
+    opts.AddOtlpExporter(export =>
+    {
+        export.Endpoint = new Uri("http://localhost:4317");
+    });
+});
 builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
     //.ValidateDataAnnotations().ValidateOnStart();
@@ -56,6 +66,7 @@ builder.Services.AddOpenTelemetry()
     })
     .WithTracing(opts =>
     {
+        opts.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
         opts.SetSampler(new AlwaysOnSampler());
         opts.AddHttpClientInstrumentation()
             .AddAspNetCoreInstrumentation();
