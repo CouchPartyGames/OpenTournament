@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
+using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
 using OpenTournament.Features;
 
@@ -53,13 +54,8 @@ public static class CompleteMatch
                 var createNextMatch = false;
                 match.Complete(command.WinnerId);
 
-                if (createNextMatch)
-                {
-                    //var nextMatch = Match.Create(match.TournamentId, match);
-                    //_dbContext.AddAsync(nextMatch);
-                }
-                
-                //new MatchCompletedEvent(matchId);
+                _dbContext.Add(
+                    Outbox.Create("match.completed", new MatchCompletedEvent(command.MatchId)));
 
                 await _dbContext.SaveChangesAsync(token);
                 await transaction.CommitAsync();
