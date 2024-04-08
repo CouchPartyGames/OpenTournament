@@ -1,8 +1,10 @@
+using System.Text.Json;
 using OpenTournament.Data.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
+using OpenTournament.Data.DomainEvents;
 
 namespace Features.Tournaments;
 
@@ -66,7 +68,7 @@ public static class StartTournament
                 //_dbContext.Remove(participants); 
                 tournament.Start(drawSize);
 
-                //new TournamentStartedEvent(tournament.Id);
+                _dbContext.Add(Outbox.Create("tournament.start", new TournamentStartedEvent(tournament.Id)));
 
                 // Make Changes
                 await _dbContext.SaveChangesAsync(token);

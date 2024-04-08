@@ -9,7 +9,15 @@ public record OutboxId(Guid Id)
 
 public sealed class Outbox
 {
+   public enum Status
+   {
+      Ready = 0,
+      Processed
+   };
+   
    public OutboxId Id { get; private set; }
+   
+   public string EventName { get; private set; }
 
    public string Data { get; private set; } = String.Empty;
    
@@ -17,18 +25,22 @@ public sealed class Outbox
    
    public DateTime Processed { get; private set; }
    
-   public Status Status { get; set; }
+   public Status State { get; set; }
 
-   /*
-   public void Create(IDomainEvent event)
-   {
-      Id = OutboxId.NewOutboxId();
-      Data = JsonSerializer.Serialize(event);
-   }*/
+   
+   public static Outbox Create(string eventName, IDomainEvent eventData) =>
+      new Outbox()
+      {
+         Id = OutboxId.NewOutboxId(),
+         EventName = eventName,
+         Data = JsonSerializer.Serialize(eventData),
+         Created = new DateTime(),
+         State = Status.Ready
+      };
    
    public void SetProcessed()
    {
       Processed = new DateTime();
-      Status = Status.Completed;
+      State = Status.Processed;
    }
 }
