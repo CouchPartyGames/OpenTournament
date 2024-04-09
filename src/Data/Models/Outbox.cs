@@ -2,8 +2,17 @@ using System.Text.Json;
 
 namespace OpenTournament.Data.Models;
 
-public record OutboxId(Guid Id)
+public record OutboxId(Guid Value)
 {
+    public static OutboxId? TryParse(string id)
+    {
+        if (!Guid.TryParse(id, out Guid guid))
+        {
+            return null;
+        }
+        return new(guid);
+    }
+    
    public static OutboxId NewOutboxId() => new OutboxId(Guid.NewGuid());
 }
 

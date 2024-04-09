@@ -4,7 +4,7 @@ using OpenTournament.Data.Models;
 
 namespace OpenTournament.Data.EntityMapping;
 
-public class MatchConfiguration : IEntityTypeConfiguration<Match>
+public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
 {
     public void Configure(EntityTypeBuilder<Match> builder)
     {

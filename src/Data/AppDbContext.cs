@@ -43,6 +43,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration(new MatchConfiguration());
         modelBuilder.ApplyConfiguration(new ParticipantConfiguration());
         modelBuilder.ApplyConfiguration(new RegistrationConfiguration());
+        modelBuilder.ApplyConfiguration(new OutboxConfiguration());
         //modelBuilder.ApplyConfiguration(new TemplateConfiguration());
     }
 }
