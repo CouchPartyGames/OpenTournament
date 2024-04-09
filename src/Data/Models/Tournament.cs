@@ -59,7 +59,7 @@ public sealed class Tournament
 
     public EliminationMode EliminationMode = EliminationMode.Single;
 
-    public DrawSize? DrawSize { get; set; }
+    public DrawSize.Size? DrawSize { get; set; }
 
     public DrawSeeding DrawSeeding = DrawSeeding.Random;
 
@@ -74,7 +74,7 @@ public sealed class Tournament
 
     public void Start(DrawSize size)
     {
-        DrawSize = size;
+        DrawSize = size.Value;
         Status = Status.InProcess;
     }
 
