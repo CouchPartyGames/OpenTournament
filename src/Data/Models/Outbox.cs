@@ -28,7 +28,7 @@ public sealed class Outbox
    
    public string EventName { get; private set; }
 
-   public string Data { get; private set; } = String.Empty;
+   public string Content { get; private set; } = String.Empty;
    
    public DateTime Created { get; init; }
    
@@ -42,7 +42,7 @@ public sealed class Outbox
       {
          Id = OutboxId.NewOutboxId(),
          EventName = eventName,
-         Data = JsonSerializer.Serialize(eventData),
+         Content = JsonSerializer.Serialize(eventData),
          Created = new DateTime(),
          State = Status.Ready
       };

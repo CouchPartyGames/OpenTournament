@@ -24,6 +24,8 @@ public class AppDbContext : DbContext
     public DbSet<Participant> Participants { get; init; }
     
     public DbSet<Registration> Registrations { get; init; }
+    
+    public DbSet<Outbox> Outboxes { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
