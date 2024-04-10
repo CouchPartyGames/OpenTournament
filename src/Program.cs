@@ -19,6 +19,7 @@ using OpenTournament.Services;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
 using OpenTournament.Options;
+using Quartz;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
@@ -50,6 +51,19 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddTournamentLayouts();
+builder.Services.AddQuartz(opts =>
+{
+    var jobKey = JobKey.Create(nameof(OutboxBackgroundJob));
+    opts.AddJob<OutboxBackgroundJob>(jobKey)
+        .AddTrigger(trigger =>
+        {
+            trigger.ForJob(jobKey).WithSimpleSchedule(schedule =>
+            {
+                schedule.WithIntervalInSeconds(1).RepeatForever();
+            });
+        });
+});
+builder.Services.AddQuartzHostedService();
 builder.Services.AddOpenTelemetry()
     .WithMetrics(o =>
     {
