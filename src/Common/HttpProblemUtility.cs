@@ -4,6 +4,15 @@ namespace OpenTournament.Common;
 
 public sealed class HttpProblemUtility
 {
+    public static ValidationProblem ValidationProblemTournamentId()
+    {
+        return TypedResults.ValidationProblem(
+            new Dictionary<string, string[]>
+            {
+                { "tournament id", [ "invalid format" ] }
+            });
+    }
+    
     public static ProblemHttpResult NotFoundToProblemDetails()
     {
         return TypedResults.Problem("Resource not found", 

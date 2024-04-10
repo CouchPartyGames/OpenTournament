@@ -82,8 +82,11 @@ builder.Services.AddOpenTelemetry()
     {
         opts.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
         opts.SetSampler(new AlwaysOnSampler());
+        
         opts.AddHttpClientInstrumentation()
-            .AddAspNetCoreInstrumentation();
+            .AddAspNetCoreInstrumentation()
+            .AddQuartzInstrumentation();
+        
         opts.AddOtlpExporter(export =>
         {
             export.Endpoint = new Uri("http://localhost:4317");

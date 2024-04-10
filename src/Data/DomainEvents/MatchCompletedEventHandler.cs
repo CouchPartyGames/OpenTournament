@@ -1,4 +1,6 @@
-﻿namespace OpenTournament.Data.DomainEvents;
+﻿using OpenTournament.Data.Models;
+
+namespace OpenTournament.Data.DomainEvents;
 
 public sealed class MatchCompletedEventHandler : INotificationHandler<MatchCompletedEvent>
 {
@@ -22,10 +24,31 @@ public sealed class MatchCompletedEventHandler : INotificationHandler<MatchCompl
             .FirstOrDefaultAsync(m => m.Id == notification.MatchId);
 
         /*
+            // Create New Match
+        bool addMatch = false;
+        if (addMatch)
+        {
+            _dbContext.Add(new Match());
+            await _dbContext.SaveChangesAsync();
+        }
+        */
+        
+        /*
         match.LocalMatchId;
         match.WinMatchId;
         */
-        
+
+        bool markTournamentAsCompleted = false;
+        if (markTournamentAsCompleted)
+        {
+            var tournamentId = TournamentId.NewTournamentId();
+            var tournament = await _dbContext
+                .Tournaments
+                .FirstOrDefaultAsync(t => t.Id == tournamentId);
+            tournament.Complete();
+            await _dbContext.SaveChangesAsync();
+        }
+
         throw new NotImplementedException();
     }
 }
