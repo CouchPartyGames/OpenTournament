@@ -1,6 +1,3 @@
 ﻿namespace OpenTournament.Data;
 
-public interface IDomainEvent
-{
-    
-}
+public interface IDomainEvent;

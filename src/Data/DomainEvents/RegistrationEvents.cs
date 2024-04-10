@@ -6,8 +6,10 @@ namespace OpenTournament.Data.Events;
 // Allow Participants to register for the tournament
 public record RegistrationOpened(TournamentId TournamentId);
 
+public record JoinedTournamentEvent(TournamentId TournamentId, ParticipantId ParticipantId) : INotification, IDomainEvent;
 public record PlayerJoined(TournamentId TournamentId, ParticipantId ParticipantId);
 
+public record LeftTournamentEvent(TournamentId TournamentId, ParticipantId ParticipantId) : INotification, IDomainEvent;
 public record PlayerLeft(TournamentId TournamentId, ParticipantId ParticipantId);
 
 // Registration is complete
