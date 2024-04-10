@@ -1,4 +1,3 @@
-using System.Text.Json;
 using OpenTournament.Data.Models;
 using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Common.Draw.Participants;
@@ -6,7 +5,7 @@ using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
 using OpenTournament.Data.DomainEvents;
 
-namespace Features.Tournaments;
+namespace OpenTournament.Features.Tournaments;
 
 public static class StartTournament
 {
@@ -50,33 +49,34 @@ public static class StartTournament
             var participantOrder = ParticipantOrder.Create(order, participants);
             DrawSize drawSize = DrawSize.CreateFromParticipants(participants.Count);
 
-            var positions = new FirstRoundPositions(drawSize);
-            var matches = new CreateProgressionMatches(new CreateMatchIds(positions).MatchByIds);
-            var draw = new SingleEliminationFirstRound(matches.MatchWithProgressions, participantOrder);
+            //var positions = new FirstRoundPositions(drawSize);
+            //var matches = new CreateProgressionMatches(new CreateMatchIds(positions).MatchByIds);
+            //var draw = new SingleEliminationFirstRound(matches.MatchWithProgressions, participantOrder);
             
-            await using var transaction = _dbContext.Database.BeginTransaction();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
             try
             {
                 // Add Matches (1st Round)
-                foreach (var drawMatch in draw.Matches)
+                /*foreach (var drawMatch in draw.Matches)
                 {
                     var match = Match.Create(tournament.Id, drawMatch);
                     _dbContext.Add(match);
-                }
+                }*/
 
                 // Clear Registration
                 //_dbContext.Remove(participants); 
                 tournament.Start(drawSize);
 
-                _dbContext.Add(Outbox.Create("tournament.start", new TournamentStartedEvent(tournament.Id)));
+                _dbContext.Add(Outbox.Create("tournament.start", 
+                    new TournamentStartedEvent(tournament.Id, drawSize)));
 
                 // Make Changes
                 await _dbContext.SaveChangesAsync(token);
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(token);
             }
             catch (Exception e)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(token);
                 // To Do, handle failure
                 Console.WriteLine(e); 
                 return false;

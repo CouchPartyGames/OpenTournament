@@ -1,6 +1,6 @@
 using OpenTournament.Data.Models;
 
-namespace OpenTournament.Data.Events;
+namespace OpenTournament.Data.DomainEvents;
 
 
 // Allow Participants to register for the tournament

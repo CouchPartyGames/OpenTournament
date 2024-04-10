@@ -1,8 +1,9 @@
-﻿using OpenTournament.Data.Models;
+﻿using OpenTournament.Common.Draw.Layout;
+using OpenTournament.Data.Models;
 
 namespace OpenTournament.Data.DomainEvents;
 
-public record TournamentStartedEvent(TournamentId TournamentId) : INotification, IDomainEvent;
+public record TournamentStartedEvent(TournamentId TournamentId, DrawSize DrawSize) : INotification, IDomainEvent;
 public record TournamentStarted(TournamentId TournamentId);
 
 public record TournamentCompletedEvent(TournamentId TournamentId) : INotification, IDomainEvent;

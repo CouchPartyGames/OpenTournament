@@ -1,12 +1,9 @@
-using System.Net;
-using OneOf.Types;
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
 using OpenTournament.Data.Models;
-using OpenTournament.Features;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
-namespace Features.Tournaments;
+namespace OpenTournament.Features.Tournaments;
 
 public static class UpdateTournament
 {

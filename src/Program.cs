@@ -14,6 +14,7 @@ using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
 using OpenTournament.Features.Authentication;
+using OpenTournament.Features.Tournaments;
 using OpenTournament.Features.Templates;
 using OpenTournament.Services;
 using OpenTournament.Identity;
@@ -82,10 +83,9 @@ builder.Services.AddOpenTelemetry()
     {
         opts.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
         opts.SetSampler(new AlwaysOnSampler());
-        
+
         opts.AddHttpClientInstrumentation()
-            .AddAspNetCoreInstrumentation()
-            .AddQuartzInstrumentation();
+            .AddAspNetCoreInstrumentation();
         
         opts.AddOtlpExporter(export =>
         {

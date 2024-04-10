@@ -1,7 +1,6 @@
-using OpenTournament.Authentication;
 using OpenTournament.Data.Models;
 
-namespace Features.Tournaments;
+namespace OpenTournament.Features.Tournaments;
 
 public static class CreateTournament
 {
