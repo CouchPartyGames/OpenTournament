@@ -14,7 +14,6 @@ public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger,
     
     public async Task Execute(IJobExecutionContext context)
     {
-        logger.LogInformation("Running Background Job");
         try
         {
             
@@ -22,19 +21,22 @@ public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger,
                 .Where(o => o.State == Outbox.Status.Ready)
                 .Take(NumOfMessages)
                 .ToListAsync(context.CancellationToken);
-            
+
             if (messages.Count == 0)
                 return;
             
             await using var transaction = await appDbContext.Database.BeginTransactionAsync(context.CancellationToken);
             foreach (var message in messages)
             {
-                var eventObj = JsonSerializer.Deserialize<IDomainEvent>(message.Content);
+                Console.WriteLine(message);
+                IDomainEvent? eventObj = JsonSerializer.Deserialize<IDomainEvent>(message.Content);
                 if (eventObj is null)
                 {
                     continue;
                 }
                 
+                
+                Console.WriteLine(nameof(eventObj));
                 await mediator.Publish(eventObj, context.CancellationToken);
                 message.SetProcessed();
             }
@@ -44,6 +46,7 @@ public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger,
         }
         catch (Exception e)
         {
+            logger.LogError(e.ToString());
             await appDbContext.Database.RollbackTransactionAsync(context.CancellationToken);
         }
     }

@@ -14,8 +14,13 @@ public static class StartTournament
     internal sealed class Handler : IRequestHandler<StartTournamentCommand, OneOf<bool, OneOf.Types.NotFound, RuleFailure>>
     {
         private readonly AppDbContext _dbContext;
-        
-        public Handler(AppDbContext dbContext) => _dbContext = dbContext;
+        //private readonly Logger<Handler> _logger;
+
+        public Handler(AppDbContext dbContext /*, Logger<Handler> logger*/)
+        {
+            _dbContext = dbContext;
+//            _logger = logger;
+        }
 
         public async ValueTask<OneOf<bool, OneOf.Types.NotFound, RuleFailure>> Handle(StartTournamentCommand command,
             CancellationToken token)
@@ -32,7 +37,7 @@ public static class StartTournament
                 .Registrations
                 .Where(x => x.TournamentId == tournament.Id)
                 .Select(x => x.Participant)
-                .ToListAsync();
+                .ToListAsync(token);
             
             
                 // Apply Rules
@@ -49,38 +54,32 @@ public static class StartTournament
             var participantOrder = ParticipantOrder.Create(order, participants);
             DrawSize drawSize = DrawSize.CreateFromParticipants(participants.Count);
 
-            //var positions = new FirstRoundPositions(drawSize);
-            //var matches = new CreateProgressionMatches(new CreateMatchIds(positions).MatchByIds);
-            //var draw = new SingleEliminationFirstRound(matches.MatchWithProgressions, participantOrder);
-            
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
-            try
-            {
-                // Add Matches (1st Round)
-                /*foreach (var drawMatch in draw.Matches)
-                {
-                    var match = Match.Create(tournament.Id, drawMatch);
-                    _dbContext.Add(match);
-                }*/
 
-                // Clear Registration
-                //_dbContext.Remove(participants); 
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+
+            await executionStrategy.Execute(async () =>
+            {
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
                 tournament.Start(drawSize);
 
-                _dbContext.Add(Outbox.Create("tournament.start", 
-                    new TournamentStartedEvent(tournament.Id, drawSize)));
+                await _dbContext.AddAsync(Outbox.Create("tournament.start",
+                    new TournamentStartedEvent(tournament.Id, drawSize)), token);
 
                 // Make Changes
                 await _dbContext.SaveChangesAsync(token);
                 await transaction.CommitAsync(token);
-            }
-            catch (Exception e)
-            {
-                await transaction.RollbackAsync(token);
-                // To Do, handle failure
-                Console.WriteLine(e); 
-                return false;
-            }
+                /*
+                }
+                catch (Exception e)
+                {
+                    await transaction.RollbackAsync(token);
+
+                    //_logger.LogError("Failed transaction, triggered rollback");
+                    // To Do, handle failure
+                    Console.WriteLine(e);
+                    return false;
+                }*/
+            });
 
             return true;
         }
