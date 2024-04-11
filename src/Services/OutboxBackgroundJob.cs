@@ -26,6 +26,7 @@ public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger,
             if (messages.Count == 0)
                 return;
             
+            await using var transaction = await appDbContext.Database.BeginTransactionAsync(context.CancellationToken);
             foreach (var message in messages)
             {
                 var eventObj = JsonSerializer.Deserialize<IDomainEvent>(message.Content);
@@ -38,11 +39,12 @@ public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger,
                 message.SetProcessed();
             }
             
-            await appDbContext.SaveChangesAsync();
+            await appDbContext.SaveChangesAsync(context.CancellationToken);
+            await appDbContext.Database.CommitTransactionAsync(context.CancellationToken);
         }
         catch (Exception e)
         {
-            
+            await appDbContext.Database.RollbackTransactionAsync(context.CancellationToken);
         }
     }
 }
