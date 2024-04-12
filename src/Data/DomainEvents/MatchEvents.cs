@@ -2,7 +2,7 @@
 
 namespace OpenTournament.Data.DomainEvents;
 
-public record MatchCompletedEvent(MatchId MatchId) : INotification, IDomainEvent;
+public record MatchCompletedEvent(MatchId MatchId, TournamentId TournamentId) : IDomainEvent;
 public record MatchCompleted(MatchId MatchId);
 
 public record MatchCreated(MatchId MatchId);

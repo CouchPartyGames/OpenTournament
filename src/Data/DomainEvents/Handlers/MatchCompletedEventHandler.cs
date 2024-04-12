@@ -21,34 +21,34 @@ public sealed class MatchCompletedEventHandler : INotificationHandler<MatchCompl
         var match = await _dbContext
             .Matches
             .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == notification.MatchId);
+            .FirstOrDefaultAsync(m => m.Id == notification.MatchId, cancellationToken);
 
-        /*
             // Create New Match
         bool addMatch = false;
         if (addMatch)
         {
-            _dbContext.Add(new Match());
-            await _dbContext.SaveChangesAsync();
+            /*
+            match.LocalMatchId;
+            match.WinMatchId;
+            */
+            
+            //await _dbContext.AddAsync(Match.Create(notification.TournamentId, ));
         }
-        */
         
-        /*
-        match.LocalMatchId;
-        match.WinMatchId;
-        */
 
         bool markTournamentAsCompleted = false;
         if (markTournamentAsCompleted)
         {
-            var tournamentId = TournamentId.NewTournamentId();
-            var tournament = await _dbContext
-                .Tournaments
-                .FirstOrDefaultAsync(t => t.Id == tournamentId);
-            tournament.Complete();
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.Tournaments
+                .Where(t => t.Id == notification.TournamentId)
+                .ExecuteUpdateAsync(setters => 
+                    setters
+                        .SetProperty(t => t.Status, Status.Completed)
+                        .SetProperty(t => t.Completed, new DateTime()), 
+                    cancellationToken);
         }
-
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        
         throw new NotImplementedException();
     }
 }

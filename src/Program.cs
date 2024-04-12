@@ -14,6 +14,7 @@ using OpenTournament.Authentication;
 using OpenTournament.Common;
 using OpenTournament.Common.Exceptions;
 using OpenTournament.Features.Authentication;
+using OpenTournament.Features.Matches;
 using OpenTournament.Features.Tournaments;
 using OpenTournament.Features.Templates;
 using OpenTournament.Services;

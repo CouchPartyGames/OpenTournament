@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
-using OpenTournament.Features;
 
-namespace Features.Matches;
+namespace OpenTournament.Features.Matches;
 
 public static class CompleteMatch
 {
@@ -48,21 +46,22 @@ public static class CompleteMatch
                 return TypedResults.NotFound();
             }
 
-            using var transaction = _dbContext.Database.BeginTransaction();
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
             try
             {
-                var createNextMatch = false;
                 match.Complete(command.WinnerId);
 
-                _dbContext.Add(
-                    Outbox.Create("match.completed", new MatchCompletedEvent(command.MatchId)));
+                await _dbContext.AddAsync(
+                    Outbox.Create("match.completed", 
+                        new MatchCompletedEvent(command.MatchId, match.TournamentId)),
+                    token);
 
                 await _dbContext.SaveChangesAsync(token);
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(token);
             }
             catch (Exception e)
             {
-                await transaction.RollbackAsync();
+                await transaction.RollbackAsync(token);
                 return TypedResults.NotFound();
             }
 
