@@ -10,6 +10,7 @@ public sealed class TournamentStartedEventHandler(AppDbContext dbContext) : INot
 
     public async ValueTask Handle(TournamentStartedEvent notification, CancellationToken cancellationToken)
     {
+        Console.WriteLine("Hello");
         // Add First Round Matches
         var tournament = await _dbContext
             .Tournaments

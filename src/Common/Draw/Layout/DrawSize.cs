@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text.Json.Serialization;
 
 namespace OpenTournament.Common.Draw.Layout;
 
@@ -10,6 +11,7 @@ public sealed class InvalidDrawSizeException(string message) : Exception(message
 // </summary>
 public sealed record DrawSize
 {
+    [JsonConverter(typeof(JsonStringEnumConverter<Size>))]
     public enum Size
     {
         Size2 = 2,
@@ -23,6 +25,7 @@ public sealed record DrawSize
     
     public Size Value { get; }
 
+    [JsonConstructor]
     private DrawSize(Size value) => Value = value;
 
     public static DrawSize Create(DrawSize.Size size) => new(size);

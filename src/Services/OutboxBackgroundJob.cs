@@ -14,40 +14,45 @@ public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger,
     
     public async Task Execute(IJobExecutionContext context)
     {
-        try
-        {
             
-            var messages = await appDbContext.Set<Outbox>()
-                .Where(o => o.State == Outbox.Status.Ready)
-                .Take(NumOfMessages)
-                .ToListAsync(context.CancellationToken);
+        var messages = await appDbContext.Set<Outbox>()
+            .Where(o => o.State == Outbox.Status.Ready)
+            .Take(NumOfMessages)
+            .ToListAsync(context.CancellationToken);
 
-            if (messages.Count == 0)
-                return;
-            
-            await using var transaction = await appDbContext.Database.BeginTransactionAsync(context.CancellationToken);
-            foreach (var message in messages)
+        if (messages.Count == 0)
+            return;
+
+            var executionStrategy = appDbContext.Database.CreateExecutionStrategy();
+            await executionStrategy.Execute(async () =>
             {
-                Console.WriteLine(message);
-                IDomainEvent? eventObj = JsonSerializer.Deserialize<IDomainEvent>(message.Content);
-                if (eventObj is null)
-                {
-                    continue;
+
+                try {
+                    await using var transaction =
+                        await appDbContext.Database.BeginTransactionAsync(context.CancellationToken);
+                    foreach (var message in messages)
+                    {
+                        IDomainEvent? eventObj = JsonSerializer.Deserialize<IDomainEvent>(message.Content);
+                        if (eventObj is null)
+                        {
+                            continue;
+                        }
+
+
+                        Console.WriteLine(eventObj.ToString());
+                        await mediator.Publish(eventObj, context.CancellationToken);
+                        message.SetProcessed();
+                    }
+
+                    await appDbContext.SaveChangesAsync(context.CancellationToken);
+                    await appDbContext.Database.CommitTransactionAsync(context.CancellationToken);
                 }
-                
-                
-                Console.WriteLine(nameof(eventObj));
-                await mediator.Publish(eventObj, context.CancellationToken);
-                message.SetProcessed();
-            }
-            
-            await appDbContext.SaveChangesAsync(context.CancellationToken);
-            await appDbContext.Database.CommitTransactionAsync(context.CancellationToken);
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e.ToString());
-            await appDbContext.Database.RollbackTransactionAsync(context.CancellationToken);
-        }
+                catch (NotSupportedException e)
+                {
+                    await appDbContext.Database.RollbackTransactionAsync(context.CancellationToken);
+                    Console.WriteLine(e.ToString());
+                }
+            });
+
     }
 }
