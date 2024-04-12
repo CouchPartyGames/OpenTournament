@@ -6,7 +6,7 @@ namespace OpenTournament.Features.Matches;
 
 public static class CompleteMatch
 {
-    public sealed record CompleteMatchCommand(MatchId MatchId, ParticipantId WinnerId) : IRequest<OneOf<Ok, NotFound>>;
+    public sealed record CompleteMatchCommand(string MatchId, string WinnerId) : IRequest<OneOf<Ok, NotFound>>;
 
     internal sealed class
         Handler : IRequestHandler<CompleteMatchCommand, OneOf<Ok, NotFound>>
@@ -24,6 +24,8 @@ public static class CompleteMatch
         public async ValueTask<OneOf<Ok, NotFound>> Handle(CompleteMatchCommand command,
             CancellationToken token)
         {
+            var matchId = MatchId.TryParse(command.MatchId);
+            var winnerId = new ParticipantId(command.WinnerId);
             /*
             // Authorize Dedicated Hosts and Tournament Moderators
             var authorizationResult = await _authorizationService.AuthorizeAsync(User);
@@ -32,38 +34,45 @@ public static class CompleteMatch
                return Forbid(); 
             }*/
                 
-            /*
-            var matchId = MatchId.TryParse(id);
             if (matchId is null)
             {
-                return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
-            }*/
+                Console.WriteLine("bad id");
+                return TypedResults.NotFound();
+//                return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
+            }
             
             var match = await _dbContext
                 .Matches
-                .FirstOrDefaultAsync(x => x.Id == command.MatchId, token);
-            if (match is null) {
-                return TypedResults.NotFound();
-            }
+                .FirstOrDefaultAsync(x => x.Id == matchId, token);
+            //Console.WriteLine(match.TournamentId);
+            //if (match is null) {
+                //return TypedResults.NotFound();
+            //}
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
-            try
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+            await executionStrategy.Execute(async () =>
             {
-                match.Complete(command.WinnerId);
 
-                await _dbContext.AddAsync(
-                    Outbox.Create("match.completed", 
-                        new MatchCompletedEvent(command.MatchId, match.TournamentId)),
-                    token);
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
+                //try
+                //{
+                    match.Complete(winnerId);
 
-                await _dbContext.SaveChangesAsync(token);
-                await transaction.CommitAsync(token);
-            }
-            catch (Exception e)
-            {
-                await transaction.RollbackAsync(token);
-                return TypedResults.NotFound();
-            }
+                    await _dbContext.AddAsync(
+                        Outbox.Create("match.completed", 
+                            new MatchCompletedEvent(matchId, match.TournamentId)),
+                        token);
+
+                    await _dbContext.SaveChangesAsync(token);
+                    await transaction.CommitAsync(token);
+                /*}
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    await transaction.RollbackAsync(token);
+                    return TypedResults.NotFound();
+                }*/
+            });
 
             return TypedResults.Ok();
         }
@@ -82,8 +91,8 @@ public static class CompleteMatch
             .WithSummary("Complete Match")
             .WithDescription("Complete an Individual Match")
             .WithOpenApi();
-    
-    public static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
+
+    private static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
         CompleteMatchCommand command,
         IMediator mediator,
         CancellationToken token)

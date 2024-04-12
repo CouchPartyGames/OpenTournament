@@ -9,8 +9,8 @@ public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger,
     AppDbContext appDbContext,
     IMediator mediator) : IJob
 {
-    public readonly int NumOfMessages = 20;
-    
+    private const int NumOfMessages = 20;
+
     public async Task Execute(IJobExecutionContext context)
     {
         var messages = await appDbContext.Set<Outbox>()
