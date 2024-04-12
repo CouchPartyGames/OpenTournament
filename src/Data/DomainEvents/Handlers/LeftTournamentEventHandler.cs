@@ -1,6 +1,6 @@
-﻿namespace OpenTournament.Data.DomainEvents;
+﻿namespace OpenTournament.Data.DomainEvents.Handlers;
 
-public sealed class LeftTournamentEventHandler : INotificationHandler<LeftTournamentEvent>
+public sealed class RegistationLeftEventHandler : INotificationHandler<LeftTournamentEvent>
 {
     public ValueTask Handle(LeftTournamentEvent notification, CancellationToken cancellationToken)
     {

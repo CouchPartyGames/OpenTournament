@@ -56,9 +56,9 @@ public static class StartTournament
 
 
             var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
-
             await executionStrategy.Execute(async () =>
             {
+                //try {
                 await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
                 tournament.Start(drawSize);
 

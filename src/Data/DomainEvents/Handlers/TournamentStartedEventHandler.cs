@@ -2,7 +2,7 @@
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Data.Models;
 
-namespace OpenTournament.Data.DomainEvents;
+namespace OpenTournament.Data.DomainEvents.Handlers;
 
 public sealed class TournamentStartedEventHandler(AppDbContext dbContext) : INotificationHandler<TournamentStartedEvent>
 {
@@ -10,7 +10,6 @@ public sealed class TournamentStartedEventHandler(AppDbContext dbContext) : INot
 
     public async ValueTask Handle(TournamentStartedEvent notification, CancellationToken cancellationToken)
     {
-        Console.WriteLine("Hello");
         // Add First Round Matches
         var tournament = await _dbContext
             .Tournaments
@@ -30,21 +29,23 @@ public sealed class TournamentStartedEventHandler(AppDbContext dbContext) : INot
         var matches = new CreateProgressionMatches(new CreateMatchIds(positions).MatchByIds);
         var draw = new SingleEliminationFirstRound(matches.MatchWithProgressions, participantOrder);
         
-        var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        //var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             foreach (var drawMatch in draw.Matches)
             {
                 var match = Match.Create(notification.TournamentId, drawMatch);
-                _dbContext.Add(match);
+                Console.WriteLine(match.ToString());
+                await _dbContext.AddAsync(match, cancellationToken);
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            //await transaction.CommitAsync(cancellationToken);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            Console.WriteLine(e);
+            //await transaction.RollbackAsync(cancellationToken);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace OpenTournament.Data.DomainEvents;
+﻿namespace OpenTournament.Data.DomainEvents.Handlers;
 
 public sealed class TournamentCompletedEventHandler(AppDbContext dbContext) : INotificationHandler<TournamentCompletedEvent>
 {

@@ -37,7 +37,6 @@
 
   <ItemGroup>
     <Folder Include="Common\Rules\Matches\" />
-    <Folder Include="Data\DomainEvents\Handlers\" />
     <Folder Include="Data\Events\" />
     <Folder Include="Migrations\" />
   </ItemGroup>

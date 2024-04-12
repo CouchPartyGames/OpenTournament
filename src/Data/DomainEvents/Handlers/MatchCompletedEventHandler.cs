@@ -1,6 +1,6 @@
 ﻿using OpenTournament.Data.Models;
 
-namespace OpenTournament.Data.DomainEvents;
+namespace OpenTournament.Data.DomainEvents.Handlers;
 
 public sealed class MatchCompletedEventHandler : INotificationHandler<MatchCompletedEvent>
 {

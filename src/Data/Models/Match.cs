@@ -43,11 +43,11 @@ public sealed class Match
     //[DeleteBehavior(DeleteBehavior.NoAction)]
     public Participant Participant2 { get; init; }
     
-    public int WinMatchId { get; init; }
+    public int? WinMatchId { get; init; }
     
     public int LoseMatchId { get; init; }
     
-    public ParticipantId WinnerId { get; private set; }
+    public ParticipantId? WinnerId { get; private set; }
     
     public TournamentId TournamentId { get; init; }
     
