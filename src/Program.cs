@@ -75,7 +75,10 @@ builder.Services.AddQuartz(opts =>
             });
         });
 });
-builder.Services.AddQuartzHostedService();
+builder.Services.AddQuartzHostedService(opts =>
+{
+    opts.WaitForJobsToComplete = true;
+});
 builder.Services.AddOpenTelemetry()
     .WithMetrics(o =>
     {
@@ -96,6 +99,7 @@ builder.Services.AddOpenTelemetry()
         opts.SetSampler(new AlwaysOnSampler());
 
         opts.AddHttpClientInstrumentation()
+            //.AddQuartzInstrumentation()
             .AddAspNetCoreInstrumentation();
         
         opts.AddOtlpExporter(export =>

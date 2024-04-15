@@ -1,9 +1,9 @@
+using DotNet.Testcontainers.Builders;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using OpenTournament.Data;
 
 
@@ -13,23 +13,24 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
 {
     private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder()
         .WithDatabase("tournament")
-        .WithUsername("tourny")
-        .WithPassword("tourny").Build();
+        .Build();
 
-    private readonly ITestOutputHelper _output;
+    public string ConnectionString => _postgreSqlContainer.GetConnectionString();
+    public string ContainerId => _postgreSqlContainer.Id;
 
+    private readonly ITestOutputHelper _outputHelper;
+
+    //public TournamentApiFactory(ITestOutputHelper outputHelper) => _outputHelper = outputHelper;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureTestServices(services =>
         {
-            services.RemoveAll(typeof(AppDbContext));
+            //services.RemoveAll(typeof(AppDbContext));
+            services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
 
             services.AddDbContext<AppDbContext>(options =>
             {
-                //options.UseSqlite("Filename=:memory:");
-                //options.EnableDetailedErrors(true);
-                
                 options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
             }, ServiceLifetime.Singleton);
         });
@@ -38,12 +39,15 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
     public async Task InitializeAsync()
     {
         await _postgreSqlContainer.StartAsync();
+        /*
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await dbContext.Database.MigrateAsync();
+        await dbContext.Database.EnsureCreatedAsync();
+        //await dbContext.Database.MigrateAsync();
+        */
     }
 
-    public async Task DisposeAsync()
+    public new async Task DisposeAsync()
     {
         await _postgreSqlContainer.StopAsync();
     }
