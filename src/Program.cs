@@ -64,6 +64,16 @@ builder.Services.AddQuartz(opts =>
                 schedule.WithIntervalInSeconds(1).RepeatForever();
             });
         });
+    
+    jobKey = JobKey.Create(nameof(StartTournamentJob));
+    opts.AddJob<StartTournamentJob>(jobKey)
+        .AddTrigger(trigger =>
+        {
+            trigger.ForJob(jobKey).WithSimpleSchedule(schedule =>
+            {
+                schedule.WithIntervalInSeconds(30).RepeatForever();
+            });
+        });
 });
 builder.Services.AddQuartzHostedService();
 builder.Services.AddOpenTelemetry()

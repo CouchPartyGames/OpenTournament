@@ -20,5 +20,6 @@ public sealed class StartTournamentJob(ILogger<StartTournamentJob> logger,
             tournament.Start();
         }
         */
+        return;
     }
 }
