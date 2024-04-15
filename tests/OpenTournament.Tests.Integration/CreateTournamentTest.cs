@@ -4,16 +4,10 @@ using OpenTournament.Common;
 
 namespace OpenTournament.Tests.Integration;
 
-public class CreateTournamentTest : IClassFixture<TournamentApiFactory>
+public class CreateTournamentTest(TournamentApiFactory factory, ITestOutputHelper output)
+    : IClassFixture<TournamentApiFactory>
 {
-    private readonly HttpClient _httpClient;
-    private readonly ITestOutputHelper _output;
-
-    public CreateTournamentTest(TournamentApiFactory factory, ITestOutputHelper output)
-    {
-        _httpClient = factory.CreateClient();
-        _output = output;
-    }
+    private readonly HttpClient _httpClient = factory.CreateClient();
 
     [Fact]
     public async Task Endpoint_ShouldCreateTournament_WhenDataIsValid()
