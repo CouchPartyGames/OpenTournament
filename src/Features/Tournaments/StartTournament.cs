@@ -62,7 +62,7 @@ public static class StartTournament
                 await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
                 tournament.Start(drawSize);
 
-                await _dbContext.AddAsync(Outbox.Create("tournament.start",
+                await _dbContext.AddAsync(Outbox.Create(
                     new TournamentStartedEvent(tournament.Id, drawSize)), token);
 
                 // Make Changes

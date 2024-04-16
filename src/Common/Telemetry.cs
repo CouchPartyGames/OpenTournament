@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using OpenTelemetry.Resources;
 
 namespace OpenTournament.Common;

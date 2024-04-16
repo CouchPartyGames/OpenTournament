@@ -1,3 +1,4 @@
+using OpenTelemetry.Trace;
 using OpenTournament.Data.Models;
 
 namespace OpenTournament.Features.Tournaments;
@@ -25,8 +26,9 @@ public static class CreateTournament
 			ValidationResult result = validator.Validate(request);
 			if (!result.IsValid)
 			{
+				//var traceId = Tracer.CurrentSpan.Context.TraceId;
+				
 				//result.Errors;
-				Console.WriteLine("Validation Failure");
 				return new ValidationFailure();
 			}
 			
@@ -42,7 +44,6 @@ public static class CreateTournament
 			var results = await _dbContext.SaveChangesAsync(cancellationToken);
 			if (results < 1)
 			{
-				Console.WriteLine($"Database Failure {results}");
 				return new ProblemDetails
 				{
 					Title = "Internal Server Error",

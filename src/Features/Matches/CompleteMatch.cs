@@ -59,7 +59,7 @@ public static class CompleteMatch
                     match.Complete(winnerId);
 
                     await _dbContext.AddAsync(
-                        Outbox.Create("match.completed", 
+                        Outbox.Create(
                             new MatchCompletedEvent(matchId, match.TournamentId)),
                         token);
 

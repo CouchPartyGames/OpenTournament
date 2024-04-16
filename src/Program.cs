@@ -99,6 +99,7 @@ builder.Services.AddOpenTelemetry()
         opts.SetSampler(new AlwaysOnSampler());
 
         opts.AddHttpClientInstrumentation()
+            .AddEntityFrameworkCoreInstrumentation()
             //.AddQuartzInstrumentation()
             .AddAspNetCoreInstrumentation();
         
@@ -107,6 +108,7 @@ builder.Services.AddOpenTelemetry()
             export.Endpoint = new Uri("http://localhost:4317");
         });
     });
+builder.Services.AddSingleton<OpenTournamentMetrics>();
 
 builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>

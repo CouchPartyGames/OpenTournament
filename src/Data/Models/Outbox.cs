@@ -37,11 +37,11 @@ public sealed class Outbox
    public Status State { get; set; }
 
    
-   public static Outbox Create(string eventName, IDomainEvent eventData) =>
+   public static Outbox Create(IDomainEvent eventData) =>
       new Outbox()
       {
          Id = OutboxId.NewOutboxId(),
-         EventName = eventName,
+         EventName = nameof(eventData),
          Content = JsonSerializer.Serialize(eventData),
          Created = new DateTime(),
          State = Status.Ready

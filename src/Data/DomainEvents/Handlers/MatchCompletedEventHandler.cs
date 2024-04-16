@@ -1,4 +1,6 @@
-﻿using OpenTournament.Data.Models;
+﻿using System.Text.Json;
+using OpenTournament.Common.Draw.Layout;
+using OpenTournament.Data.Models;
 
 namespace OpenTournament.Data.DomainEvents.Handlers;
 
@@ -24,20 +26,25 @@ public sealed class MatchCompletedEventHandler : INotificationHandler<MatchCompl
             .FirstOrDefaultAsync(m => m.Id == notification.MatchId, cancellationToken);
 
             // Create New Match
-        bool addMatch = false;
-        if (addMatch)
+        if (ShouldAddMatch())
         {
             /*
             match.LocalMatchId;
             match.WinMatchId;
             */
-            
-            //await _dbContext.AddAsync(Match.Create(notification.TournamentId, ));
+
+            //var match = new SingleEliminationFirstRound.SingleMatch();
+            //await _dbContext.AddAsync(Match.Create(notification.TournamentId, match));
         }
         
+            // Add Opponent to Existing Match
+        if (ShouldAddOpponentToMatch())
+        {
+            //await _dbContext.Matches.ExecuteUpdateAsync(cancellationToken: cancellationToken);
+        }
 
-        bool markTournamentAsCompleted = false;
-        if (markTournamentAsCompleted)
+            // Complete Tournament
+        if (IsTournamentCompleted())
         {
             await _dbContext.Tournaments
                 .Where(t => t.Id == notification.TournamentId)
@@ -46,9 +53,26 @@ public sealed class MatchCompletedEventHandler : INotificationHandler<MatchCompl
                         .SetProperty(t => t.Status, Status.Completed)
                         .SetProperty(t => t.Completed, new DateTime()), 
                     cancellationToken);
+
+            await _dbContext.Outboxes.AddAsync(Outbox.Create(new TournamentCompletedEvent(notification.TournamentId)), cancellationToken);
         }
         await _dbContext.SaveChangesAsync(cancellationToken);
         
         throw new NotImplementedException();
+    }
+
+    bool IsTournamentCompleted()
+    {
+        return false;
+    }
+
+    bool ShouldAddOpponentToMatch()
+    {
+        return false;
+    }
+
+    bool ShouldAddMatch()
+    {
+        return false;
     }
 }
