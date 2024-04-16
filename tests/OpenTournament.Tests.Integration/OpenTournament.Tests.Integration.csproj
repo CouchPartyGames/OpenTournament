@@ -36,8 +36,4 @@
     <ProjectReference Include="..\..\src\OpenTournament.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Helpers\" />
-  </ItemGroup>
-
 </Project>

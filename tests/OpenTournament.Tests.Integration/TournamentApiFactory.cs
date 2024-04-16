@@ -1,10 +1,12 @@
 using DotNet.Testcontainers.Builders;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTournament.Data;
+using OpenTournament.Tests.Integration.Helpers;
 
 
 namespace OpenTournament.Tests.Integration;
@@ -33,6 +35,13 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
             {
                 options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
             }, ServiceLifetime.Singleton);
+
+            services
+                .AddAuthentication(MyAuthenticationOptions.DefaultScheme)
+                .AddScheme<MyAuthenticationOptions, TestAuthenticationHandler>(MyAuthenticationOptions.DefaultScheme, options =>
+                {
+                    
+                });
         });
     }
     
