@@ -80,9 +80,9 @@ builder.Services.AddQuartzHostedService(opts =>
     opts.WaitForJobsToComplete = true;
 });
 builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(GlobalConstants.AppName, null, "1.0.0"))
     .WithMetrics(o =>
     {
-        o.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
         o.AddRuntimeInstrumentation()
             .AddHttpClientInstrumentation()
             .AddAspNetCoreInstrumentation();
@@ -95,7 +95,6 @@ builder.Services.AddOpenTelemetry()
     })
     .WithTracing(opts =>
     {
-        opts.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
         opts.SetSampler(new AlwaysOnSampler());
 
         opts.AddHttpClientInstrumentation()
