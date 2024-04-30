@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Identity;
+using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -33,6 +34,7 @@ builder.Logging.AddOpenTelemetry(opts =>
     opts.AddOtlpExporter(export =>
     {
         export.Endpoint = new Uri("http://localhost:4317");
+        export.Protocol = OtlpExportProtocol.Grpc;
     });
 });
 builder.Services.Configure<FirebaseAuthenticationOptions>(
@@ -91,6 +93,7 @@ builder.Services.AddOpenTelemetry()
         {
             var addr = builder.Configuration["OpenTelemetry:Endpoint"] ?? "http://localhost:4317";
             export.Endpoint = new Uri(addr);
+            export.Protocol = OtlpExportProtocol.Grpc;
         });
     })
     .WithTracing(opts =>
@@ -105,6 +108,7 @@ builder.Services.AddOpenTelemetry()
         opts.AddOtlpExporter(export =>
         {
             export.Endpoint = new Uri("http://localhost:4317");
+            export.Protocol = OtlpExportProtocol.Grpc;
         });
     });
 builder.Services.AddSingleton<OpenTournamentMetrics>();

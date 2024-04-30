@@ -36,7 +36,8 @@ services:
 
 
   dashboard:
-    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.4
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0-preview.6
+    #image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
     container_name: opentournament-dashboard
     restart: always
     environment:

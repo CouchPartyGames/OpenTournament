@@ -1,5 +1,3 @@
-using DotNet.Testcontainers.Builders;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +12,11 @@ namespace OpenTournament.Tests.Integration;
 public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder()
-        .WithDatabase("tournament")
+        //.WithDatabase("tournament")
         .Build();
 
     public string ConnectionString => _postgreSqlContainer.GetConnectionString();
     public string ContainerId => _postgreSqlContainer.Id;
-
-    private readonly ITestOutputHelper _outputHelper;
 
     //public TournamentApiFactory(ITestOutputHelper outputHelper) => _outputHelper = outputHelper;
 
@@ -48,12 +44,11 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
     public async Task InitializeAsync()
     {
         await _postgreSqlContainer.StartAsync();
-        /*
+        
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
-        //await dbContext.Database.MigrateAsync();
-        */
+        await dbContext.Database.MigrateAsync();
+
     }
 
     public new async Task DisposeAsync()
