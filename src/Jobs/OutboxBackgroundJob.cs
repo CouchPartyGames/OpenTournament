@@ -2,7 +2,7 @@ using System.Text.Json;
 using OpenTournament.Data.Models;
 using Quartz;
 
-namespace OpenTournament.Services;
+namespace OpenTournament.Jobs;
 
 [DisallowConcurrentExecution]
 public sealed class OutboxBackgroundJob(ILogger<OutboxBackgroundJob> logger, 

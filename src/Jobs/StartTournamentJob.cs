@@ -1,6 +1,6 @@
 using Quartz;
 
-namespace OpenTournament.Services;
+namespace OpenTournament.Jobs;
 
 [DisallowConcurrentExecution]
 public sealed class StartTournamentJob(ILogger<StartTournamentJob> logger,
