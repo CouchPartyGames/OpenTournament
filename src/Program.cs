@@ -20,6 +20,9 @@ using OpenTournament.Identity.Authorization;
 using OpenTournament.Options;
 using Quartz;
 
+const string HEALTH_URI = "/health";
+const string OTEL_DEFAULT_ADDR = "http://localhost:4317";
+
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddOpenTelemetry(opts =>
@@ -29,7 +32,7 @@ builder.Logging.AddOpenTelemetry(opts =>
     opts.IncludeFormattedMessage = true;
     opts.AddOtlpExporter(export =>
     {
-        export.Endpoint = new Uri("http://localhost:4317");
+        export.Endpoint = new Uri(OTEL_DEFAULT_ADDR);
         export.Protocol = OtlpExportProtocol.Grpc;
     });
 });
@@ -87,7 +90,7 @@ builder.Services.AddOpenTelemetry()
 
         o.AddOtlpExporter(export =>
         {
-            var addr = builder.Configuration["OpenTelemetry:Endpoint"] ?? "http://localhost:4317";
+            var addr = builder.Configuration["OpenTelemetry:Endpoint"] ?? OTEL_DEFAULT_ADDR;
             export.Endpoint = new Uri(addr);
             export.Protocol = OtlpExportProtocol.Grpc;
         });
@@ -103,7 +106,7 @@ builder.Services.AddOpenTelemetry()
         
         opts.AddOtlpExporter(export =>
         {
-            export.Endpoint = new Uri("http://localhost:4317");
+            export.Endpoint = new Uri(OTEL_DEFAULT_ADDR);
             export.Protocol = OtlpExportProtocol.Grpc;
         });
     });
@@ -155,7 +158,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
-app.MapHealthChecks("/health");
+app.MapHealthChecks(HEALTH_URI);
 
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
