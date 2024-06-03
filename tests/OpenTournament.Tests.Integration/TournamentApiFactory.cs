@@ -47,9 +47,11 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
     {
         await _postgreSqlContainer.StartAsync();
         
+        /*
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await dbContext.Database.MigrateAsync();
+        */
 
     }
 
