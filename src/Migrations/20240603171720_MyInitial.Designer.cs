@@ -12,8 +12,8 @@ using OpenTournament.Data;
 namespace OpenTournament.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240413222727_Initial")]
-    partial class Initial
+    [Migration("20240603171720_MyInitial")]
+    partial class MyInitial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

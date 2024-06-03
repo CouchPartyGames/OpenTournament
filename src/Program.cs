@@ -54,7 +54,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddTournamentLayouts();
-builder.Services.AddQuartz(opts =>
+/*builder.Services.AddQuartz(opts =>
 {
     var jobKey = JobKey.Create(nameof(OutboxBackgroundJob));
     opts.AddJob<OutboxBackgroundJob>(jobKey)
@@ -79,7 +79,7 @@ builder.Services.AddQuartz(opts =>
 builder.Services.AddQuartzHostedService(opts =>
 {
     opts.WaitForJobsToComplete = true;
-});
+});*/
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(GlobalConstants.AppName, null, "1.0.0"))
     .WithMetrics(o =>
