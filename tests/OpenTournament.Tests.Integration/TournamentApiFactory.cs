@@ -12,7 +12,7 @@ namespace OpenTournament.Tests.Integration;
 public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder()
-        //.WithDatabase("tournament")
+        .WithDatabase("tournament")
         .Build();
 
     public string ConnectionString => _postgreSqlContainer.GetConnectionString();
