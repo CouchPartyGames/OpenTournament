@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,6 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
     public string ConnectionString => _postgreSqlContainer.GetConnectionString();
     public string ContainerId => _postgreSqlContainer.Id;
 
-    //public TournamentApiFactory(ITestOutputHelper outputHelper) => _outputHelper = outputHelper;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -27,6 +27,8 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
             //services.RemoveAll(typeof(AppDbContext));
             services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
 
+            
+            Debug.WriteLine(_postgreSqlContainer.GetConnectionString());
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
