@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using OpenTournament.Data;
 using OpenTournament.Tests.Integration.Helpers;
 
@@ -22,13 +23,16 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.ConfigureLogging(x =>
+        {
+            x.ClearProviders();
+        });
+        
         builder.ConfigureTestServices(services =>
         {
             //services.RemoveAll(typeof(AppDbContext));
             services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
-
             
-            Debug.WriteLine(_postgreSqlContainer.GetConnectionString());
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
