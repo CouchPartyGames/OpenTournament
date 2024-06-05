@@ -13,6 +13,7 @@ using OpenTournament.Common.Exceptions;
 using OpenTournament.Features.Authentication;
 using OpenTournament.Features.Matches;
 using OpenTournament.Features.Tournaments;
+using OpenTournament.Features.Templates;
 using OpenTournament.Services;
 using OpenTournament.Jobs;
 using OpenTournament.Identity;
@@ -20,10 +21,11 @@ using OpenTournament.Identity.Authorization;
 using OpenTournament.Options;
 using Quartz;
 
-const string HEALTH_URI = "/health";
+const string HEALTH_CHECK_URI = "/health";
 const string OTEL_DEFAULT_ADDR = "http://localhost:4317";
 
-var builder = WebApplication.CreateSlimBuilder(args);
+//var builder = WebApplication.CreateSlimBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddOpenTelemetry(opts =>
 {
@@ -54,7 +56,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddTournamentLayouts();
-/*builder.Services.AddQuartz(opts =>
+builder.Services.AddQuartz(opts =>
 {
     var jobKey = JobKey.Create(nameof(OutboxBackgroundJob));
     opts.AddJob<OutboxBackgroundJob>(jobKey)
@@ -79,7 +81,7 @@ builder.Services.AddTournamentLayouts();
 builder.Services.AddQuartzHostedService(opts =>
 {
     opts.WaitForJobsToComplete = true;
-});*/
+});
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService(GlobalConstants.AppName, null, "1.0.0"))
     .WithMetrics(o =>
@@ -158,7 +160,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
-app.MapHealthChecks(HEALTH_URI);
+app.MapHealthChecks(HEALTH_CHECK_URI);
 
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
@@ -174,11 +176,12 @@ GetMatch.MapEndpoint(app);
 UpdateMatch.MapEndpoint(app);
 CompleteMatch.MapEndpoint(app);
 
-//CreateTemplate.MapEndpoint(app);
-//DeleteTemplate.MapEndpoint(app);
-//ListTemplate.MapEndpoint(app);
-//UpdateTemplate.MapEndpoint(app);
 
-Login.MapEndpoint(app);
+CreateTemplate.MapEndpoint(app);
+DeleteTemplate.MapEndpoint(app);
+UpdateTemplate.MapEndpoint(app);
+//ListTemplate.MapEndpoint(app);
+
+//Login.MapEndpoint(app);
 
 app.Run();

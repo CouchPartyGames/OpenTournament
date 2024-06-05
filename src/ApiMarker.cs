@@ -1,6 +1,3 @@
 namespace OpenTournament;
 
-public interface IApiMarker
-{
-    
-}
+public interface IApiMarker;

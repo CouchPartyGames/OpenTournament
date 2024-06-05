@@ -1,20 +1,18 @@
-using OpenTournament.Identity;
-
 namespace OpenTournament.Features.Templates;
 
-public static class DeleteTemplate
+public static class UpdateTemplate
 {
-    public record DeleteTemplateCommand();
+    public record UpdateTemplateCommand();
 
     public static void MapEndpoint(this IEndpointRouteBuilder app)
     {
-        app.MapDelete("/templates/{id}", (string id, CancellationToken token) =>
+        app.MapPut("/templates/{id}", (string id, CancellationToken token) =>
             {
                 return Endpoint(id, token);
             })
             .WithTags("Template")
-            .WithSummary("Delete Template")
-            .WithDescription("Delete an available Template")
+            .WithSummary("Update Template")
+            .WithDescription("Update a Tournament Template")
             .WithOpenApi();
     }
 
@@ -22,4 +20,5 @@ public static class DeleteTemplate
     {
         return TypedResults.NoContent();
     }
+    
 }
