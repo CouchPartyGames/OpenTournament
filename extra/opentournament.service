@@ -2,7 +2,8 @@
 Description=Open Tournament service file
 
 [Service]
-ExecStart=/bin/bash /usr/sbin/example.sh
+ExecStart=/usr/local/bin/OpenTournament
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

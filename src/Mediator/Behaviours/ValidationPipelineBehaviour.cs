@@ -2,33 +2,28 @@ namespace OpenTournament.Mediator.Behaviours;
 
 using FluentValidation;
 
-/*
-public sealed class MessageValidatorBehaviour<TMessage, TResponse> : IPipelineBehavior<TMessage, TResponse>
-    where TMessage : IValidate
+public sealed class ValidationPipelineBehaviour<TRequest, TResponse>
+    : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull, IRequest<TResponse>
 {
-    public ValueTask<TResponse> Handle(
-        TMessage message,
-        CancellationToken cancellationToken,
-        MessageHandlerDelegate<TMessage, TResponse> next
-    )
-    {
-        if (!message.IsValid(out var validationError))
-            throw new ValidationException(validationError);
+    private readonly IEnumerable<IValidator<TRequest>> _validators;
 
+    public ValidationPipelineBehaviour(IEnumerable<IValidator<TRequest>> validators)
+    {
+        _validators = validators;
+        Console.WriteLine(validators);
+        Console.WriteLine(validators.Any());
+    }
+
+
+    public ValueTask<TResponse> Handle(TRequest message, CancellationToken cancellationToken, MessageHandlerDelegate<TRequest, TResponse> next)
+    {
+        if (!_validators.Any())
+        {
+            //Console.WriteLine("no validation necessary " + message);
+            return next(message, cancellationToken);
+        }
+        
+        //Console.WriteLine("validation");
         return next(message, cancellationToken);
     }
-}*/
-
-/*
-public sealed class MessageValidatorBehaviour<TMessage, TResponse> : MessagePreProcessor<TMessage, TResponse>
-    where TMessage : IValidate
-{
-    protected override ValueTask Handle(TMessage message, CancellationToken cancellationToken)
-    {
-        if (!message.IsValid(out var validationError))
-            throw new ValidationException(validationError);
-
-        return default;
-    }
 }
-*/

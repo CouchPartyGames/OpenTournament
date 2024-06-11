@@ -21,7 +21,9 @@ docker compose down
 ```
 
 ### SystemD Configuration
-You can find an example service file in `extra/opentournament.service`
+You can find an example service file in `extra/opentournament.service`.
+It's recommended to install in /etc/systemd/system directory.
+
 ```
 systemctl daemon-reload
 systemctl enable --now opentournament.service

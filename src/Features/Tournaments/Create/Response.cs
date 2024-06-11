@@ -1,6 +1,3 @@
 namespace OpenTournament.Features.Tournaments.Create;
 
-public class Response
-{
-    
-}
+// no response necessary

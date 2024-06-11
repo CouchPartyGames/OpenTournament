@@ -3,41 +3,38 @@ using Features.Tournaments;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
-using OpenTelemetry.Exporter;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-using OpenTournament.Common;
+using OpenTournament;
 using OpenTournament.Common.Exceptions;
-using OpenTournament.Features.Authentication;
 using OpenTournament.Features.Matches;
 using OpenTournament.Features.Tournaments;
+using OpenTournament.Features.Tournaments.Create;
 using OpenTournament.Features.Templates;
 using OpenTournament.Services;
 using OpenTournament.Jobs;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
+using OpenTournament.Mediator.Behaviours;
+using OpenTournament.Observability;
+using OpenTournament.Observability.Dependency;
 using OpenTournament.Options;
 using Quartz;
 
-const string HEALTH_CHECK_URI = "/health";
 const string OTEL_DEFAULT_ADDR = "http://localhost:4317";
 
 //var builder = WebApplication.CreateSlimBuilder(args);
 var builder = WebApplication.CreateBuilder(args);
-builder.Logging.ClearProviders();
-builder.Logging.AddOpenTelemetry(opts =>
+
+    // Observability
+builder.Logging.AddObservabilityLogging(builder.Configuration, OtelResourceBuilder.ResourceBuilder);
+builder.Services.AddObservabilityMetrics(builder.Configuration, OtelResourceBuilder.ResourceBuilder);
+builder.Services.AddObservabilityTraces(builder.Configuration, OtelResourceBuilder.ResourceBuilder);
+builder.Services.AddHttpLogging((options) =>
 {
-    opts.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(GlobalConstants.AppName));
-    opts.IncludeScopes = true;
-    opts.IncludeFormattedMessage = true;
-    opts.AddOtlpExporter(export =>
-    {
-        export.Endpoint = new Uri(OTEL_DEFAULT_ADDR);
-        export.Protocol = OtlpExportProtocol.Grpc;
-    });
+    options.CombineLogs = true;
+    options.LoggingFields = HttpLoggingFields.All;
 });
+
+
 builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
     //.ValidateDataAnnotations().ValidateOnStart();
@@ -45,13 +42,10 @@ builder.Services.Configure<FirebaseAuthenticationOptions>(
 builder.Services.Configure<DatabaseOptions>(
     builder.Configuration.GetSection(DatabaseOptions.SectionName));
 
-builder.Services.AddHttpLogging((options) =>
-{
-    options.CombineLogs = true;
-    options.LoggingFields = HttpLoggingFields.All;
-});
 builder.Services.AddDbContext<AppDbContext>((Action<DbContextOptionsBuilder>?)null, ServiceLifetime.Singleton);
 builder.Services.AddMediator();
+builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehaviour<,>));
+//builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -82,38 +76,6 @@ builder.Services.AddQuartzHostedService(opts =>
 {
     opts.WaitForJobsToComplete = true;
 });
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService(GlobalConstants.AppName, null, "1.0.0"))
-    .WithMetrics(o =>
-    {
-        o.AddRuntimeInstrumentation()
-            .AddHttpClientInstrumentation()
-            .AddAspNetCoreInstrumentation();
-
-        o.AddOtlpExporter(export =>
-        {
-            var addr = builder.Configuration["OpenTelemetry:Endpoint"] ?? OTEL_DEFAULT_ADDR;
-            export.Endpoint = new Uri(addr);
-            export.Protocol = OtlpExportProtocol.Grpc;
-        });
-    })
-    .WithTracing(opts =>
-    {
-        opts.SetSampler(new AlwaysOnSampler());
-
-        opts.AddHttpClientInstrumentation()
-            .AddEntityFrameworkCoreInstrumentation()
-            //.AddQuartzInstrumentation()
-            .AddAspNetCoreInstrumentation();
-        
-        opts.AddOtlpExporter(export =>
-        {
-            export.Endpoint = new Uri(OTEL_DEFAULT_ADDR);
-            export.Protocol = OtlpExportProtocol.Grpc;
-        });
-    });
-builder.Services.AddSingleton<OpenTournamentMetrics>();
-
 builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
@@ -160,7 +122,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
-app.MapHealthChecks(HEALTH_CHECK_URI);
+app.MapHealthChecks(GlobalConsts.HealthPageUri);
 
 CreateTournament.MapEndpoint(app);
 GetTournament.MapEndpoint(app);

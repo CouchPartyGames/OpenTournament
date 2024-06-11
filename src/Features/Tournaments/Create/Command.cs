@@ -1,6 +1,8 @@
+using OpenTournament.Mediator;
+
 namespace OpenTournament.Features.Tournaments.Create;
 
-public class Command
-{
-    
-}
+using OpenTournament.Data.Models;
+
+public sealed record CreateTournamentCommand(string Name,
+	DateTime StartTime) : IRequest<OneOf<TournamentId, ValidationFailure, ProblemDetails>>;

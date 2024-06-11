@@ -1,6 +1,9 @@
 namespace OpenTournament.Mediator;
 
-public interface Validate
+/*
+public interface IValidate;
+
+public interface IValidationResult
 {
     
-}
+}*/
