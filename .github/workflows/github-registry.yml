@@ -39,6 +39,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish and push the container image
-        working-directory: ./src/OpenTournament
+        working-directory: ./src/
         run: |
           dotnet publish --os linux --arch x64 -c Release /p:PublishProfile=github '/p:ContainerImageTags="latest;${{ steps.tagname.outputs.tag }}"'
