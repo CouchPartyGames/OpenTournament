@@ -400,3 +400,6 @@ FodyWeavers.xsd
 
 # Environment files
 */.env
+
+.idea
+extra/data
