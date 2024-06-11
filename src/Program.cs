@@ -19,7 +19,6 @@ using OpenTournament.Observability.Dependency;
 using OpenTournament.Options;
 using Quartz;
 
-const string OTEL_DEFAULT_ADDR = "http://localhost:4317";
 
 //var builder = WebApplication.CreateSlimBuilder(args);
 var builder = WebApplication.CreateBuilder(args);
