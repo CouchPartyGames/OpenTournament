@@ -1,8 +1,8 @@
 namespace OpenTournament.Features.Tournaments.Create;
 
-public class Validator : AbstractValidator<CreateTournamentCommand>
+public class CreateTournamentValidator : AbstractValidator<CreateTournamentCommand>
 {
-	public Validator()
+	public CreateTournamentValidator()
 	{
 		RuleFor(c => c.Name)
 			.NotEmpty()

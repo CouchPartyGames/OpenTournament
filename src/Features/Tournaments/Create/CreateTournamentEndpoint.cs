@@ -1,6 +1,6 @@
 namespace OpenTournament.Features.Tournaments.Create;
 
-public static class CreateTournament
+public static class CreateTournamentEndpoint
 {
 	public static void MapEndpoint(this IEndpointRouteBuilder app) =>
 		app.MapPost("tournaments", EndPoint)
