@@ -1,3 +1,4 @@
+using OneOf.Types;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
@@ -28,5 +29,31 @@ public static class LoggingInjection
             });
         });
         return loggingBuilder;
+    }
+
+    public static IServiceCollection AddObservabilityLogging(this IServiceCollection service,
+        IConfiguration configuration,
+        ResourceBuilder resourceBuilder)
+    {
+        var options = configuration
+            .GetSection(OpenTelemetryOptions.SectionName)
+            .Get<OpenTelemetryOptions>();
+        
+        service.AddOpenTelemetry().WithLogging(logging =>
+        {
+            logging.SetResourceBuilder(resourceBuilder);
+            logging.AddOtlpExporter(export =>
+            {
+                export.Endpoint = new Uri(OpenTelemetryOptions.OtelDefaultEndpoint);
+                export.Protocol = OtlpExportProtocol.Grpc;
+            });
+
+        }, loggerOptions =>
+        {
+            loggerOptions.IncludeScopes = true;
+            loggerOptions.IncludeFormattedMessage = true;
+            loggerOptions.IncludeScopes = true;
+        });
+        return service;
     }
 }
