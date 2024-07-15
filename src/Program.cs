@@ -123,7 +123,7 @@ app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
 app.MapHealthChecks(GlobalConsts.HealthPageUri);
 
-CreateTournament.MapEndpoint(app);
+CreateTournamentEndpoint.MapEndpoint(app);
 GetTournament.MapEndpoint(app);
 UpdateTournament.MapEndpoint(app);
 DeleteTournament.MapEndpoint(app);

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using DotNet.Testcontainers.Builders;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +15,8 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
 {
     private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder()
         .WithDatabase("tournament")
+        //.WithPortBinding(7777, true)
+        //.WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(7777))
         .Build();
 
     public string ConnectionString => _postgreSqlContainer.GetConnectionString();
@@ -50,7 +52,6 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
     public async Task InitializeAsync()
     {
         await _postgreSqlContainer.StartAsync();
-        
         /*
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -59,8 +60,6 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
 
     }
 
-    public new async Task DisposeAsync()
-    {
-        await _postgreSqlContainer.StopAsync();
-    }
+    public new async Task DisposeAsync() 
+        => await _postgreSqlContainer.DisposeAsync().AsTask();
 }
