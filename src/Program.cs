@@ -15,7 +15,6 @@ using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
 using OpenTournament.Mediator.Behaviours;
 using OpenTournament.Observability;
-using OpenTournament.Observability.Dependency;
 using OpenTournament.Options;
 using Quartz;
 
@@ -24,9 +23,7 @@ using Quartz;
 var builder = WebApplication.CreateBuilder(args);
 
     // Observability
-builder.Logging.AddObservabilityLogging(builder.Configuration, OtelResourceBuilder.ResourceBuilder);
-builder.Services.AddObservabilityMetrics(builder.Configuration, OtelResourceBuilder.ResourceBuilder);
-builder.Services.AddObservabilityTraces(builder.Configuration, OtelResourceBuilder.ResourceBuilder);
+builder.Services.AddObservability(builder.Configuration);
 builder.Services.AddHttpLogging((options) =>
 {
     options.CombineLogs = true;
@@ -39,12 +36,12 @@ builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
     //.ValidateDataAnnotations().ValidateOnStart();
 
-builder.Services.Configure<DatabaseOptions>(
-    builder.Configuration.GetSection(DatabaseOptions.SectionName));
+DatabaseOptions dbOptions = new();
+builder.Configuration.GetSection(DatabaseOptions.SectionName).Bind(dbOptions);
 
 builder.Services.AddDbContext<AppDbContext>(opts =>
 {
-    var connectionString = "";
+    var connectionString = dbOptions.ConnectionString;
     opts.UseNpgsql(connectionString, pgOpts =>
         {
             pgOpts.EnableRetryOnFailure(4);

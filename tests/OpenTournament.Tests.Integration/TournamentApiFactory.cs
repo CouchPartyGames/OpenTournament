@@ -11,17 +11,14 @@ using OpenTournament.Tests.Integration.Helpers;
 
 namespace OpenTournament.Tests.Integration;
 
-public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLifetime
+public class TournamentApiFactory : WebApplicationFactory<IApiAssemblyMarker>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgreSqlContainer = new PostgreSqlBuilder()
         .WithDatabase("tournament")
-        //.WithPortBinding(7777, true)
-        //.WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(7777))
         .Build();
 
     public string ConnectionString => _postgreSqlContainer.GetConnectionString();
     public string ContainerId => _postgreSqlContainer.Id;
-
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

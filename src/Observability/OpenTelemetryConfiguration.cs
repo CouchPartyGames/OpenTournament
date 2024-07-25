@@ -1,0 +1,65 @@
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using OpenTournament.Observability.Options;
+
+namespace OpenTournament.Observability;
+
+public static class OpenTelemetryConfiguration
+{
+    public static IServiceCollection AddObservability(this IServiceCollection services, IConfiguration configuration)
+    {
+        var options = configuration
+            .GetSection(OpenTelemetryOptions.SectionName)
+            .Get<OpenTelemetryOptions>();
+        
+        var endpoint = new Uri(OpenTelemetryOptions.OtelDefaultEndpoint);
+        var protocol = OtlpExportProtocol.Grpc;
+        
+        services.AddOpenTelemetry().ConfigureResource(config => 
+            {
+                config.AddService(GlobalConsts.ServiceName, null, GlobalConsts.ServiceVersion); 
+            })
+            .WithLogging(logging => 
+            {
+                logging.AddOtlpExporter(export =>
+                {
+                    export.Endpoint = endpoint;
+                    export.Protocol = protocol;
+                });
+            }, loggerOptions =>
+            {
+                loggerOptions.IncludeScopes = true;
+                loggerOptions.IncludeFormattedMessage = true;
+                loggerOptions.IncludeScopes = true;
+            })
+            .WithMetrics(metricBuilder =>
+            {
+                metricBuilder
+                    .AddRuntimeInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddAspNetCoreInstrumentation();
+                metricBuilder.AddOtlpExporter(export =>
+                {
+                    export.Endpoint = endpoint;
+                    export.Protocol = protocol;
+                });
+            })
+            .WithTracing(traceBuilder =>
+            {
+                traceBuilder.SetSampler(new TraceIdRatioBasedSampler(1.0));
+                traceBuilder.AddHttpClientInstrumentation()
+                    .AddAspNetCoreInstrumentation()
+                    .AddGrpcClientInstrumentation();
+
+                traceBuilder.AddOtlpExporter(export =>
+                {
+                    export.Endpoint = endpoint;
+                    export.Protocol = protocol;
+                });
+            });
+        return services;
+    }
+}
