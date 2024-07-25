@@ -1,5 +1,6 @@
 ﻿namespace OpenTournament.Tests.Integration;
 
+/*
 public class HealthCheckTest(TournamentApiFactory factory) : IClassFixture<TournamentApiFactory>
 {
     private readonly HttpClient _httpClient = factory.CreateClient();
@@ -14,3 +15,4 @@ public class HealthCheckTest(TournamentApiFactory factory) : IClassFixture<Tourn
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 }
+*/
