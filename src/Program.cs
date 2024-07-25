@@ -42,7 +42,17 @@ builder.Services.Configure<FirebaseAuthenticationOptions>(
 builder.Services.Configure<DatabaseOptions>(
     builder.Configuration.GetSection(DatabaseOptions.SectionName));
 
-builder.Services.AddDbContext<AppDbContext>((Action<DbContextOptionsBuilder>?)null, ServiceLifetime.Singleton);
+builder.Services.AddDbContext<AppDbContext>(opts =>
+{
+    var connectionString = "";
+    opts.UseNpgsql(connectionString, pgOpts =>
+        {
+            pgOpts.EnableRetryOnFailure(4);
+            pgOpts.CommandTimeout(15);
+        })
+        .EnableSensitiveDataLogging()
+        .EnableSensitiveDataLogging();
+}, ServiceLifetime.Singleton);
 builder.Services.AddMediator();
 builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehaviour<,>));
 //builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
