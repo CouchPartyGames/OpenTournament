@@ -52,12 +52,11 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
     public async Task InitializeAsync()
     {
         await _postgreSqlContainer.StartAsync();
-        /*
+        
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await dbContext.Database.MigrateAsync();
-        */
-
+        await dbContext.Database.EnsureDeletedAsync();
+        await dbContext.Database.EnsureCreatedAsync();
     }
 
     public new async Task DisposeAsync() 
