@@ -1,6 +1,3 @@
-using Features.Tournaments;
-using Microsoft.EntityFrameworkCore;
-using OpenTournament.Common;
 
 namespace OpenTournament.Tests.Integration;
 
