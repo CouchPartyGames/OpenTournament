@@ -49,7 +49,7 @@ builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPip
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTournamentLayouts();
-builder.Services.AddQuartz(opts =>
+/*builder.Services.AddQuartz(opts =>
 {
     var jobKey = JobKey.Create(nameof(OutboxBackgroundJob));
     opts.AddJob<OutboxBackgroundJob>(jobKey)
@@ -74,7 +74,7 @@ builder.Services.AddQuartz(opts =>
 builder.Services.AddQuartzHostedService(opts =>
 {
     opts.WaitForJobsToComplete = true;
-});
+}); */
 builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {

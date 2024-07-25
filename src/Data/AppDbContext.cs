@@ -6,17 +6,8 @@ using OpenTournament.Options;
 
 namespace OpenTournament.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext(DbContextOptions options) : DbContext(options)
 {
-    private readonly DatabaseOptions _dbOptions;
-
-    public AppDbContext(IOptions<DatabaseOptions> dbOptions) => _dbOptions = dbOptions.Value;
-
-    public AppDbContext(DbContextOptions<AppDbContext> options, IOptions<DatabaseOptions> dbOptions) : base(options)
-    {
-        _dbOptions = dbOptions.Value;
-    }
-
     public DbSet<Tournament> Tournaments { get; init; }
     
     public DbSet<Match> Matches { get; init; }
@@ -27,7 +18,7 @@ public class AppDbContext : DbContext
     
     public DbSet<Outbox> Outboxes { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder
             .UseNpgsql(_dbOptions.ConnectionString, opts =>
@@ -37,7 +28,7 @@ public class AppDbContext : DbContext
             })
             .EnableSensitiveDataLogging()
             .EnableDetailedErrors();
-    }
+    }*/
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -25,38 +25,21 @@ public class TournamentApiFactory : WebApplicationFactory<IApiMarker>, IAsyncLif
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.ConfigureLogging(x =>
-        {
-            x.ClearProviders();
-        });
         
         builder.ConfigureTestServices(services =>
         {
-            //services.RemoveAll(typeof(AppDbContext));
-            services.RemoveAll(typeof(DbContextOptions<AppDbContext>));
-            
+            services.RemoveDbContext<AppDbContext>();
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseNpgsql(_postgreSqlContainer.GetConnectionString());
             }, ServiceLifetime.Singleton);
-
-            services
-                .AddAuthentication(MyAuthenticationOptions.DefaultScheme)
-                .AddScheme<MyAuthenticationOptions, TestAuthenticationHandler>(MyAuthenticationOptions.DefaultScheme, options =>
-                {
-                    
-                });
+            services.EnsureDbCreated<AppDbContext>();
         });
     }
     
     public async Task InitializeAsync()
     {
         await _postgreSqlContainer.StartAsync();
-        
-        using var scope = Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await dbContext.Database.EnsureDeletedAsync();
-        await dbContext.Database.EnsureCreatedAsync();
     }
 
     public new async Task DisposeAsync() 
