@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.1.9"></a>
+## 0.1.9 (2024-07-25)
+
+### Bug Fixes
+
+* correct dbcontext for easier integration testing
+* more dbcontext settings for retry/logging
+
 <a name="0.1.8"></a>
 ## 0.1.8 (2024-07-15)
 
