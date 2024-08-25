@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{CA8D6D3F
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTournament", "src\OpenTournament.Api\OpenTournament.csproj", "{3974FED9-32D2-4BFF-A594-D18B798B108A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTournament.Api", "src\OpenTournament.Api\OpenTournament.Api.csproj", "{29078B5E-9302-4DAF-A624-520E663DED7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,7 +27,6 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{881CE7C5-7989-4CDB-B55D-AE81580EDD0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{881CE7C5-7989-4CDB-B55D-AE81580EDD0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{881CE7C5-7989-4CDB-B55D-AE81580EDD0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{881CE7C5-7989-4CDB-B55D-AE81580EDD0B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FBC7C246-B38E-4A64-8ADD-B6E430E50C3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -37,9 +38,12 @@ Global
 		{C0D06297-305B-4D8E-8C35-0796500C1969}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C0D06297-305B-4D8E-8C35-0796500C1969}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3974FED9-32D2-4BFF-A594-D18B798B108A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3974FED9-32D2-4BFF-A594-D18B798B108A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3974FED9-32D2-4BFF-A594-D18B798B108A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3974FED9-32D2-4BFF-A594-D18B798B108A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29078B5E-9302-4DAF-A624-520E663DED7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29078B5E-9302-4DAF-A624-520E663DED7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29078B5E-9302-4DAF-A624-520E663DED7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29078B5E-9302-4DAF-A624-520E663DED7D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{881CE7C5-7989-4CDB-B55D-AE81580EDD0B} = {1BC888F5-D0E6-4778-AE65-4EDC093BEF2E}
