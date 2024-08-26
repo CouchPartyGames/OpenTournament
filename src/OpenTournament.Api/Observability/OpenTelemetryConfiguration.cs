@@ -3,7 +3,6 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using OpenTournament.Observability.Options;
 
 namespace OpenTournament.Observability;
 
@@ -11,14 +10,22 @@ public static class OpenTelemetryConfiguration
 {
     public static IServiceCollection AddObservability(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddOptions<OpenTelemetryOptions>()
+            .BindConfiguration(OpenTelemetryOptions.SectionName)
+            .ValidateDataAnnotations();
+        
+        /*
         var options = configuration
             .GetSection(OpenTelemetryOptions.SectionName)
             .Get<OpenTelemetryOptions>();
+            */
         
         var endpoint = new Uri(OpenTelemetryOptions.OtelDefaultEndpoint);
         var protocol = OtlpExportProtocol.Grpc;
         
-        services.AddOpenTelemetry().ConfigureResource(config => 
+        
+        services.AddOpenTelemetry()
+            .ConfigureResource(config => 
             {
                 config.AddService(GlobalConsts.ServiceName, null, GlobalConsts.ServiceVersion); 
             })

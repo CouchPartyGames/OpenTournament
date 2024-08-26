@@ -1,4 +1,4 @@
-namespace OpenTournament.Observability.Options;
+namespace OpenTournament.Observability;
 
 public sealed class OpenTelemetryOptions
 {
