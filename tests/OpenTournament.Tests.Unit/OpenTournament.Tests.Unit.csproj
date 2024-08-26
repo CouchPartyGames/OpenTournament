@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenTournament.Api\OpenTournament.Api.csproj" />
     <ProjectReference Include="..\..\src\OpenTournament.csproj" />
   </ItemGroup>
 
