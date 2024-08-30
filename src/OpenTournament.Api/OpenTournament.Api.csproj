@@ -41,7 +41,7 @@
 
   <ItemGroup>
     <Folder Include="Common\Rules\Matches\" />
-    <Folder Include="Observability\Options\" />
+    <Folder Include="Shared\Infrastructure\" />
   </ItemGroup>
 
 </Project>

@@ -9,6 +9,7 @@ using OpenTournament.Features.Matches;
 using OpenTournament.Features.Tournaments;
 using OpenTournament.Features.Tournaments.Create;
 using OpenTournament.Features.Templates;
+using OpenTournament.Features.Authentication;
 using OpenTournament.Services;
 using OpenTournament.Jobs;
 using OpenTournament.Identity;
@@ -150,6 +151,6 @@ DeleteTemplate.MapEndpoint(app);
 UpdateTemplate.MapEndpoint(app);
 //ListTemplate.MapEndpoint(app);
 
-//Login.MapEndpoint(app);
+Login.MapEndpoint(app);
 
 app.Run();

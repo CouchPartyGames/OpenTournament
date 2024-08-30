@@ -57,8 +57,6 @@ public sealed class MatchCompletedEventHandler : INotificationHandler<MatchCompl
             await _dbContext.Outboxes.AddAsync(Outbox.Create(new TournamentCompletedEvent(notification.TournamentId)), cancellationToken);
         }
         await _dbContext.SaveChangesAsync(cancellationToken);
-        
-        throw new NotImplementedException();
     }
 
     bool IsTournamentCompleted()
