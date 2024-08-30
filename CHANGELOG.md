@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.2.0"></a>
+## 0.2.0 (2024-08-30)
+
+### Features
+
+* add basic layout
+* add daisyui
+
+### Bug Fixes
+
+* correct configuration for telemetry
+* correct project
+* correct references to solution file
+
 <a name="0.1.7"></a>
 ## 0.1.7 (2024-07-15)
 
