@@ -3,7 +3,9 @@ using OpenTournament.Data.Models;
 namespace OpenTournament.Data.DomainEvents;
 
 
+// <summary>
 // Allow Participants to register for the tournament
+// </summary>
 public record RegistrationOpened(TournamentId TournamentId);
 // Registration is complete
 public record RegistrationFinalized(TournamentId TournamentId);

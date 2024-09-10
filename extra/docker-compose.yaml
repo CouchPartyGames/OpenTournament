@@ -1,7 +1,7 @@
 # touch .env
 # docker volume create redis_data
 # docker volume create postgres_data
-# mkdir ./data/db_data ./data/redis_data
+# mkdir ./data/db_data ./data/redis_data .data/rabbitmq_data
 #
 # docker compose up
 # docker compose down
@@ -33,6 +33,14 @@ services:
       - "./data/redis_data:/data"
       #- redis_data:/data
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: opentournament-rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    #volumes:
+      #- ".data/rabbitmq_data"
 
   dashboard:
     image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0
