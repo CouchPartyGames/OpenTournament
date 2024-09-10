@@ -18,6 +18,7 @@ using OpenTournament.Mediator.Behaviours;
 using OpenTournament.Observability;
 using OpenTournament.Options;
 using Quartz;
+using MassTransit;
 
 
 //var builder = WebApplication.CreateSlimBuilder(args);
@@ -57,6 +58,14 @@ builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPip
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTournamentLayouts();
+builder.Services.AddMassTransit(opts => {
+    opts.UsingInMemory();
+    //opts.AddConsumer<>();
+    /*opts.UsingRabbitMq((context, cfg) => {
+        cfg.Host("localhost", h => {
+        });
+    });*/
+});
 builder.Services.AddQuartz(opts =>
 {
     var jobKey = JobKey.Create(nameof(OutboxBackgroundJob));

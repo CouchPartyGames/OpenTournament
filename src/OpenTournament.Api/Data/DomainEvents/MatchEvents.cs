@@ -3,6 +3,10 @@
 namespace OpenTournament.Data.DomainEvents;
 
 public record MatchCompletedEvent(MatchId MatchId, TournamentId TournamentId) : IDomainEvent;
+
+// <summary>
+// Match has completed
+// </summary>
 public record MatchCompleted(MatchId MatchId);
 
 public record MatchCreated(MatchId MatchId);
