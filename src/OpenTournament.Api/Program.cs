@@ -19,6 +19,7 @@ using OpenTournament.Observability;
 using OpenTournament.Options;
 using Quartz;
 using MassTransit;
+using Jobs;
 
 
 //var builder = WebApplication.CreateSlimBuilder(args);
@@ -59,6 +60,9 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTournamentLayouts();
 builder.Services.AddMassTransit(opts => {
+    opts.AddConsumer<TournamentStartedConsumer>();
+    opts.AddConsumer<MatchCompletedConsumer>();
+
     opts.UsingInMemory();
     //opts.AddConsumer<>();
     /*opts.UsingRabbitMq((context, cfg) => {
