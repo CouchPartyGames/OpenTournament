@@ -1,3 +1,4 @@
+using MassTransit;
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
 using OpenTournament.Data.DomainEvents;
@@ -13,7 +14,9 @@ public static class JoinRegistration
     {
         private readonly AppDbContext _dbContext;
 
-        public Handler(AppDbContext dbContext) => _dbContext = dbContext;
+        public Handler(AppDbContext dbContext)  {
+            _dbContext = dbContext;
+        }
 
         public async ValueTask<OneOf<bool, OneOf.Types.NotFound, RuleFailure>> Handle(JoinTournamentCommand command, 
             CancellationToken token)
@@ -35,12 +38,19 @@ public static class JoinRegistration
                 return new RuleFailure(engine.Errors);
             }
 
-            //new JoinedTournamentEvent(command.TournamentId, command.ParticipantId);
             _dbContext.Add(Registration.Create(command.TournamentId, command.ParticipantId));
             var result = await _dbContext.SaveChangesAsync(token);
             if (result < 1)
             {
             }
+
+            /*
+            var msg = new PlayerJoined {
+                TournamentId = command.TournamentId, 
+                ParticipantId = command.ParticipantId 
+            };
+            await _publishEndpoint.Publish(msg, token);
+            */
 
             return true;
         }
@@ -50,7 +60,7 @@ public static class JoinRegistration
         app.MapPut("registrations/{id}/join", Endpoint)
             .WithTags("Registration")
             .WithSummary("Join Tournament")
-            .WithDescription("Join a tournament")
+            .WithDescription("Allow a user to register for a specific tournament")
             .WithOpenApi()
             .RequireAuthorization();
 

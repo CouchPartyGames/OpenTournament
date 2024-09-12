@@ -7,6 +7,9 @@ public sealed class TournamentStartedConsumer : IConsumer<TournamentStartedEvent
 {
     public Task Consume(ConsumeContext<TournamentStartedEvent> context)
     {
+        var tournamentId = context.Message.TournamentId;
+
         throw new NotImplementedException();
+        return Task.CompletedTask;
     }
 }
