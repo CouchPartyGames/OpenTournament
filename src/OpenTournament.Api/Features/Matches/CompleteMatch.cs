@@ -48,37 +48,23 @@ public static class CompleteMatch
             var match = await _dbContext
                 .Matches
                 .FirstOrDefaultAsync(x => x.Id == matchId, token);
-            //Console.WriteLine(match.TournamentId);
-            //if (match is null) {
-                //return TypedResults.NotFound();
-            //}
+
 
             var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
             await executionStrategy.Execute(async () =>
             {
 
                 await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
-                //try
-                //{
-                    match.Complete(winnerId);
-                    await _bus.Send(new MatchCompleted {
-                        MatchId = matchId
-                    });
 
-                    await _dbContext.AddAsync(
-                        Outbox.Create(
-                            new MatchCompletedEvent(matchId, match.TournamentId)),
-                        token);
+                match.Complete(winnerId);
+                var msg = new MatchCompleted {
+                    MatchId = matchId,
+                    TournamentId = match.TournamentId
+                };
+                await _bus.Send(msg);
 
-                    await _dbContext.SaveChangesAsync(token);
-                    await transaction.CommitAsync(token);
-                /*}
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                    await transaction.RollbackAsync(token);
-                    return TypedResults.NotFound();
-                }*/
+                await _dbContext.SaveChangesAsync(token);
+                await transaction.CommitAsync(token);
             });
 
             return TypedResults.Ok();

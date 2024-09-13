@@ -9,8 +9,8 @@ public record MatchCompletedEvent(MatchId MatchId, TournamentId TournamentId) : 
 // Event signaling a Match has completed 
 // </summary>
 public record MatchCompleted {
-    //public required TournamentId TournamentId { get; init; }
     public required MatchId MatchId { get; init; }
+    public required TournamentId TournamentId { get; init; }
 }
 
 
@@ -18,8 +18,8 @@ public record MatchCompleted {
 // Event signaling a Match is ready (all opponents have completed their previous match)
 // </summary>
 public record MatchReadied {
-    public required TournamentId tournamentId { get; init; }
     public required MatchId MatchId { get; init; }
+    public required TournamentId TournamentId { get; init; }
 }
 
 // <summary>

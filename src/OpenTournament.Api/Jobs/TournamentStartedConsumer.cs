@@ -22,7 +22,7 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
         var participants = ParticipantOrder.Create(order, participantList);
 
             // Step - Create Draw/Positions
-        var matches = CreateDraw(drawSize, participants);
+        var matches = CreateFirstRoundMatches(drawSize, participants);
 
             // Step - Create Matches
         foreach(var singleMatch in matches) {
@@ -42,7 +42,7 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             .ToList();
     
 
-    private List<SingleEliminationFirstRound.SingleMatch> CreateDraw(DrawSize drawSize, ParticipantOrder order) {
+    private List<SingleEliminationFirstRound.SingleMatch> CreateFirstRoundMatches(DrawSize drawSize, ParticipantOrder order) {
             // Get Opponent Positions for the first round
         var positions = new FirstRoundPositions(drawSize);
 
