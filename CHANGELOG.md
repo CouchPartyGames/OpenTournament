@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.4.3"></a>
+## 0.4.3 (2024-09-13)
+
+### Bug Fixes
+
+* add tournament id to match events
+
 <a name="0.4.2"></a>
 ## 0.4.2 (2024-09-13)
 
