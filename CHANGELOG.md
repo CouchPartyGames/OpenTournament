@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.3.0"></a>
+## 0.3.0 (2024-09-12)
+
+### Features
+
+* add consumer events
+* add consumers
+* add masstransit deps
+* use bus
+
 <a name="0.2.1"></a>
 ## 0.2.1 (2024-09-04)
 
