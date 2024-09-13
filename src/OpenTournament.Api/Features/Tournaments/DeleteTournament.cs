@@ -59,7 +59,6 @@ public static class DeleteTournament
         var tournamentId = TournamentId.TryParse(id);
         if (tournamentId is null)
         {
-            //return TypedResults.ValidationProblem(ValidationErrors.TournamentIdFailure);
             return TypedResults.NotFound();
         }
 

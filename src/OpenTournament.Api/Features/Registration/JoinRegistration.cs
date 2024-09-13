@@ -8,53 +8,6 @@ namespace Features.Tournaments;
 
 public static class JoinRegistration
 {
-    public sealed record JoinTournamentCommand(TournamentId TournamentId, ParticipantId ParticipantId) : IRequest<OneOf<bool, OneOf.Types.NotFound, RuleFailure>>;
-
-    internal sealed class Handler : IRequestHandler<JoinTournamentCommand, OneOf<bool, OneOf.Types.NotFound, RuleFailure>>
-    {
-        private readonly AppDbContext _dbContext;
-
-        public Handler(AppDbContext dbContext)  {
-            _dbContext = dbContext;
-        }
-
-        public async ValueTask<OneOf<bool, OneOf.Types.NotFound, RuleFailure>> Handle(JoinTournamentCommand command, 
-            CancellationToken token)
-        {
-            
-            var tournament = await _dbContext
-                .Tournaments
-                .FirstOrDefaultAsync(m => m.Id == command.TournamentId, token);
-            if (tournament is null)
-            {
-                return new OneOf.Types.NotFound();
-            }
-
-                // Rules
-            var engine = new RuleEngine();
-            engine.Add(new TournamentInRegistrationState(tournament.Status));
-            if (!engine.Evaluate())
-            {
-                return new RuleFailure(engine.Errors);
-            }
-
-            _dbContext.Add(Registration.Create(command.TournamentId, command.ParticipantId));
-            var result = await _dbContext.SaveChangesAsync(token);
-            if (result < 1)
-            {
-            }
-
-            /*
-            var msg = new PlayerJoined {
-                TournamentId = command.TournamentId, 
-                ParticipantId = command.ParticipantId 
-            };
-            await _publishEndpoint.Publish(msg, token);
-            */
-
-            return true;
-        }
-    }
 
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPut("registrations/{id}/join", Endpoint)
@@ -65,27 +18,51 @@ public static class JoinRegistration
             .RequireAuthorization();
 
     
-    public static async Task<Results<NoContent, NotFound, ProblemHttpResult>> Endpoint(string id, 
+    public static async Task<Results<NoContent, BadRequest, NotFound, ProblemHttpResult>> Endpoint(string id, 
         HttpContext context,
         IMediator mediator, 
+        AppDbContext dbContext,
+        IPublishEndpoint publishEndpoint,
         CancellationToken token)
     {
 
-        var participantId = context.User.Claims.FirstOrDefault(c => c.Type == "user_id");
+        var participantClaim = context.User.Claims.FirstOrDefault(c => c.Type == "user_id");
         var tournamentId = TournamentId.TryParse(id);
         if (tournamentId is null)
         {
             return TypedResults.NotFound();
         }
         
-        var command = new JoinTournamentCommand(tournamentId, new ParticipantId(participantId?.Value));
-        var result = await mediator.Send(command, token);
-        return result.Match<Results<NoContent, NotFound, ProblemHttpResult>> (
-            _ => TypedResults.NoContent(),
-            _ => TypedResults.NotFound(),
-            errors =>
-            {
-                return TypedResults.Problem(errors.Errors.FirstOrDefault()?.Message, title: "invalid state", statusCode: StatusCodes.Status409Conflict);
-            });
+        var tournament = await dbContext
+            .Tournaments
+            .FirstOrDefaultAsync(m => m.Id == tournamentId, token);
+        if (tournament is null)
+        {
+            return TypedResults.BadRequest();
+        }
+
+            // Rules
+        var engine = new RuleEngine();
+        engine.Add(new TournamentInRegistrationState(tournament.Status));
+        if (!engine.Evaluate())
+        {
+            return TypedResults.NotFound();
+            //return new RuleFailure(engine.Errors);
+        }
+
+        var participantId = new ParticipantId(participantClaim.Value);
+        dbContext.Add(Registration.Create(tournamentId, participantId));
+        var result = await dbContext.SaveChangesAsync(token);
+        if (result < 1)
+        {
+        }
+
+        var msg = new PlayerJoined {
+           TournamentId = tournamentId,
+           ParticipantId = participantId 
+        };
+        await publishEndpoint.Publish(msg, token);
+
+        return TypedResults.NoContent();
     }
 }

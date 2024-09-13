@@ -60,29 +60,24 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTournamentLayouts();
 builder.Services.AddMassTransit(opts => {
+    opts.SetKebabCaseEndpointNameFormatter();
+
     opts.AddConsumer<TournamentStartedConsumer>();
     opts.AddConsumer<MatchCompletedConsumer>();
 
-    opts.UsingInMemory();
-    //opts.AddConsumer<>();
-    /*opts.UsingRabbitMq((context, cfg) => {
+    //opts.UsingInMemory();
+    opts.UsingRabbitMq((context, cfg) => {
         cfg.Host("localhost", h => {
+            h.Username("guest");
+            h.Password("guest");
         });
-    });*/
+
+        cfg.ConfigureEndpoints(context);
+    });
 });
 builder.Services.AddQuartz(opts =>
 {
-    var jobKey = JobKey.Create(nameof(OutboxBackgroundJob));
-    opts.AddJob<OutboxBackgroundJob>(jobKey)
-        .AddTrigger(trigger =>
-        {
-            trigger.ForJob(jobKey).WithSimpleSchedule(schedule =>
-            {
-                schedule.WithIntervalInSeconds(1).RepeatForever();
-            });
-        });
-    
-    jobKey = JobKey.Create(nameof(StartTournamentJob));
+    var jobKey = JobKey.Create(nameof(StartTournamentJob));
     opts.AddJob<StartTournamentJob>(jobKey)
         .AddTrigger(trigger =>
         {

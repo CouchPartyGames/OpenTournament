@@ -1,4 +1,5 @@
 using OpenTournament.Data.Models;
+using MassTransit;
 
 namespace OpenTournament.Data.DomainEvents;
 
@@ -11,11 +12,13 @@ public record RegistrationOpened(TournamentId TournamentId);
 public record RegistrationFinalized(TournamentId TournamentId);
 
 
+[EntityName("RegistrationJoined")]
 public record PlayerJoined {
     public TournamentId TournamentId { get; init; }
     public ParticipantId ParticipantId { get; init; }
 }
 
+[EntityName("RegistrationLeft")]
 public record PlayerLeft {
     public TournamentId TournamentId { get; init;}
     public ParticipantId ParticipantId { get; init; }

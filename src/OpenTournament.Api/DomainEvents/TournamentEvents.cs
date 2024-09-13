@@ -1,10 +1,20 @@
 ﻿using OpenTournament.Common.Draw.Layout;
 using OpenTournament.Data.Models;
+using MassTransit;
 
 namespace OpenTournament.Data.DomainEvents;
 
 public record TournamentStartedEvent(TournamentId TournamentId, DrawSize DrawSize) : IDomainEvent;
-public record TournamentStarted(TournamentId TournamentId);
+
+// <summary>
+// Event signaling a Tournament has Started
+// </summary>
+[EntityName("TournamentStarted")]
+public record TournamentStarted {
+    public required TournamentId TournamentId { get; init; }
+
+    public required DrawSize DrawSize { get; init; }
+}
 
 public record TournamentCompletedEvent(TournamentId TournamentId) : IDomainEvent;
 public record TournamentCompleted(TournamentId TournamentId);
@@ -12,6 +22,7 @@ public record TournamentCompleted(TournamentId TournamentId);
 // <summary>
 // Tournament Created
 // </summary>
+[EntityName("TournamentCreated")]
 public record TournamentCreated(TournamentId TournamentId);
 
 public record TournamentUpdated(TournamentId TournamentId);
