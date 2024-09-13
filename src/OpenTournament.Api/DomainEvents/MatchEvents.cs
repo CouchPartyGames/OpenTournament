@@ -8,9 +8,8 @@ public record MatchCompletedEvent(MatchId MatchId, TournamentId TournamentId) : 
 // <summary>
 // Event signaling a Match has completed 
 // </summary>
-[EntityName("MatchCompleted")]
 public record MatchCompleted {
-    public required TournamentId TournamentId { get; init; }
+    //public required TournamentId TournamentId { get; init; }
     public required MatchId MatchId { get; init; }
 }
 

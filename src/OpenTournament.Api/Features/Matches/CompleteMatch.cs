@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MassTransit;
+using Microsoft.AspNetCore.Authorization;
 using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
 
@@ -15,10 +16,13 @@ public static class CompleteMatch
 
         private readonly IAuthorizationService _authorizationService;
 
-        public Handler(AppDbContext dbContext, IAuthorizationService authorizationService)
+        private readonly IBus _bus;
+
+        public Handler(AppDbContext dbContext, IAuthorizationService authorizationService, IBus bus)
         {
             _dbContext = dbContext;
             _authorizationService = authorizationService;
+            _bus = bus;
         }
 
         public async ValueTask<OneOf<Ok, NotFound>> Handle(CompleteMatchCommand command,
@@ -57,6 +61,9 @@ public static class CompleteMatch
                 //try
                 //{
                     match.Complete(winnerId);
+                    await _bus.Send(new MatchCompleted {
+                        MatchId = matchId
+                    });
 
                     await _dbContext.AddAsync(
                         Outbox.Create(

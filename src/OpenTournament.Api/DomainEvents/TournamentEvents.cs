@@ -4,6 +4,11 @@ using MassTransit;
 
 namespace OpenTournament.Data.DomainEvents;
 
+public enum StartType {
+    Manual,
+    Scheduled
+}
+
 public record TournamentStartedEvent(TournamentId TournamentId, DrawSize DrawSize) : IDomainEvent;
 
 // <summary>
@@ -14,6 +19,8 @@ public record TournamentStarted {
     public required TournamentId TournamentId { get; init; }
 
     public required DrawSize DrawSize { get; init; }
+
+    public required StartType StartType { get; init; } 
 }
 
 public record TournamentCompletedEvent(TournamentId TournamentId) : IDomainEvent;

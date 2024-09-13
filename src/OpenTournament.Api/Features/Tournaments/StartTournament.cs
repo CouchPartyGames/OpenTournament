@@ -23,7 +23,7 @@ public static class StartTournament
     public static async Task<Results<NoContent, NotFound, BadRequest, ProblemHttpResult>> Endpoint(string id,
         IMediator mediator,
         AppDbContext dbContext,
-        IPublishEndpoint publishEndpoint,
+        ISendEndpointProvider sendEndpointProvider,
         CancellationToken token)
     {
         var tournamentId = TournamentId.TryParse(id);
@@ -70,9 +70,11 @@ public static class StartTournament
 
             var msg = new TournamentStarted {
                 TournamentId = tournamentId,
-                DrawSize = drawSize
+                DrawSize = drawSize,
+                StartType = StartType.Manual
             };
-            await publishEndpoint.Publish(msg, token);
+            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:tournament-started"));
+            await endpoint.Send(msg);
 
             // Make Changes
             await dbContext.SaveChangesAsync(token);
