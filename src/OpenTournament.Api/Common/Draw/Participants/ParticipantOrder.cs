@@ -2,11 +2,13 @@ using OpenTournament.Data.Models;
 
 namespace OpenTournament.Common.Draw.Participants;
 
-public sealed class EmptyListOfOpponentsException(string message) : Exception(message);
+public sealed class LackOfOpponentsException(string message) : Exception(message);
 
 public abstract class ParticipantOrder
 {
     protected const int _startIndex = 1;
+
+    protected const int MinParticipants = 2;
     
     public enum Order
     {

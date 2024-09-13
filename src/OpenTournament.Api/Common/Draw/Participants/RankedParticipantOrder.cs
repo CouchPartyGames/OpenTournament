@@ -14,9 +14,9 @@ public sealed class RankedParticipantOrder(List<Participant> opponents) : Partic
     {
         get
         {
-            if (opponents.Count < 2)
+            if (opponents.Count < MinParticipants)
             {
-                throw new EmptyListOfOpponentsException("Not enough participants");
+                throw new LackOfOpponentsException("Not enough participants");
             }
 
             int i = _startIndex;
