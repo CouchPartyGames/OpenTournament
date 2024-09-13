@@ -4,9 +4,9 @@ using OpenTournament.Data.DomainEvents;
 namespace Jobs;
 
 public sealed class MatchCompletedConsumer(AppDbContext dbContext, 
-    ILogger<MatchCompletedConsumer> logger) : IConsumer<MatchCompletedEvent>
+    ILogger<MatchCompletedConsumer> logger) : IConsumer<MatchCompleted>
 {
-    public Task Consume(ConsumeContext<MatchCompletedEvent> context)
+    public Task Consume(ConsumeContext<MatchCompleted> context)
     {
         logger.LogInformation("Match Completed Consumer");
 

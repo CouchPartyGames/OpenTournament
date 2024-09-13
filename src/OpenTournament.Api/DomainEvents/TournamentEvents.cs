@@ -12,9 +12,17 @@ public enum StartType {
 public record TournamentStartedEvent(TournamentId TournamentId, DrawSize DrawSize) : IDomainEvent;
 
 // <summary>
+// Tournament Created
+// </summary>
+public record TournamentCreated {
+    public required TournamentId TournamentId { get; init; }
+
+    public required string TournamentName { get; init; }
+}
+
+// <summary>
 // Event signaling a Tournament has Started
 // </summary>
-[EntityName("TournamentStarted")]
 public record TournamentStarted {
     public required TournamentId TournamentId { get; init; }
 
@@ -26,11 +34,6 @@ public record TournamentStarted {
 public record TournamentCompletedEvent(TournamentId TournamentId) : IDomainEvent;
 public record TournamentCompleted(TournamentId TournamentId);
 
-// <summary>
-// Tournament Created
-// </summary>
-[EntityName("TournamentCreated")]
-public record TournamentCreated(TournamentId TournamentId);
 
 public record TournamentUpdated(TournamentId TournamentId);
 

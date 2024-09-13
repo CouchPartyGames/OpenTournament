@@ -1,4 +1,9 @@
+using OpenTournament.Data.Models;
+using OpenTournament.Data.DomainEvents;
+using MassTransit;
+
 namespace OpenTournament.Features.Tournaments.Create;
+
 
 public static class CreateTournamentEndpoint
 {
@@ -14,13 +19,34 @@ public static class CreateTournamentEndpoint
 	public static async Task<Results<Created, ProblemHttpResult>> EndPoint(CreateTournamentCommand request, 
 		IMediator mediator, 
 		HttpContext httpContext,
+		IPublishEndpoint publishEndpoint,
+		AppDbContext dbContext,
 		CancellationToken token)
 	{
-		var result = await mediator.Send(request, token);
-		return result.Match<Results<Created, ProblemHttpResult>>(
-			tournamentId => TypedResults.Created(tournamentId.Value.ToString()),
-			validateError => TypedResults.Problem(detail:"validation error"),
-			internalError => TypedResults.Problem(internalError));
+		var tourny = new Tournament
+		{
+			Id = TournamentId.NewTournamentId(),
+			Name = request.Name
+		};
+
+		dbContext.Add(tourny);
+		var results = await dbContext.SaveChangesAsync(token);
+		if (results < 1)
+		{
+			return TypedResults.Problem(new ProblemDetails
+			{
+				Title = "Internal Server Error",
+				Status = 500
+			});
+		}
+
+		var msg = new TournamentCreated {
+			TournamentId = tourny.Id,
+			TournamentName = tourny.Name
+		};
+		await publishEndpoint.Publish(msg);
+
+		return TypedResults.Created(tourny.Id.Value.ToString());
 	}
     
 }
