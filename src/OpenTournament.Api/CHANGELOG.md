@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.4.1"></a>
+## 0.4.1 (2024-09-13)
+
+### Bug Fixes
+
+* correct consumers and events
+
 <a name="0.1.10"></a>
 ## 0.1.10 (2024-07-25)
 
