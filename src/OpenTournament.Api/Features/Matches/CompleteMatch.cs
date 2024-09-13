@@ -59,7 +59,9 @@ public static class CompleteMatch
                 match.Complete(winnerId);
                 var msg = new MatchCompleted {
                     MatchId = matchId,
-                    TournamentId = match.TournamentId
+                    TournamentId = match.TournamentId,
+                    WinnerId = match.WinnerId,
+                    CompletedLocalMatchId = match.LocalMatchId
                 };
                 await _bus.Send(msg);
 
@@ -75,10 +77,11 @@ public static class CompleteMatch
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPut("matches/{id}/complete", (string id,
                 CompleteMatchCommand command,
-                IMediator mediator,
+                ISendEndpointProvider sendEndpointProvider,
+                AppDbContext dbContext,
                 CancellationToken token) =>
             {
-                return Endpoint(id, command, mediator, token);
+                return Endpoint(id, command, sendEndpointProvider, dbContext, token);
             })
             .WithTags("Match")
             .WithSummary("Complete Match")
@@ -87,13 +90,52 @@ public static class CompleteMatch
 
     private static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
         CompleteMatchCommand command,
-        IMediator mediator,
+        ISendEndpointProvider sendEndpointProvider,
+        AppDbContext dbContext,
         CancellationToken token)
     {
-        var result = await mediator.Send(command, token);
-        return result.Match<Results<Ok, NotFound, ValidationProblem>>(
-            _ => TypedResults.Ok(),
-            _ => TypedResults.NotFound()
-            ); 
+        var matchId = MatchId.TryParse(command.MatchId);
+        var winnerId = new ParticipantId(command.WinnerId);
+
+        /*
+        // Authorize Dedicated Hosts and Tournament Moderators
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User);
+        if (!authorizationResult.Succeeded)
+        {
+            return Forbid(); 
+        }*/
+            
+        if (matchId is null)
+        {
+            Console.WriteLine("bad id");
+            return TypedResults.NotFound();
+        }
+        
+        var match = await dbContext
+            .Matches
+            .FirstOrDefaultAsync(x => x.Id == matchId, token);
+
+
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        await executionStrategy.Execute(async () =>
+        {
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(token);
+
+            match.Complete(winnerId);
+            var msg = new MatchCompleted {
+                MatchId = matchId,
+                TournamentId = match.TournamentId,
+                WinnerId = match.WinnerId,
+                CompletedLocalMatchId = match.LocalMatchId
+            };
+            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:match-completed"));
+            await endpoint.Send(msg);
+
+
+            await dbContext.SaveChangesAsync(token);
+            await transaction.CommitAsync(token);
+        });
+
+        return TypedResults.Ok();
     }
 }

@@ -19,7 +19,8 @@ public sealed record MatchId(Guid Value)
 
 public enum MatchState
 {
-    Ready = 0,
+    Wait = 0,
+    Ready,
     InProgress,
     Complete
 };
@@ -66,6 +67,17 @@ public sealed class Match
             Participant1Id = match.Opp1.Id,
             Participant2Id = match.Opp2.Id,
             WinMatchId = match.WinMatchId
+        };
+    }
+
+    public static Match CreateWithOneOpponent(TournamentId tournamentId, int localMatchId, int nextMatchId, ParticipantId participantId) {
+        return new() {
+            Id = MatchId.NewMatchId(),
+            LocalMatchId = localMatchId,
+            TournamentId = tournamentId,
+            State = MatchState.Wait,
+            Participant1Id = participantId,
+            WinMatchId = nextMatchId
         };
     }
 

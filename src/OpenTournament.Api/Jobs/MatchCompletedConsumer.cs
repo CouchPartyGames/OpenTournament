@@ -15,6 +15,8 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
 
         var matchId = context.Message.MatchId;
         var tournamentId = context.Message.TournamentId;
+        var winnerId = context.Message.WinnerId;
+        var completedLocalMatchId = context.Message.CompletedLocalMatchId;
 
         var matches = dbContext
             .Matches
@@ -23,16 +25,57 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
 
         var tournament = dbContext
             .Tournaments
-            .Where(t => t.Id == tournamentId);
+            .Where(t => t.Id == tournamentId)
+            .Single();
 
-            // Find Next Match
-        //var curProgressionMatch = FindLocalMatch(tournament.drawSize, match.LocalMatchId);
+        var drawSize = DrawSize.CreateFromParticipants((int)tournament.DrawSize);
 
+            // Current Next Match
+        var curCompletedMatch = FindLocalMatch(drawSize, completedLocalMatchId);
 
-            // Create Next Match
+        if (IsThereANextMatch(curCompletedMatch)) {
+            var nextLocalMatchId = curCompletedMatch.WinMatchId;
 
-        throw new NotImplementedException();
+            var nextLocalMatch = FindNextLocalMatch(drawSize, nextLocalMatchId);
+                // Yes
+            if (HasNextMatchBeenCreated(matches, nextLocalMatchId)) {
+                AssignOpponentToNextMatch(matches, nextLocalMatchId);
+            } else {
+                CreateNextMatch(tournamentId, nextLocalMatch, winnerId);
+            }
+        } else {
+            // Is Tournament Complete
+            if (IsTournamentComplete()) {
+                // Notify others tournament is complete
+            }
+        }
+
         return Task.CompletedTask;
+    }
+
+
+    public bool IsThereANextMatch(CreateProgressionMatches.ProgressionMatch currentMatch) => 
+        currentMatch.WinMatchId > currentMatch.MatchId ? true : false;
+
+
+    public bool HasNextMatchBeenCreated(List<Match> matches, int nextLocalMatchId) => 
+        matches.Where(m => m.LocalMatchId == nextLocalMatchId).Count() == 0 ? false : true;
+
+    public void CreateNextMatch(TournamentId tournamentId, CreateProgressionMatches.ProgressionMatch nextMatch, ParticipantId participantId) {
+        var match = Match.CreateWithOneOpponent(tournamentId, nextMatch.MatchId, nextMatch.WinMatchId, participantId);
+        dbContext.Add(match);
+        dbContext.SaveChanges();
+    }
+
+    public void AssignOpponentToNextMatch(List<Match> matches, int nextLocalMatchId) {
+        /*
+        var match = matches
+            .Where(r => r.MatchId == nextLocalMatchId)
+            .Single();
+
+        //dbContext.Update(match);
+        dbContext.SaveChanges();
+        */
     }
 
     public bool IsTournamentComplete() {
@@ -40,7 +83,6 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
     }
 
 
-    /*
     CreateProgressionMatches.ProgressionMatch FindLocalMatch(DrawSize drawSize, int localMatchId) {
         
             // Get Opponent Positions for the first round
@@ -49,7 +91,22 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
             // Create Matches and Progressions
         var matchIds = new CreateMatchIds(positions);
         var progs = new CreateProgressionMatches(matchIds.MatchByIds);
-        return progs.MatchWithProgressions
-            .Where(p => p.MatchId == localMatchId);
-    }*/
+        return progs
+            .MatchWithProgressions
+            .Where(p => p.MatchId == localMatchId)
+            .Single();
+    }
+
+    CreateProgressionMatches.ProgressionMatch FindNextLocalMatch(DrawSize drawSize, int nextMatchId) {
+            // Get Opponent Positions for the first round
+        var positions = new FirstRoundPositions(drawSize);
+
+            // Create Matches and Progressions
+        var matchIds = new CreateMatchIds(positions);
+        var progs = new CreateProgressionMatches(matchIds.MatchByIds);
+        return progs
+            .MatchWithProgressions
+            .Where(p => p.MatchId == nextMatchId)
+            .Single();
+    }
 }

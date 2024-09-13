@@ -11,6 +11,10 @@ public record MatchCompletedEvent(MatchId MatchId, TournamentId TournamentId) : 
 public record MatchCompleted {
     public required MatchId MatchId { get; init; }
     public required TournamentId TournamentId { get; init; }
+
+    public required ParticipantId WinnerId { get; init; }
+
+    public required int CompletedLocalMatchId { get; init; } 
 }
 
 
