@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.4.4"></a>
+## 0.4.4 (2024-09-13)
+
 <a name="0.4.3"></a>
 ## 0.4.3 (2024-09-13)
 
