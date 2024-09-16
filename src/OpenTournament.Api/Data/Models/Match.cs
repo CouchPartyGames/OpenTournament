@@ -39,7 +39,7 @@ public sealed class Match
     //[DeleteBehavior(DeleteBehavior.NoAction)]
     public Participant Participant1 { get; init; }
     
-    public ParticipantId Participant2Id { get; init; }
+    public ParticipantId? Participant2Id { get; private set; }
     
     //[DeleteBehavior(DeleteBehavior.NoAction)]
     public Participant Participant2 { get; init; }
@@ -53,7 +53,7 @@ public sealed class Match
     public TournamentId TournamentId { get; init; }
     
     public DateTime Created { get; init; }
-    public DateTime Completed { get; init; }
+    public DateTime Completed { get; private set; }
 
     
     public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)
@@ -81,9 +81,15 @@ public sealed class Match
         };
     }
 
+    public void UpdateOpponent(ParticipantId participantId) {
+        State = MatchState.Ready;
+        Participant2Id = participantId;
+    }
+
     public void Complete(ParticipantId winnerId)
     {
         State = MatchState.Complete;
         WinnerId = winnerId;
+        Completed = DateTime.Now;
     }
 }

@@ -73,14 +73,16 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
     }
 
     public void AssignOpponentToNextMatch(List<Match> matches, int nextLocalMatchId) {
+        
         /*
         var match = matches
-            .Where(r => r.MatchId == nextLocalMatchId)
+            .Where(r => r.Id == nextLocalMatchId)
             .Single();
 
-        //dbContext.Update(match);
+        match.UpdateOpponent(match);
         dbContext.SaveChanges();
         */
+        
     }
 
     public bool IsTournamentComplete() {
