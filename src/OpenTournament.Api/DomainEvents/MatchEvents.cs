@@ -27,8 +27,12 @@ public record MatchReadied {
 }
 
 // <summary>
-//
+// Event signaling a Match is in progress
 // </summary>
-public record MatchInProgress(MatchId MatchId);
+public record MatchInProgress {
+    public required MatchId MatchId { get; init; }
+
+    public required TournamentId TournamentId { get; init; }
+}
 
 public record MatchForfeited(MatchId MatchId, string Reason);

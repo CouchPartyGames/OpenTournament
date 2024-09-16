@@ -107,7 +107,6 @@ public static class CompleteMatch
             
         if (matchId is null)
         {
-            Console.WriteLine("bad id");
             return TypedResults.NotFound();
         }
         
@@ -128,12 +127,12 @@ public static class CompleteMatch
                 WinnerId = match.WinnerId,
                 CompletedLocalMatchId = match.LocalMatchId
             };
-            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:match-completed"));
-            await endpoint.Send(msg);
-
 
             await dbContext.SaveChangesAsync(token);
             await transaction.CommitAsync(token);
+
+            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:match-completed"));
+            await endpoint.Send(msg);
         });
 
         return TypedResults.Ok();

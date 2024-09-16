@@ -11,45 +11,50 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
 {
     public Task Consume(ConsumeContext<MatchCompleted> context)
     {
-        logger.LogInformation("Match Completed Consumer");
+        logger.LogInformation("Match Completed Consumer Started");
 
         var matchId = context.Message.MatchId;
         var tournamentId = context.Message.TournamentId;
         var winnerId = context.Message.WinnerId;
         var completedLocalMatchId = context.Message.CompletedLocalMatchId;
 
-        var matches = dbContext
-            .Matches
-            .Where(m => m.TournamentId == tournamentId)
-            .ToList();
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        strategy.Execute(() => {
 
-        var tournament = dbContext
-            .Tournaments
-            .Where(t => t.Id == tournamentId)
-            .Single();
+            var matches = dbContext
+                .Matches
+                .Where(m => m.TournamentId == tournamentId)
+                .ToList();
 
-        var drawSize = DrawSize.CreateFromParticipants((int)tournament.DrawSize);
+            var tournament = dbContext
+                .Tournaments
+                .First(t => t.Id == tournamentId);
 
-            // Current Next Match
-        var curCompletedMatch = FindLocalMatch(drawSize, completedLocalMatchId);
+            var drawSize = DrawSize.CreateFromParticipants((int)tournament.DrawSize);
 
-        if (IsThereANextMatch(curCompletedMatch)) {
-            var nextLocalMatchId = curCompletedMatch.WinMatchId;
+                // Current Next Match
+            var curCompletedMatch = FindLocalMatch(drawSize, completedLocalMatchId);
+            Console.WriteLine(curCompletedMatch);
 
-            var nextLocalMatch = FindNextLocalMatch(drawSize, nextLocalMatchId);
-                // Yes
-            if (HasNextMatchBeenCreated(matches, nextLocalMatchId)) {
-                AssignOpponentToNextMatch(matches, nextLocalMatchId);
+            if (IsThereANextMatch(curCompletedMatch)) {
+                var nextLocalMatchId = curCompletedMatch.WinMatchId;
+
+                var nextLocalMatch = FindNextLocalMatch(drawSize, nextLocalMatchId);
+                    // Yes
+                if (HasNextMatchBeenCreated(matches, nextLocalMatchId)) {
+                    AssignOpponentToNextMatch(matches, nextLocalMatchId);
+                } else {
+                    CreateNextMatch(tournamentId, nextLocalMatch, winnerId);
+                }
             } else {
-                CreateNextMatch(tournamentId, nextLocalMatch, winnerId);
+                // Is Tournament Complete
+                if (IsTournamentComplete()) {
+                    // Notify others tournament is complete
+                }
             }
-        } else {
-            // Is Tournament Complete
-            if (IsTournamentComplete()) {
-                // Notify others tournament is complete
-            }
-        }
+        }); 
 
+        logger.LogInformation("Match Completed Successful");
         return Task.CompletedTask;
     }
 
