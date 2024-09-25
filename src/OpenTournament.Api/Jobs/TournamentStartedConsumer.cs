@@ -4,7 +4,7 @@ using OpenTournament.Data.DomainEvents;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Draw.Layout;
 
-namespace Jobs;
+namespace OpenTournament.Jobs;
 
 public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer> logger,
     AppDbContext dbContext) : IConsumer<TournamentStarted>

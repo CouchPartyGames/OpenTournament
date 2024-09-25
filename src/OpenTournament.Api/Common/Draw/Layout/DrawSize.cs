@@ -29,8 +29,20 @@ public sealed record DrawSize
     private DrawSize(Size value) => Value = value;
 
     public static DrawSize Create(DrawSize.Size size) => new(size);
+    public static DrawSize New(DrawSize.Size size) => new(size);
     
     public static DrawSize CreateFromParticipants(int numParticipants)
+    {
+        var size = (Size)BitOperations.RoundUpToPowerOf2((uint)numParticipants);
+        if (!Enum.IsDefined(typeof(Size), size))
+        {
+            throw new InvalidDrawSizeException($"Unable to handle draw of size: {size}");
+        }
+            //https://learn.microsoft.com/en-us/dotnet/api/system.enum.isdefined?view=net-8.0&redirectedfrom=MSDN#System_Enum_IsDefined_System_Type_System_Object_
+        return new(size);
+    }
+
+    public static DrawSize NewFromParticipants(int numParticipants)
     {
         var size = (Size)BitOperations.RoundUpToPowerOf2((uint)numParticipants);
         if (!Enum.IsDefined(typeof(Size), size))

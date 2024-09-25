@@ -17,9 +17,9 @@ using OpenTournament.Identity.Authorization;
 using OpenTournament.Mediator.Behaviours;
 using OpenTournament.Observability;
 using OpenTournament.Options;
+using OpenTournament.Jobs;
 using Quartz;
 using MassTransit;
-using Jobs;
 
 
 //var builder = WebApplication.CreateSlimBuilder(args);
@@ -75,7 +75,7 @@ builder.Services.AddMassTransit(opts => {
         cfg.ConfigureEndpoints(context);
     });
 });
-builder.Services.AddQuartz(opts =>
+/*builder.Services.AddQuartz(opts =>
 {
     var jobKey = JobKey.Create(nameof(StartTournamentJob));
     opts.AddJob<StartTournamentJob>(jobKey)
@@ -86,11 +86,11 @@ builder.Services.AddQuartz(opts =>
                 schedule.WithIntervalInSeconds(30).RepeatForever();
             });
         });
-});
+}); 
 builder.Services.AddQuartzHostedService(opts =>
 {
     opts.WaitForJobsToComplete = true;
-}); 
+}); */
 builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {

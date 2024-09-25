@@ -4,7 +4,7 @@ using OpenTournament.Data.Models;
 using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Draw.Layout;
 
-namespace Jobs;
+namespace OpenTournament.Jobs;
 
 public sealed class MatchCompletedConsumer(AppDbContext dbContext, 
     ILogger<MatchCompletedConsumer> logger) : IConsumer<MatchCompleted>

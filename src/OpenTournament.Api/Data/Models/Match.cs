@@ -58,12 +58,14 @@ public sealed class Match
     
     public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)
     {
+        //var state = MatchState.Ready : MatchState.Complete;
+        var state = MatchState.Ready;
         return new()
         {
             Id = MatchId.NewMatchId(),
             LocalMatchId = match.MatchId,
             TournamentId = tournamentId,
-            State = MatchState.Ready,
+            State = state,
             Participant1Id = match.Opp1.Id,
             Participant2Id = match.Opp2.Id,
             WinMatchId = match.WinMatchId
