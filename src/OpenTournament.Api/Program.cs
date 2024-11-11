@@ -20,13 +20,17 @@ using OpenTournament.Options;
 using OpenTournament.Jobs;
 using Quartz;
 using MassTransit;
+using Microsoft.AspNetCore.Http.Connections.Features;
+using Microsoft.AspNetCore.Http.Features;
 
 
 //var builder = WebApplication.CreateSlimBuilder(args);
 var builder = WebApplication.CreateBuilder(args);
 
     // Observability
+/* Move to Infrastructure Layer */
 builder.Services.AddObservability(builder.Configuration);
+/* Move to Infrastructure Layer */
 builder.Services.AddHttpLogging((options) =>
 {
     options.CombineLogs = true;
@@ -34,14 +38,28 @@ builder.Services.AddHttpLogging((options) =>
 });
 
 
-builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails(opts =>
+{
+    opts.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
+        context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
+        
+        var activity = context.HttpContext.Features.Get<IHttpActivityFeature>()?.Activity;
+        context.ProblemDetails.Extensions.TryAdd("traceId", activity?.Id);
+    };
+});
+
+/* Move to Infrastructure Layer */
 builder.Services.Configure<FirebaseAuthenticationOptions>(
     builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
     //.ValidateDataAnnotations().ValidateOnStart();
 
+/* Move to Infrastructure Layer */
 DatabaseOptions dbOptions = new();
 builder.Configuration.GetSection(DatabaseOptions.SectionName).Bind(dbOptions);
 
+/* Move to Infrastructure Layer */
 builder.Services.AddDbContext<AppDbContext>(opts =>
 {
     var connectionString = dbOptions.ConnectionString;
@@ -56,9 +74,13 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
 builder.Services.AddMediator();
 builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehaviour<,>));
 //builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
+
+/* Move to Infrastructure Layer */
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTournamentLayouts();
+
+/* Move to Infrastructure Layer */
 builder.Services.AddMassTransit(opts => {
     opts.SetKebabCaseEndpointNameFormatter();
 
@@ -91,7 +113,11 @@ builder.Services.AddQuartzHostedService(opts =>
 {
     opts.WaitForJobsToComplete = true;
 }); */
+
+
+/* Move to Infrastructure Layer */
 builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
+/* Move to Infrastructure Layer */
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {
     var firebaseAuth = builder.Configuration
@@ -109,6 +135,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
         ValidateLifetime = true
     };
 });
+/* Move to Infrastructure Layer */
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(IdentityData.ParticipantPolicyName, policyBuilder =>
