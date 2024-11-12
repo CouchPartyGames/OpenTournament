@@ -17,10 +17,7 @@ using OpenTournament.Identity.Authorization;
 using OpenTournament.Mediator.Behaviours;
 using OpenTournament.Observability;
 using OpenTournament.Options;
-using OpenTournament.Jobs;
-using Quartz;
 using MassTransit;
-using Microsoft.AspNetCore.Http.Connections.Features;
 using Microsoft.AspNetCore.Http.Features;
 
 
