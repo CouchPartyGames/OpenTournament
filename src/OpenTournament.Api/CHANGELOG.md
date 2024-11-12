@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.5.0"></a>
+## 0.5.0 (2024-11-12)
+
+### Features
+
+* add additional problem info
+* update to .net 9
+
 <a name="0.4.1"></a>
 ## 0.4.1 (2024-09-13)
 
