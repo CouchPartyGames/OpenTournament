@@ -14,7 +14,7 @@ public sealed record MatchId(Guid Value)
         return new MatchId(guid);
     }
 
-    public static MatchId NewMatchId() => new (Guid.NewGuid());
+    public static MatchId NewMatchId() => new (Guid.CreateVersion7());
 }
 
 public enum MatchState

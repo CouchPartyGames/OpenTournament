@@ -13,7 +13,7 @@ public record OutboxId(Guid Value)
         return new(guid);
     }
     
-   public static OutboxId NewOutboxId() => new OutboxId(Guid.NewGuid());
+   public static OutboxId NewOutboxId() => new OutboxId(Guid.CreateVersion7());
 }
 
 public sealed class Outbox
