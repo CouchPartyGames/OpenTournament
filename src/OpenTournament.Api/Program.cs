@@ -19,6 +19,7 @@ using OpenTournament.Observability;
 using OpenTournament.Options;
 using MassTransit;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Caching.Hybrid;
 
 
 //var builder = WebApplication.CreateSlimBuilder(args);
@@ -77,6 +78,19 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTournamentLayouts();
 builder.Services.AddOpenApi();
+#pragma warning disable
+builder.Services.AddHybridCache(opts =>
+{
+    opts.MaximumKeyLength = 256;
+    opts.MaximumPayloadBytes = 1024;
+    opts.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(10),
+        LocalCacheExpiration = TimeSpan.FromMinutes(4)
+    };
+});
+#pragma warning restore
+
 
 /* Move to Infrastructure Layer */
 builder.Services.AddMassTransit(opts => {
