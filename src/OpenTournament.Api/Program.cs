@@ -76,6 +76,7 @@ builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPip
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddTournamentLayouts();
+builder.Services.AddOpenApi();
 
 /* Move to Infrastructure Layer */
 builder.Services.AddMassTransit(opts => {
@@ -94,22 +95,6 @@ builder.Services.AddMassTransit(opts => {
         cfg.ConfigureEndpoints(context);
     });
 });
-/*builder.Services.AddQuartz(opts =>
-{
-    var jobKey = JobKey.Create(nameof(StartTournamentJob));
-    opts.AddJob<StartTournamentJob>(jobKey)
-        .AddTrigger(trigger =>
-        {
-            trigger.ForJob(jobKey).WithSimpleSchedule(schedule =>
-            {
-                schedule.WithIntervalInSeconds(30).RepeatForever();
-            });
-        });
-}); 
-builder.Services.AddQuartzHostedService(opts =>
-{
-    opts.WaitForJobsToComplete = true;
-}); */
 
 
 /* Move to Infrastructure Layer */
@@ -147,19 +132,20 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    //app.UseSwagger();
+    //app.UseSwaggerUI();
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
+app.MapOpenApi();
 app.UseExceptionHandler(options => {});
 app.MapHealthChecks(GlobalConsts.HealthPageUri);
 
