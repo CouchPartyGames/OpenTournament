@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.6.0"></a>
+## 0.6.0 (2024-11-25)
+
+### Features
+
+* add scalar for interactive ui for openapi
+
+### Bug Fixes
+
+* use problem details on global exception handler
+
 <a name="0.5.5"></a>
 ## 0.5.5 (2024-11-15)
 
