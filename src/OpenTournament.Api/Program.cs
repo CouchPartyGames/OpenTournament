@@ -20,6 +20,7 @@ using OpenTournament.Options;
 using MassTransit;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Caching.Hybrid;
+using Scalar.AspNetCore;
 
 
 //var builder = WebApplication.CreateSlimBuilder(args);
@@ -146,20 +147,18 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    //app.UseSwagger();
-    //app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
-app.MapOpenApi();
 app.UseExceptionHandler(options => {});
 app.MapHealthChecks(GlobalConsts.HealthPageUri);
 
