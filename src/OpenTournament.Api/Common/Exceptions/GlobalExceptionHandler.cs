@@ -6,10 +6,12 @@ namespace OpenTournament.Common.Exceptions;
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
+    private readonly IProblemDetailsService _problemDetailsService;
 
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IProblemDetailsService problemDetailsService)
     {
         _logger = logger;
+        _problemDetailsService = problemDetailsService;
     }
 
     public async ValueTask<bool> TryHandleAsync(
@@ -20,17 +22,12 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         _logger.LogError(
             exception, "Exception occurred: {Message}", exception.Message);
 
-        var problemDetails = new ProblemDetails
+        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await _problemDetailsService.WriteAsync(new()
         {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Server error"
-        };
-
-        httpContext.Response.StatusCode = problemDetails.Status.Value;
-
-        await httpContext.Response
-            .WriteAsJsonAsync(problemDetails, cancellationToken);
-
+            HttpContext = httpContext, 
+            Exception = exception, 
+        });
         return true;
     }
 }
