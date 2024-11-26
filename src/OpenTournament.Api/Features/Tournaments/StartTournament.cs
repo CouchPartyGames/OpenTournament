@@ -1,6 +1,5 @@
+using CouchPartyGames.TournamentGenerator.Position;
 using OpenTournament.Data.Models;
-using OpenTournament.Common.Draw.Layout;
-using OpenTournament.Common.Draw.Participants;
 using OpenTournament.Common.Rules;
 using OpenTournament.Common.Rules.Tournaments;
 using OpenTournament.Data.DomainEvents;
@@ -56,11 +55,7 @@ public static class StartTournament
             return TypedResults.BadRequest();
         }
 
-
-        var order = ParticipantOrder.Order.Random;
-        var participantOrder = ParticipantOrder.Create(order, participants);
-        DrawSize drawSize = DrawSize.CreateFromParticipants(participants.Count);
-
+        DrawSize drawSize = DrawSize.NewRoundBase2(participants.Count);
 
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
         await executionStrategy.Execute(async () =>

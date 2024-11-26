@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using OpenTournament.Common.Draw.Layout;
+using CouchPartyGames.TournamentGenerator.Position;
 
 namespace OpenTournament.Data.Models;
 
@@ -59,7 +59,7 @@ public sealed class Tournament
 
     public EliminationMode EliminationMode = EliminationMode.Single;
 
-    public DrawSize.Size? DrawSize { get; set; }
+    public DrawSize? DrawSize { get; set; }
 
     public DrawSeeding DrawSeeding = DrawSeeding.Random;
 
@@ -74,7 +74,7 @@ public sealed class Tournament
 
     public void Start(DrawSize size)
     {
-        DrawSize = size.Value;
+        DrawSize = size;
         Status = Status.InProcess;
     }
 

@@ -1,10 +1,11 @@
+using CouchPartyGames.TournamentGenerator;
 using MassTransit;
 using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
-using OpenTournament.Common.Draw.Participants;
-using OpenTournament.Common.Draw.Layout;
 
 namespace OpenTournament.Jobs;
+
+public record MyOpponent(string Name, int Rank) : IOpponent;
 
 public sealed class MatchCompletedConsumer(AppDbContext dbContext, 
     ILogger<MatchCompletedConsumer> logger) : IConsumer<MatchCompleted>
@@ -12,34 +13,32 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
     public Task Consume(ConsumeContext<MatchCompleted> context)
     {
         logger.LogInformation("Match Completed Consumer Started");
-
+        
         var matchId = context.Message.MatchId;
         var tournamentId = context.Message.TournamentId;
         var winnerId = context.Message.WinnerId;
         var completedLocalMatchId = context.Message.CompletedLocalMatchId;
+        
+        var match = dbContext.Matches
+            .Single(m => m.Id == matchId);
 
+        var tournament = new SingleEliminationBuilder<MyOpponent>("Temporary")
+            .SetSize(TournamentSize.Size4)
+            .Build();
+        
         var strategy = dbContext.Database.CreateExecutionStrategy();
-        strategy.Execute(() => {
+        strategy.Execute(() =>
+        {
 
-            var matches = dbContext
+            var localMatch = tournament
                 .Matches
-                .Where(m => m.TournamentId == tournamentId)
-                .ToList();
+                .Single(m => m.LocalMatchId == match.LocalMatchId);
 
-            var tournament = dbContext
-                .Tournaments
-                .First(t => t.Id == tournamentId);
-
-            var drawSize = DrawSize.CreateFromParticipants((int)tournament.DrawSize);
-
+            /*
                 // Current Next Match
-            var curCompletedMatch = FindLocalMatch(drawSize, completedLocalMatchId);
-            Console.WriteLine(curCompletedMatch);
+            if (localMatch.NextWinProgressionExists()) {
 
-            if (IsThereANextMatch(curCompletedMatch)) {
-                var nextLocalMatchId = curCompletedMatch.WinMatchId;
-
-                var nextLocalMatch = FindNextLocalMatch(drawSize, nextLocalMatchId);
+                var nextLocalMatch = FindNextLocalMatch(win);
                     // Yes
                 if (HasNextMatchBeenCreated(matches, nextLocalMatchId)) {
                     AssignOpponentToNextMatch(matches, nextLocalMatchId);
@@ -51,21 +50,17 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 if (IsTournamentComplete()) {
                     // Notify others tournament is complete
                 }
-            }
+            }*/
         }); 
 
         logger.LogInformation("Match Completed Successful");
         return Task.CompletedTask;
     }
 
-
-    public bool IsThereANextMatch(CreateProgressionMatches.ProgressionMatch currentMatch) => 
-        currentMatch.WinMatchId > currentMatch.MatchId ? true : false;
-
-
     public bool HasNextMatchBeenCreated(List<Match> matches, int nextLocalMatchId) => 
         matches.Where(m => m.LocalMatchId == nextLocalMatchId).Count() == 0 ? false : true;
 
+    /*
     public void CreateNextMatch(TournamentId tournamentId, CreateProgressionMatches.ProgressionMatch nextMatch, ParticipantId participantId) {
         var match = Match.CreateWithOneOpponent(tournamentId, nextMatch.MatchId, nextMatch.WinMatchId, participantId);
         dbContext.Add(match);
@@ -74,22 +69,21 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
 
     public void AssignOpponentToNextMatch(List<Match> matches, int nextLocalMatchId) {
         
-        /*
         var match = matches
             .Where(r => r.Id == nextLocalMatchId)
             .Single();
 
         match.UpdateOpponent(match);
         dbContext.SaveChanges();
-        */
         
-    }
+    }*/
 
     public bool IsTournamentComplete() {
         return false;
     }
 
 
+    /*
     CreateProgressionMatches.ProgressionMatch FindLocalMatch(DrawSize drawSize, int localMatchId) {
         
             // Get Opponent Positions for the first round
@@ -116,4 +110,5 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
             .Where(p => p.MatchId == nextMatchId)
             .Single();
     }
+    */
 }

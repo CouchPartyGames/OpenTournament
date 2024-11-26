@@ -1,10 +1,11 @@
 using MassTransit;
 using OpenTournament.Data.Models;
 using OpenTournament.Data.DomainEvents;
-using OpenTournament.Common.Draw.Participants;
-using OpenTournament.Common.Draw.Layout;
+using CouchPartyGames.TournamentGenerator;
 
 namespace OpenTournament.Jobs;
+
+public record Opponent(Guid Id, string Name, int Rank) : IOpponent;
 
 public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer> logger,
     AppDbContext dbContext) : IConsumer<TournamentStarted>
@@ -15,21 +16,30 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
 
         var tournamentId = context.Message.TournamentId;
         var drawSize = context.Message.DrawSize;
-        var order = ParticipantOrder.Order.Ranked;
-
-            // Step - Get Opponents from Registration
-        var participantList = ConvertRegistrationsToParticipants(tournamentId);
-        var participants = ParticipantOrder.Create(order, participantList);
-
-            // Step - Create Draw/Positions
-        var matches = CreateFirstRoundMatches(drawSize, participants);
+        //var order = ParticipantOrder.Order.Ranked;
+        
+        var oppList = ConvertRegistrationsToParticipants(tournamentId);
+        /*
+        var tournament = new SingleEliminationBuilder<Opponent>("Temporary")
+            .SetSize(TournamentSize.Size4)
+            .SetSeeding(TournamentSeeding.Ranked)
+            .Set3rdPlace(Tournament3rdPlace.NoThirdPlace)
+            .WithOpponents(oppList, new Opponent(Guid.CreateVersion7(), "Bye", int.MaxValue))
+            .Build();
+        
+        var firstRoundMatches = tournament
+            .Matches
+            .Where(m => m.Round == 1)
+            .Select(m => new SingleEliminationFirstRound.SingleMatch(m.Round, m.LocalMatchId, ))
+            .ToList();
 
             // Step - Create Matches
-        foreach(var singleMatch in matches) {
+        foreach(var singleMatch in firstRoundMatches) {
             var match = Match.Create(tournamentId, singleMatch);
             dbContext.Add(match);
         }
         dbContext.SaveChanges();
+        */
 
         return Task.CompletedTask;
     }
@@ -42,16 +52,4 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             .ToList();
     
 
-    private List<SingleEliminationFirstRound.SingleMatch> CreateFirstRoundMatches(DrawSize drawSize, ParticipantOrder order) {
-            // Get Opponent Positions for the first round
-        var positions = new FirstRoundPositions(drawSize);
-
-            // Create Matches and Progressions
-        var matchIds = new CreateMatchIds(positions);
-        var progs = new CreateProgressionMatches(matchIds.MatchByIds);
-
-            // Tie all together
-        var draw = new SingleEliminationFirstRound(progs.MatchWithProgressions, order);
-        return draw.Matches;
-    }
 }

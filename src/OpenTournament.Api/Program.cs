@@ -10,7 +10,6 @@ using OpenTournament.Features.Tournaments;
 using OpenTournament.Features.Tournaments.Create;
 using OpenTournament.Features.Templates;
 using OpenTournament.Features.Authentication;
-using OpenTournament.Services;
 using OpenTournament.Jobs;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
@@ -77,7 +76,6 @@ builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPip
 /* Move to Infrastructure Layer */
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddTournamentLayouts();
 builder.Services.AddOpenApi();
 #pragma warning disable
 builder.Services.AddHybridCache(opts =>

@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using OpenTournament.Common.Draw.Layout;
 
 namespace OpenTournament.Data.Models;
 
@@ -56,6 +55,7 @@ public sealed class Match
     public DateTime Completed { get; private set; }
 
     
+    /*
     public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)
     {
         //var state = MatchState.Ready : MatchState.Complete;
@@ -70,7 +70,7 @@ public sealed class Match
             Participant2Id = match.Opp2.Id,
             WinMatchId = match.WinMatchId
         };
-    }
+    }*/
 
     public static Match CreateWithOneOpponent(TournamentId tournamentId, int localMatchId, int nextMatchId, ParticipantId participantId) {
         return new() {

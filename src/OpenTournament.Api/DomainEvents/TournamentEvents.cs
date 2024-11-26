@@ -1,8 +1,8 @@
-﻿using OpenTournament.Common.Draw.Layout;
-using OpenTournament.Data.Models;
-using MassTransit;
+﻿using OpenTournament.Data.Models;
+using CouchPartyGames.TournamentGenerator.Position;
 
 namespace OpenTournament.Data.DomainEvents;
+
 
 public enum StartType {
     Manual,
