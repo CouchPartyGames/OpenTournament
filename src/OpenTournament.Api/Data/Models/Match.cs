@@ -55,22 +55,20 @@ public sealed class Match
     public DateTime Completed { get; private set; }
 
     
-    /*
-    public static Match Create(TournamentId tournamentId, SingleEliminationFirstRound.SingleMatch match)
+    public static Match New(TournamentId tournamentId, ParticipantId participant1Id, ParticipantId participant2Id, int winProgression)
     {
-        //var state = MatchState.Ready : MatchState.Complete;
-        var state = MatchState.Ready;
-        return new()
+        var state = true ? MatchState.Ready : MatchState.Complete;
+        return new Match()
         {
             Id = MatchId.NewMatchId(),
-            LocalMatchId = match.MatchId,
             TournamentId = tournamentId,
+            Participant1Id = participant1Id,
+            Participant2Id = participant2Id,
+            Created = DateTime.UtcNow,
             State = state,
-            Participant1Id = match.Opp1.Id,
-            Participant2Id = match.Opp2.Id,
-            WinMatchId = match.WinMatchId
+            WinMatchId = winProgression
         };
-    }*/
+    }
 
     public static Match CreateWithOneOpponent(TournamentId tournamentId, int localMatchId, int nextMatchId, ParticipantId participantId) {
         return new() {

@@ -32,7 +32,7 @@ public sealed class TournamentConfiguration : IEntityTypeConfiguration<Tournamen
         
         builder
             .Property(t => t.DrawSize)
-            .HasConversion<int>();
+            .HasConversion<TournamentDrawSizeConverter>();
         
         builder
             .Property(t => t.RegistrationMode)

@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace OpenTournament.Migrations
+namespace OpenTournament.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class MyInitial : Migration
+    public partial class InitialDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -87,7 +87,7 @@ namespace OpenTournament.Migrations
                     State = table.Column<int>(type: "integer", nullable: false),
                     LocalMatchId = table.Column<int>(type: "integer", nullable: false),
                     Participant1Id = table.Column<string>(type: "varchar(36)", nullable: false),
-                    Participant2Id = table.Column<string>(type: "varchar(36)", nullable: false),
+                    Participant2Id = table.Column<string>(type: "varchar(36)", nullable: true),
                     WinMatchId = table.Column<int>(type: "integer", nullable: true),
                     LoseMatchId = table.Column<int>(type: "integer", nullable: false),
                     WinnerId = table.Column<string>(type: "text", nullable: true),
@@ -108,8 +108,7 @@ namespace OpenTournament.Migrations
                         name: "FK_Matches_Participants_Participant2Id",
                         column: x => x.Participant2Id,
                         principalTable: "Participants",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Matches_Tournaments_TournamentId",
                         column: x => x.TournamentId,

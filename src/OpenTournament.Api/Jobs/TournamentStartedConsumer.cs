@@ -19,27 +19,28 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
         //var order = ParticipantOrder.Order.Ranked;
         
         var oppList = ConvertRegistrationsToParticipants(tournamentId);
-        /*
-        var tournament = new SingleEliminationBuilder<Opponent>("Temporary")
-            .SetSize(TournamentSize.Size4)
+        
+        var tournament = new SingleEliminationBuilder<Participant>("Temporary")
+            .SetSize(drawSize.Value)
             .SetSeeding(TournamentSeeding.Ranked)
             .Set3rdPlace(Tournament3rdPlace.NoThirdPlace)
-            .WithOpponents(oppList, new Opponent(Guid.CreateVersion7(), "Bye", int.MaxValue))
+            .WithOpponents(oppList, Participant.CreateBye())
             .Build();
+        
         
         var firstRoundMatches = tournament
             .Matches
             .Where(m => m.Round == 1)
-            .Select(m => new SingleEliminationFirstRound.SingleMatch(m.Round, m.LocalMatchId, ))
             .ToList();
 
             // Step - Create Matches
-        foreach(var singleMatch in firstRoundMatches) {
-            var match = Match.Create(tournamentId, singleMatch);
+        foreach(var localMatch in firstRoundMatches)
+        {
+            var match = Match.New(tournamentId, localMatch.Opponent1.Id, localMatch.Opponent2.Id, localMatch.WinProgression);
             dbContext.Add(match);
         }
         dbContext.SaveChanges();
-        */
+        
 
         return Task.CompletedTask;
     }

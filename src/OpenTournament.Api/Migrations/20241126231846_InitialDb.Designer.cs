@@ -9,25 +9,25 @@ using OpenTournament.Data;
 
 #nullable disable
 
-namespace OpenTournament.Migrations
+namespace OpenTournament.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240916164420_allow-part2-null")]
-    partial class allowpart2null
+    [Migration("20241126231846_InitialDb")]
+    partial class InitialDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.8")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("OpenTournament.Data.Models.Match", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<string>("Id")
                         .HasColumnType("varchar(36)");
 
                     b.Property<DateTime>("Completed")
@@ -54,7 +54,8 @@ namespace OpenTournament.Migrations
                     b.Property<int>("State")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("TournamentId")
+                    b.Property<string>("TournamentId")
+                        .IsRequired()
                         .HasColumnType("varchar(36)");
 
                     b.Property<int?>("WinMatchId")
@@ -143,7 +144,7 @@ namespace OpenTournament.Migrations
 
             modelBuilder.Entity("OpenTournament.Data.Models.Tournament", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<string>("Id")
                         .HasColumnType("varchar(36)");
 
                     b.Property<DateTime>("Completed")

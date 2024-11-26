@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using CouchPartyGames.TournamentGenerator;
 
 namespace OpenTournament.Data.Models;
 
 public sealed record ParticipantId(string Value);
 
 
-public sealed class Participant
+public sealed class Participant : IOpponent
 {
     [Column(TypeName = "varchar(36)")]
     public ParticipantId Id { get; init; }
