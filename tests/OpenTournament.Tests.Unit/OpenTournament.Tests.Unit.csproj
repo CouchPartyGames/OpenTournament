@@ -29,4 +29,8 @@
     <ProjectReference Include="..\..\src\OpenTournament.Api\OpenTournament.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Common\Draw\" />
+  </ItemGroup>
+
 </Project>
