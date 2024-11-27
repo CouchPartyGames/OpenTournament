@@ -3,7 +3,7 @@ using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
 using OpenTournament.Features;
 
-namespace Features.Tournaments;
+namespace Features.Registration;
 
 public static class LeaveRegistration
 {

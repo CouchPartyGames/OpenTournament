@@ -1,12 +1,8 @@
 using MassTransit;
-using OpenTournament.Common;
-using OpenTournament.Common.Rules;
-using OpenTournament.Common.Rules.Tournaments;
 using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
-using OpenTournament.Features;
 
-namespace Features.Tournaments;
+namespace OpenTournament.Features.Registration;
 
 public static class JoinRegistration
 {
@@ -43,7 +39,7 @@ public static class JoinRegistration
         }*/
 
         var participantId = new ParticipantId(participantClaim.Value);
-        dbContext.Add(Registration.Create(tournamentId, participantId));
+        dbContext.Add(OpenTournament.Data.Models.Registration.Create(tournamentId, participantId));
         var result = await dbContext.SaveChangesAsync(token);
         if (result < 1)
         {

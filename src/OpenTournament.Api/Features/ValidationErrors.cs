@@ -1,5 +1,3 @@
-using Features.Tournaments;
-
 namespace OpenTournament.Features;
 
 public static class ValidationErrors

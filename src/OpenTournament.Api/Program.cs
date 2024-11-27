@@ -1,15 +1,8 @@
-using Features.Matches;
-using Features.Tournaments;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
 using OpenTournament;
 using OpenTournament.Common.Exceptions;
-using OpenTournament.Features.Matches;
-using OpenTournament.Features.Tournaments;
-using OpenTournament.Features.Tournaments.Create;
-using OpenTournament.Features.Templates;
-using OpenTournament.Features.Authentication;
 using OpenTournament.Jobs;
 using OpenTournament.Identity;
 using OpenTournament.Identity.Authorization;
@@ -149,7 +142,6 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
-
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -160,17 +152,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
-app.MapHealthChecks(GlobalConsts.HealthPageUri);
 
 app.MapGroup("registrations").MapRegistrationEndpoints();
 app.MapGroup("matches").MapMatchesEndpoints();
 app.MapGroup("tournaments").MapTournamentsEndpoints();
+app.MapGroup("templates").MapTemplatesEndpoints();
+app.MapGroup("auth").MapAuthenticationEndpoints();
 
-CreateTemplate.MapEndpoint(app);
-DeleteTemplate.MapEndpoint(app);
-UpdateTemplate.MapEndpoint(app);
-//ListTemplate.MapEndpoint(app);
-
-Login.MapEndpoint(app);
+app.MapHealthChecks(GlobalConsts.HealthPageUri);
 
 app.Run();

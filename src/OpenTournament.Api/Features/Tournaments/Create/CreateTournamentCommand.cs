@@ -1,5 +1,3 @@
-using OpenTournament.Mediator;
-
 namespace OpenTournament.Features.Tournaments.Create;
 
 using OpenTournament.Data.Models;

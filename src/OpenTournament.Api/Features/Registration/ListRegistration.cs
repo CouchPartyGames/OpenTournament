@@ -1,6 +1,6 @@
 using OpenTournament.Data.Models;
 
-namespace Features.Tournaments;
+namespace OpenTournament.Features.Registration;
 
 public static class ListRegistration
 {

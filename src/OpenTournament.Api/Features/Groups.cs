@@ -1,7 +1,9 @@
-using Features.Matches;
-using Features.Tournaments;
+using Features.Registration;
 using MassTransit;
+using OpenTournament.Features.Authentication;
 using OpenTournament.Features.Matches;
+using OpenTournament.Features.Registration;
+using OpenTournament.Features.Templates;
 using OpenTournament.Features.Tournaments;
 using OpenTournament.Features.Tournaments.Create;
 
@@ -10,16 +12,14 @@ namespace OpenTournament.Features;
 public static class Groups
 {
 
-    public static RouteGroupBuilder MapAuthentication(this RouteGroupBuilder builder)
+    public static RouteGroupBuilder MapAuthenticationEndpoints(this RouteGroupBuilder builder)
     {
-        /*
-        builder.MapPost("/auth/login", Endpoint)
+        builder.MapPost("/login", Login.Endpoint)
             .WithTags("Auth")
             .WithSummary("Login")
             .WithDescription("Login/Register a user")
             .WithOpenApi()
             .RequireAuthorization();
-            */
         
         return builder;
     }
@@ -126,6 +126,30 @@ public static class Groups
             .WithDescription("Update Tournament settings")
             .WithOpenApi()
             .RequireAuthorization();
+        
+        return builder;
+    }
+
+    public static RouteGroupBuilder MapTemplatesEndpoints(this RouteGroupBuilder builder)
+    {
+        builder.MapPost("", CreateTemplate.Endpoint)
+            .WithTags("Template")
+            .WithSummary("Create Template")
+            .WithDescription("Create a Tournament Template")
+            .WithOpenApi();
+        
+        
+        builder.MapDelete("/{id}", DeleteTemplate.Endpoint)
+            .WithTags("Template")
+            .WithSummary("Delete Template")
+            .WithDescription("Delete an available Template")
+            .WithOpenApi();
+        
+        builder.MapPut("/templates/{id}", UpdateTemplate.Endpoint)
+            .WithTags("Template")
+            .WithSummary("Update Template")
+            .WithDescription("Update a Tournament Template")
+            .WithOpenApi();
         
         return builder;
     }

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using OpenTournament.Data.Models;
 using OpenTournament.Features;
 
-namespace Features.Matches;
+namespace OpenTournament.Features.Matches;
 
 public static class UpdateMatch
 {
