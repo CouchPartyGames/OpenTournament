@@ -50,19 +50,6 @@ public static class UpdateMatch
         
     }
 
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("matches/{id}", (string id,
-                UpdateMatchCommand cmd,
-                IMediator mediator,
-                CancellationToken token) =>
-            {
-                return Endpoint(id, cmd, mediator, token);
-            })
-            .WithTags("Match")
-            .WithSummary("Update Match")
-            .WithDescription("Update Individual Match")
-            .WithOpenApi();
-
     public static async Task<Results<NoContent, NotFound, ValidationProblem>> Endpoint(string id,
         UpdateMatchCommand request,
         IMediator mediator,

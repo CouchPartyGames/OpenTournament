@@ -9,7 +9,7 @@ public enum StartType {
     Scheduled
 }
 
-public record TournamentStartedEvent(TournamentId TournamentId, DrawSize DrawSize) : IDomainEvent;
+public record TournamentStartedEvent(TournamentId TournamentId, int DrawSize) : IDomainEvent;
 
 // <summary>
 // Tournament Created
@@ -26,7 +26,7 @@ public record TournamentCreated {
 public record TournamentStarted {
     public required TournamentId TournamentId { get; init; }
 
-    public required DrawSize DrawSize { get; init; }
+    public required int DrawSize { get; init; }
 
     public required StartType StartType { get; init; } 
 }

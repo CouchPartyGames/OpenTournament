@@ -1,4 +1,5 @@
 using OpenTournament.Data.Models;
+using OpenTournament.Features;
 
 namespace Features.Matches;
 
@@ -31,28 +32,20 @@ public static class GetMatch
         }
     }
 
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapGet("matches/{id}/", Endpoint)
-            .WithTags("Match")
-            .WithSummary("Get Matches")
-            .WithDescription("Get Matches")
-            .WithOpenApi()
-            .AllowAnonymous();
 
-    public static async Task<Results<Ok<Match>, NotFound>> Endpoint(string id,
+    public static async Task<Results<Ok<Match>, ValidationProblem, NotFound>> Endpoint(string id,
         IMediator mediator,
         CancellationToken token)
     {
         var matchId = MatchId.TryParse(id);
         if (matchId is null)
         {
-            //return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
-            return TypedResults.NotFound();
+            return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
         }
 
         var request = new GetMatchQuery(matchId);
         var result = await mediator.Send(request, token);
-        return result.Match<Results<Ok<Match>, NotFound>>(
+        return result.Match<Results<Ok<Match>, ValidationProblem, NotFound>>(
             match => TypedResults.Ok(match),
             _ => TypedResults.NotFound()
             );

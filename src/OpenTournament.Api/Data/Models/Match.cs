@@ -26,12 +26,14 @@ public enum MatchState
 
 public sealed class Match
 {
+    public const int NoProgression = -1;
+        
     [Column(TypeName = "varchar(36)")]
-    public MatchId Id { get; init; }
+    public required MatchId Id { get; init; }
 
     public MatchState State { get; private set; } = MatchState.Ready;
     
-    public int LocalMatchId { get; init; }
+    public required int LocalMatchId { get; init; }
     
     public ParticipantId Participant1Id { get; init; }
     
@@ -43,19 +45,24 @@ public sealed class Match
     //[DeleteBehavior(DeleteBehavior.NoAction)]
     public Participant Participant2 { get; init; }
     
-    public int? WinMatchId { get; init; }
-    
-    public int LoseMatchId { get; init; }
+    // LocalMatchId
+    public int? WinMatchId { get; init; } 
+
+    public int LoseMatchId { get; init; } = NoProgression;
     
     public ParticipantId? WinnerId { get; private set; }
     
-    public TournamentId TournamentId { get; init; }
+    public required TournamentId TournamentId { get; init; }
     
     public DateTime Created { get; init; }
     public DateTime Completed { get; private set; }
 
     
-    public static Match New(TournamentId tournamentId, ParticipantId participant1Id, ParticipantId participant2Id, int winProgression)
+    public static Match New(TournamentId tournamentId, 
+        ParticipantId participant1Id, 
+        ParticipantId participant2Id, 
+        int winProgression,
+        int localMatchId)
     {
         var state = true ? MatchState.Ready : MatchState.Complete;
         return new Match()
@@ -66,7 +73,8 @@ public sealed class Match
             Participant2Id = participant2Id,
             Created = DateTime.UtcNow,
             State = state,
-            WinMatchId = winProgression
+            WinMatchId = winProgression,
+            LocalMatchId = localMatchId
         };
     }
 
@@ -90,6 +98,6 @@ public sealed class Match
     {
         State = MatchState.Complete;
         WinnerId = winnerId;
-        Completed = DateTime.Now;
+        Completed = DateTime.UtcNow;
     }
 }

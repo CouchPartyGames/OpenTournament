@@ -1,22 +1,14 @@
 using MassTransit;
 using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
+using OpenTournament.Features;
 
 namespace Features.Tournaments;
 
 public static class LeaveRegistration
 {
 
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapDelete("registrations/{id}/leave", Endpoint)
-            .WithTags("Registration")
-            .WithSummary("Leave Tournament")
-            .WithDescription("Allow a user to deregister from a specific Tournament")
-            .WithOpenApi()
-            .RequireAuthorization();
-
-
-    public static async Task<Results<NoContent, BadRequest, NotFound>> Endpoint(string id,
+    public static async Task<Results<NoContent, ValidationProblem, NotFound>> Endpoint(string id,
         IMediator mediator,
         HttpContext context,
         AppDbContext dbContext,
@@ -27,7 +19,7 @@ public static class LeaveRegistration
         var tournamentId = TournamentId.TryParse(id);
         if (tournamentId is null)
         {
-            return TypedResults.BadRequest();
+            return TypedResults.ValidationProblem(ValidationErrors.TournamentIdFailure);
         }
         var participantId = new ParticipantId(participantClaim.Value);
         
@@ -35,14 +27,13 @@ public static class LeaveRegistration
             .Registrations
             .FirstOrDefaultAsync(r => r.ParticipantId == participantId
                                         && r.TournamentId == tournamentId, token);
-        
         if (registration is null)
         {
             return TypedResults.NotFound();
         }
 
         dbContext.Remove(registration);
-        var result = await dbContext.SaveChangesAsync(token);
+        await dbContext.SaveChangesAsync(token);
 
         var msg = new PlayerLeft() {
             TournamentId = tournamentId, 

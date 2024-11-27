@@ -74,21 +74,8 @@ public static class CompleteMatch
     }
 
 
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("matches/{id}/complete", (string id,
-                CompleteMatchCommand command,
-                ISendEndpointProvider sendEndpointProvider,
-                AppDbContext dbContext,
-                CancellationToken token) =>
-            {
-                return Endpoint(id, command, sendEndpointProvider, dbContext, token);
-            })
-            .WithTags("Match")
-            .WithSummary("Complete Match")
-            .WithDescription("Complete an Individual Match")
-            .WithOpenApi();
 
-    private static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
+    public static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
         CompleteMatchCommand command,
         ISendEndpointProvider sendEndpointProvider,
         AppDbContext dbContext,
@@ -107,12 +94,16 @@ public static class CompleteMatch
             
         if (matchId is null)
         {
-            return TypedResults.NotFound();
+            return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
         }
         
         var match = await dbContext
             .Matches
             .FirstOrDefaultAsync(x => x.Id == matchId, token);
+        if (match is null)
+        {
+            return TypedResults.NotFound();
+        }
 
 
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();

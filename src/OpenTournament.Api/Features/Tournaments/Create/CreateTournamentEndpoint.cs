@@ -7,14 +7,6 @@ namespace OpenTournament.Features.Tournaments.Create;
 
 public static class CreateTournamentEndpoint
 {
-	public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-		app.MapPost("tournaments", EndPoint)
-			.WithTags("Tournament")
-			.WithSummary("Create Tournament")
-			.WithDescription("Create a new tournament")
-			.WithOpenApi();
-//			.RequireAuthorization();
-
 
 	public static async Task<Results<Created, ProblemHttpResult>> EndPoint(CreateTournamentCommand request, 
 		IMediator mediator, 

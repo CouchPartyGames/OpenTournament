@@ -10,15 +10,6 @@ namespace OpenTournament.Features.Tournaments;
 public static class StartTournament
 {
 
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPut("/tournaments/{id}/start", Endpoint)
-            .WithTags("Tournament")
-            .WithSummary("Start Tournament")
-            .WithDescription("Mark the tournament as ready to begin")
-            .WithOpenApi()
-            .RequireAuthorization();
-    
-
     public static async Task<Results<NoContent, NotFound, BadRequest, ProblemHttpResult>> Endpoint(string id,
         IMediator mediator,
         AppDbContext dbContext,
@@ -65,7 +56,7 @@ public static class StartTournament
 
             var msg = new TournamentStarted {
                 TournamentId = tournamentId,
-                DrawSize = drawSize,
+                DrawSize = (int)drawSize.Value,
                 StartType = StartType.Manual
             };
             var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:tournament-started"));

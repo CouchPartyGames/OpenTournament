@@ -47,12 +47,6 @@ public static class DeleteTournament
         }
     }
 
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapDelete("tournaments/{id}", Endpoint)
-            .WithTags("Tournament")
-            .WithSummary("Delete Tournament")
-            .WithDescription("Delete an existing tournament")
-            .WithOpenApi();
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id, IMediator mediator, CancellationToken token)
     {

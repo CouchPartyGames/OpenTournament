@@ -10,8 +10,6 @@ public sealed class ValidationPipelineBehaviour<TRequest, TResponse>
     public ValidationPipelineBehaviour(IEnumerable<IValidator<TRequest>> validators)
     {
         _validators = validators;
-        Console.WriteLine(validators);
-        Console.WriteLine(validators.Any());
     }
 
 

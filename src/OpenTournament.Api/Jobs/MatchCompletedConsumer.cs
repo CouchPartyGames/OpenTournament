@@ -1,4 +1,5 @@
 using CouchPartyGames.TournamentGenerator;
+using CouchPartyGames.TournamentGenerator.Type;
 using MassTransit;
 using OpenTournament.Data.DomainEvents;
 using OpenTournament.Data.Models;
@@ -12,28 +13,63 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
 {
     public Task Consume(ConsumeContext<MatchCompleted> context)
     {
+        Match nextDbMatch;
+        Match completedDbMatch;
+        
         logger.LogInformation("Match Completed Consumer Started");
         
-        var matchId = context.Message.MatchId;
-        var tournamentId = context.Message.TournamentId;
-        var winnerId = context.Message.WinnerId;
+        MatchId completedMatchId = context.Message.MatchId;
+        TournamentId tournamentId = context.Message.TournamentId;
+        ParticipantId winnerId = context.Message.WinnerId;
         var completedLocalMatchId = context.Message.CompletedLocalMatchId;
-        
-        var match = dbContext.Matches
-            .Single(m => m.Id == matchId);
 
-        var tournament = new SingleEliminationBuilder<MyOpponent>("Temporary")
+        completedDbMatch = dbContext.Matches.Single(x => x.Id == completedMatchId);
+        var tournament = new SingleEliminationBuilder<Participant>("Temporary")
             .SetSize(TournamentSize.Size4)
             .Build();
+
+        if (completedDbMatch.WinMatchId == Match.NoProgression)
+        {
+            return Task.CompletedTask;
+        }
+        
+        nextDbMatch = dbContext
+            .Matches
+            .Where(x => x.TournamentId == tournamentId)
+            .SingleOrDefault(x => x.LocalMatchId == completedDbMatch.WinMatchId);
         
         var strategy = dbContext.Database.CreateExecutionStrategy();
         strategy.Execute(() =>
         {
+            Match match;
+            if (nextDbMatch == null)
+            {
+                
+                // Single Elimination
+                var localMatch = GetLocalMatch(FindNextLocalMatchId(completedLocalMatchId, tournament), tournament);
+                var localMatchId = localMatch.LocalMatchId; 
+                int nextMatchId = localMatch.WinProgression > 0 ? localMatch.WinProgression : Match.NoProgression;
+                
+                // Create Match
+                match = Match.CreateWithOneOpponent(tournamentId, localMatchId, nextMatchId, winnerId);
+                dbContext.Add(match);
+            }
+            else
+            {
+                // Add Second Opponent
+                match = dbContext
+                    .Matches
+                    .Where(x => x.TournamentId == tournamentId)
+                    .First(x => x.LocalMatchId == completedDbMatch.WinMatchId);
+                
+                match.UpdateOpponent(winnerId);
+            }
 
-            var localMatch = tournament
-                .Matches
-                .Single(m => m.LocalMatchId == match.LocalMatchId);
 
+            dbContext.SaveChangesAsync();
+            
+            // Double Elimination
+            
             /*
                 // Current Next Match
             if (localMatch.NextWinProgressionExists()) {
@@ -57,58 +93,24 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
         return Task.CompletedTask;
     }
 
-    public bool HasNextMatchBeenCreated(List<Match> matches, int nextLocalMatchId) => 
-        matches.Where(m => m.LocalMatchId == nextLocalMatchId).Count() == 0 ? false : true;
 
-    /*
-    public void CreateNextMatch(TournamentId tournamentId, CreateProgressionMatches.ProgressionMatch nextMatch, ParticipantId participantId) {
-        var match = Match.CreateWithOneOpponent(tournamentId, nextMatch.MatchId, nextMatch.WinMatchId, participantId);
-        dbContext.Add(match);
-        dbContext.SaveChanges();
-    }
-
-    public void AssignOpponentToNextMatch(List<Match> matches, int nextLocalMatchId) {
+    Match<Participant>? GetLocalMatch(int localMatchId, Tournament<Participant> tournament)
+    {
+        if (localMatchId < 1)
+        {
+            return null;
+        } 
         
-        var match = matches
-            .Where(r => r.Id == nextLocalMatchId)
+       return tournament.Matches.First(x => x.LocalMatchId == localMatchId);
+    }
+    
+    int FindNextLocalMatchId(int localMatchId, Tournament<Participant> tournament)
+    {
+        var nextLocalMatchId = tournament.Matches
+            .Where(m => m.LocalMatchId == localMatchId)
+            .Select(x => x.WinProgression)
             .Single();
-
-        match.UpdateOpponent(match);
-        dbContext.SaveChanges();
         
-    }*/
-
-    public bool IsTournamentComplete() {
-        return false;
+        return nextLocalMatchId;
     }
-
-
-    /*
-    CreateProgressionMatches.ProgressionMatch FindLocalMatch(DrawSize drawSize, int localMatchId) {
-        
-            // Get Opponent Positions for the first round
-        var positions = new FirstRoundPositions(drawSize);
-
-            // Create Matches and Progressions
-        var matchIds = new CreateMatchIds(positions);
-        var progs = new CreateProgressionMatches(matchIds.MatchByIds);
-        return progs
-            .MatchWithProgressions
-            .Where(p => p.MatchId == localMatchId)
-            .Single();
-    }
-
-    CreateProgressionMatches.ProgressionMatch FindNextLocalMatch(DrawSize drawSize, int nextMatchId) {
-            // Get Opponent Positions for the first round
-        var positions = new FirstRoundPositions(drawSize);
-
-            // Create Matches and Progressions
-        var matchIds = new CreateMatchIds(positions);
-        var progs = new CreateProgressionMatches(matchIds.MatchByIds);
-        return progs
-            .MatchWithProgressions
-            .Where(p => p.MatchId == nextMatchId)
-            .Single();
-    }
-    */
 }

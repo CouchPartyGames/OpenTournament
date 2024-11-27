@@ -34,16 +34,6 @@ public static class GetTournament
         }
     }
 
-
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapGet("tournaments/{id}/", Endpoint)
-            .WithTags("Tournament")
-            .WithSummary("Get Tournament")
-            .WithDescription("Return an existing tournament.")
-            .WithOpenApi()
-            .AllowAnonymous();
-	
-	
     
     public static async Task<Results<Ok<Tournament>, NotFound, ValidationProblem>> Endpoint(string id, 
         IMediator mediator, 

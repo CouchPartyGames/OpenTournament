@@ -19,6 +19,7 @@ using OpenTournament.Options;
 using MassTransit;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Caching.Hybrid;
+using OpenTournament.Features;
 using Scalar.AspNetCore;
 
 
@@ -63,8 +64,9 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
     var connectionString = dbOptions.ConnectionString;
     opts.UseNpgsql(connectionString, pgOpts =>
         {
-            pgOpts.EnableRetryOnFailure(4);
+            //pgOpts.EnableRetryOnFailure(4);
             pgOpts.CommandTimeout(15);
+            //pgOpts.ExecutionStrategy();
         })
         .EnableSensitiveDataLogging()
         .EnableSensitiveDataLogging();
@@ -160,20 +162,9 @@ app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
 app.MapHealthChecks(GlobalConsts.HealthPageUri);
 
-CreateTournamentEndpoint.MapEndpoint(app);
-GetTournament.MapEndpoint(app);
-UpdateTournament.MapEndpoint(app);
-DeleteTournament.MapEndpoint(app);
-StartTournament.MapEndpoint(app);
-
-LeaveRegistration.MapEndpoint(app);
-JoinRegistration.MapEndpoint(app);
-ListRegistration.MapEndpoint(app);
-
-GetMatch.MapEndpoint(app);
-UpdateMatch.MapEndpoint(app);
-CompleteMatch.MapEndpoint(app);
-
+app.MapGroup("registrations").MapRegistrationEndpoints();
+app.MapGroup("matches").MapMatchesEndpoints();
+app.MapGroup("tournaments").MapTournamentsEndpoints();
 
 CreateTemplate.MapEndpoint(app);
 DeleteTemplate.MapEndpoint(app);

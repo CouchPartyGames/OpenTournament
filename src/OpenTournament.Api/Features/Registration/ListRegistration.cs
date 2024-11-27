@@ -37,14 +37,6 @@ public static class ListRegistration
         }
     }
 
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapGet("registrations/{id}/", Endpoint)
-            .WithTags("Registration")
-            .WithSummary("List Participants")
-            .WithDescription("List all participants in a tournament")
-            .WithOpenApi()
-            .RequireAuthorization();
-
     public static async Task<Results<Ok<ListRegistrationResponse>, ValidationProblem>> Endpoint(string id,
         IMediator mediator,
         HttpContext httpContext,
