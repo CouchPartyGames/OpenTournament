@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.7.0"></a>
+## 0.7.0 (2024-11-27)
+
+### Features
+
+* add ability to complete matches
+
 <a name="0.6.2"></a>
 ## 0.6.2 (2024-11-26)
 
