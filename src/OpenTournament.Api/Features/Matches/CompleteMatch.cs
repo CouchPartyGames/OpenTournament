@@ -40,7 +40,6 @@ public static class CompleteMatch
                 
             if (matchId is null)
             {
-                Console.WriteLine("bad id");
                 return TypedResults.NotFound();
 //                return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
             }
@@ -49,6 +48,11 @@ public static class CompleteMatch
                 .Matches
                 .FirstOrDefaultAsync(x => x.Id == matchId, token);
 
+                // Make sure winner is a participant 
+            if (match.Participant1Id != winnerId && match.Participant2Id != winnerId)
+            {
+               // return  
+            }
 
             var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
             await executionStrategy.Execute(async () =>
