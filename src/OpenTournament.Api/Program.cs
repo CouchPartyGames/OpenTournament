@@ -18,7 +18,6 @@ builder.Services.AddHttpLogging((options) =>
     options.LoggingFields = HttpLoggingFields.All;
 });
 
-
 builder.Services.AddProblemDetails(opts =>
 {
     opts.CustomizeProblemDetails = context =>
@@ -31,7 +30,6 @@ builder.Services.AddProblemDetails(opts =>
     };
 });
 
-
 builder.Services.AddMediator();
 builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehaviour<,>));
 //builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
@@ -41,11 +39,11 @@ builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPip
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 
-builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
