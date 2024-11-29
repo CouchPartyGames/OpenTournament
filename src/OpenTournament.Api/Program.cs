@@ -1,17 +1,9 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
 using OpenTournament;
 using OpenTournament.Common.Exceptions;
-using OpenTournament.Jobs;
-using OpenTournament.Identity;
-using OpenTournament.Identity.Authorization;
 using OpenTournament.Mediator.Behaviours;
-using OpenTournament.Observability;
-using OpenTournament.Options;
-using MassTransit;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Caching.Hybrid;
+using OpenTournament.Configuration;
 using OpenTournament.Features;
 using Scalar.AspNetCore;
 
@@ -19,9 +11,6 @@ using Scalar.AspNetCore;
 //var builder = WebApplication.CreateSlimBuilder(args);
 var builder = WebApplication.CreateBuilder(args);
 
-    // Observability
-/* Move to Infrastructure Layer */
-builder.Services.AddObservability(builder.Configuration);
 /* Move to Infrastructure Layer */
 builder.Services.AddHttpLogging((options) =>
 {
@@ -42,102 +31,19 @@ builder.Services.AddProblemDetails(opts =>
     };
 });
 
-/* Move to Infrastructure Layer */
-builder.Services.Configure<FirebaseAuthenticationOptions>(
-    builder.Configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
-    //.ValidateDataAnnotations().ValidateOnStart();
 
-/* Move to Infrastructure Layer */
-DatabaseOptions dbOptions = new();
-builder.Configuration.GetSection(DatabaseOptions.SectionName).Bind(dbOptions);
-
-/* Move to Infrastructure Layer */
-builder.Services.AddDbContext<AppDbContext>(opts =>
-{
-    var connectionString = dbOptions.ConnectionString;
-    opts.UseNpgsql(connectionString, pgOpts =>
-        {
-            //pgOpts.EnableRetryOnFailure(4);
-            pgOpts.CommandTimeout(15);
-            //pgOpts.ExecutionStrategy();
-        })
-        .EnableSensitiveDataLogging()
-        .EnableSensitiveDataLogging();
-}, ServiceLifetime.Singleton);
 builder.Services.AddMediator();
 builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehaviour<,>));
 //builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
+
 
 /* Move to Infrastructure Layer */
 builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi();
-#pragma warning disable
-builder.Services.AddHybridCache(opts =>
-{
-    opts.MaximumKeyLength = 256;
-    opts.MaximumPayloadBytes = 1024;
-    opts.DefaultEntryOptions = new HybridCacheEntryOptions
-    {
-        Expiration = TimeSpan.FromMinutes(10),
-        LocalCacheExpiration = TimeSpan.FromMinutes(4)
-    };
-});
-#pragma warning restore
 
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
-/* Move to Infrastructure Layer */
-builder.Services.AddMassTransit(opts => {
-    opts.SetKebabCaseEndpointNameFormatter();
-
-    opts.AddConsumer<TournamentStartedConsumer>();
-    opts.AddConsumer<MatchCompletedConsumer>();
-
-    //opts.UsingInMemory();
-    opts.UsingRabbitMq((context, cfg) => {
-        cfg.Host("localhost", h => {
-            h.Username("guest");
-            h.Password("guest");
-        });
-
-        cfg.ConfigureEndpoints(context);
-    });
-});
-
-
-/* Move to Infrastructure Layer */
-builder.Services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
-/* Move to Infrastructure Layer */
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
-{
-    var firebaseAuth = builder.Configuration
-        .GetSection(FirebaseAuthenticationOptions.SectionName)
-        .Get<FirebaseAuthenticationOptions>();
-
-    options.Authority = firebaseAuth.Authority;
-    options.TokenValidationParameters = new()
-    {
-        ValidIssuer = firebaseAuth.Issuer,
-        ValidAudience = firebaseAuth.Audience,
-        
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true
-    };
-});
-/* Move to Infrastructure Layer */
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy(IdentityData.ParticipantPolicyName, policyBuilder =>
-    {
-        policyBuilder.RequireAuthenticatedUser();
-    });
-    
-    options.AddPolicy(IdentityData.ServerPolicyName, policyBuilder =>
-    {
-        policyBuilder.RequireClaim(IdentityData.ServerClaimName, "server");
-    });
-});
 
 builder.Services.AddEndpointsApiExplorer();
 
