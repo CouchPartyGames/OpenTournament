@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using LocalMatch = CouchPartyGames.TournamentGenerator.Type;
 
 namespace OpenTournament.Data.Models;
 
@@ -74,6 +75,31 @@ public sealed class Match
             LocalMatchId = localMatchId
         };
     }
+    
+    public static Match New(TournamentId tournamentId, 
+        LocalMatch.Match<Participant> localMatch,
+        Participant byeOpponent)
+    {
+        var state = MatchState.Ready;
+        if (HasByeOpponent(localMatch, byeOpponent))
+        {
+            state = MatchState.Complete;
+        }
+        
+        return new Match()
+        {
+            Id = MatchId.NewMatchId(),
+            TournamentId = tournamentId,
+            Participant1Id = localMatch.Opponent1.Id,
+            Participant2Id = localMatch.Opponent2.Id,
+            Created = DateTime.UtcNow,
+            State = state,
+            WinMatchId = localMatch.WinProgression,
+            LoseMatchId = NoProgression,
+            LocalMatchId = localMatch.LocalMatchId
+        };
+    }
+    
 
     public static Match CreateWithOneOpponent(TournamentId tournamentId, int localMatchId, int nextMatchId, ParticipantId participantId) {
         return new() {
@@ -97,5 +123,10 @@ public sealed class Match
         State = MatchState.Complete;
         WinnerId = winnerId;
         Completed = DateTime.UtcNow;
+    }
+
+    public static bool HasByeOpponent(LocalMatch.Match<Participant> match, Participant bye)
+    {
+        return match.Opponent1.Id == bye.Id || match.Opponent2.Id == bye.Id;
     }
 }

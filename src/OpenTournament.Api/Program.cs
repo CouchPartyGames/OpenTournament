@@ -63,6 +63,6 @@ app.MapGroup("tournaments").MapTournamentsEndpoints();
 app.MapGroup("templates").MapTemplatesEndpoints();
 app.MapGroup("auth").MapAuthenticationEndpoints();
 
-app.MapHealthChecks(GlobalConsts.HealthPageUri);
+app.MapHealthChecks(GlobalConstants.HealthPageUri);
 
 app.Run();

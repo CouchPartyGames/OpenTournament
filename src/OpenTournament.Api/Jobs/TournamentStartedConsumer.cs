@@ -3,6 +3,7 @@ using OpenTournament.Data.Models;
 using OpenTournament.Data.DomainEvents;
 using CouchPartyGames.TournamentGenerator;
 using CouchPartyGames.TournamentGenerator.Position;
+using LocalMatch = CouchPartyGames.TournamentGenerator.Type;
 
 namespace OpenTournament.Jobs;
 
@@ -30,7 +31,7 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
                 .SetSize(DrawSize.NewRoundBase2(numOpponents).Value)
                 .SetSeeding(TournamentSeeding.Ranked)
                 .Set3rdPlace(Tournament3rdPlace.NoThirdPlace)
-                .WithOpponents(oppList, Participant.CreateBye())
+                .WithOpponents(oppList, GlobalConstants.ByeOpponent)
                 .Build();
 
 
@@ -43,12 +44,19 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
                 logger.LogError($"Unable to find first round matches for {tournamentId}");
             }
             
-            // Step - Create Matches
+            // Step - Create First Round Matches
             foreach (var localMatch in firstRoundMatches)
             {
-                var match = Match.New(tournamentId, localMatch.Opponent1.Id, localMatch.Opponent2.Id,
-                    localMatch.WinProgression, localMatch.LocalMatchId);
+                
+                var match = Match.New(tournamentId, localMatch, GlobalConstants.ByeOpponent);
                 dbContext.Add(match);
+
+                // Add 2nd Round Match with Single Opponent
+                if (Match.HasByeOpponent(localMatch, GlobalConstants.ByeOpponent))
+                {
+                    //match = Match.CreateWithOneOpponent(tournamentId,);
+                    //dbContext.Add(match); 
+                }
             }
             // Achieving atomicity between original catalog database
             // operation and the IntegrationEventLog thanks to a local transaction
@@ -66,19 +74,5 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             .Where(x => x.TournamentId == tournamentId)
             .Select(x => x.Participant)
             .ToList();
-}
 
-public class DoStuff
-{
-    public Task Hell(AppDbContext dbContext, TournamentId tournamentId)
-    {
-        var oppList = dbContext
-            .Registrations
-            .AsNoTracking()
-            .Where(x => x.TournamentId == tournamentId)
-            .Select(x => x.Participant)
-            .ToList();
-        
-        return Task.CompletedTask;
-    }
 }

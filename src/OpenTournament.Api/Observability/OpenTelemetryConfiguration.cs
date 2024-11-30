@@ -27,7 +27,7 @@ public static class OpenTelemetryConfiguration
         services.AddOpenTelemetry()
             .ConfigureResource(config => 
             {
-                config.AddService(GlobalConsts.ServiceName, null, GlobalConsts.ServiceVersion); 
+                config.AddService(GlobalConstants.ServiceName, null, GlobalConstants.ServiceVersion); 
             })
             .WithLogging(logging => 
             {
