@@ -54,8 +54,13 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
                 // Add 2nd Round Match with Single Opponent
                 if (Match.HasByeOpponent(localMatch, GlobalConstants.ByeOpponent))
                 {
-                    //match = Match.CreateWithOneOpponent(tournamentId,);
-                    //dbContext.Add(match); 
+                    var participant = Match.GetNonByeOpponent(localMatch, GlobalConstants.ByeOpponent);
+                    
+                    var nextMatch = tournament.GetWinProgressionMatch(localMatch.LocalMatchId);
+                    if (nextMatch is null) continue;
+                    
+                    match = Match.CreateWithOneOpponent(tournamentId, nextMatch.LocalMatchId, nextMatch.WinProgression, participant.Id);
+                    dbContext.Add(match);
                 }
             }
             // Achieving atomicity between original catalog database

@@ -79,7 +79,7 @@ public static class CompleteMatch
 
 
 
-    public static async Task<Results<Ok, NotFound, ValidationProblem>> Endpoint(string id,
+    public static async Task<Results<Ok, NotFound, ForbidHttpResult, ValidationProblem>> Endpoint(string id,
         CompleteMatchCommand command,
         ISendEndpointProvider sendEndpointProvider,
         AppDbContext dbContext,
@@ -109,12 +109,18 @@ public static class CompleteMatch
             return TypedResults.NotFound();
         }
 
+        if (winnerId != match.Participant1Id && match.Participant2Id != winnerId)
+        {
+            return TypedResults.Forbid();
+        }
+
 
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
         await executionStrategy.Execute(async () =>
         {
             await using var transaction = await dbContext.Database.BeginTransactionAsync(token);
 
+            // Complete Match
             match.Complete(winnerId);
             var msg = new MatchCompleted {
                 MatchId = matchId,
@@ -126,8 +132,9 @@ public static class CompleteMatch
             await dbContext.SaveChangesAsync(token);
             await transaction.CommitAsync(token);
 
+            // Publish Results
             var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:match-completed"));
-            await endpoint.Send(msg);
+            await endpoint.Send(msg, token);
         });
 
         return TypedResults.Ok();

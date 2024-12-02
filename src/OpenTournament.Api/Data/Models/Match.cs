@@ -81,12 +81,14 @@ public sealed class Match
         Participant byeOpponent)
     {
         var state = MatchState.Ready;
+        ParticipantId winnerId = null;
         if (HasByeOpponent(localMatch, byeOpponent))
         {
             state = MatchState.Complete;
+            winnerId = Match.GetNonByeOpponent(localMatch, byeOpponent).Id;
         }
         
-        return new Match()
+        return new Match
         {
             Id = MatchId.NewMatchId(),
             TournamentId = tournamentId,
@@ -102,7 +104,7 @@ public sealed class Match
     
 
     public static Match CreateWithOneOpponent(TournamentId tournamentId, int localMatchId, int nextMatchId, ParticipantId participantId) {
-        return new() {
+        return new Match {
             Id = MatchId.NewMatchId(),
             LocalMatchId = localMatchId,
             TournamentId = tournamentId,
@@ -128,5 +130,10 @@ public sealed class Match
     public static bool HasByeOpponent(LocalMatch.Match<Participant> match, Participant bye)
     {
         return match.Opponent1.Id == bye.Id || match.Opponent2.Id == bye.Id;
+    }
+
+    public static Participant GetNonByeOpponent(LocalMatch.Match<Participant> match, Participant bye)
+    {
+        return match.Opponent1.Id == bye.Id ? match.Opponent2 : match.Opponent1;
     }
 }

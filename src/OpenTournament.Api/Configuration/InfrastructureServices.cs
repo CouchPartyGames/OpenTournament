@@ -35,9 +35,9 @@ public static class InfrastructureServices
         services.Configure<FirebaseAuthenticationOptions>(
         configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
         
-        /* Move to Infrastructure Layer */
+        // Authentication
         services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
-        /* Move to Infrastructure Layer */
+        
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
         {
             var firebaseAuth = configuration
@@ -56,6 +56,7 @@ public static class InfrastructureServices
             };
         });
         
+        // Authorization
         services.AddAuthorization(options =>
         {
             options.AddPolicy(IdentityData.ParticipantPolicyName, policyBuilder =>
