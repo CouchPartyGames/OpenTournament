@@ -5,7 +5,6 @@ using OpenTournament.Api.Features.Matches;
 using OpenTournament.Api.Features.Registration;
 using OpenTournament.Api.Features.Templates;
 using OpenTournament.Api.Features.Tournaments;
-using OpenTournament.Api.Features.Tournaments.Create;
 
 namespace OpenTournament.Api.Features;
 
@@ -90,7 +89,7 @@ public static class Groups
     
     public static RouteGroupBuilder MapTournamentsEndpoints(this RouteGroupBuilder builder)
     {
-		builder.MapPost("", CreateTournamentEndpoint.EndPoint)
+		builder.MapPost("", CreateTournament.EndPoint)
 			.WithTags("Tournament")
 			.WithSummary("Create Tournament")
 			.WithDescription("Create a new tournament")

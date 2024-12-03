@@ -43,16 +43,16 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
         builder
             .Property(m => m.Created)
             .HasDefaultValueSql("now()");
-        /*
-        builder
-            .HasOne(e => e.Participant1)
-            .WithMany();
-            */
 
-        /*
         builder
-            .HasOne(e => e.Participant2)
-            .WithMany();
-            */
+            .ComplexProperty(m => m.Completion, property =>
+                {
+                    property.Property(p => p.WinnerId)
+                        .HasColumnName("WinnerId2")
+                        .HasConversion<ParticipantIdConverter>();
+                    
+                    property.Property(p => p.CompletedOnUtc)
+                        .HasColumnName("CompletedOnUtc");
+                });
     }
 }

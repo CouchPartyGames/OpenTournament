@@ -17,6 +17,11 @@ public record TournamentCreated {
     public required TournamentId TournamentId { get; init; }
 
     public required string TournamentName { get; init; }
+
+    public static TournamentCreated New(Tournament t) => new()
+    {
+        TournamentId = t.Id, TournamentName = t.Name
+    };
 }
 
 // <summary>

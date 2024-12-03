@@ -29,7 +29,7 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
             .SetSize(TournamentSize.Size4)
             .Build();
 
-        if (completedDbMatch.WinMatchId == Match.NoProgression)
+        if (completedDbMatch.WinMatchId == Progression.NoProgression)
         {
             return Task.CompletedTask;
         }
@@ -49,7 +49,7 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 // Single Elimination
                 var localMatch = GetLocalMatch(FindNextLocalMatchId(completedLocalMatchId, tournament), tournament);
                 var localMatchId = localMatch.LocalMatchId; 
-                int nextMatchId = localMatch.WinProgression > 0 ? localMatch.WinProgression : Match.NoProgression;
+                int nextMatchId = localMatch.WinProgression > 0 ? localMatch.WinProgression : Progression.NoProgression;
                 
                 // Create Match
                 match = Match.CreateWithOneOpponent(tournamentId, localMatchId, nextMatchId, winnerId);

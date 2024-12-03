@@ -37,12 +37,17 @@ public sealed class TournamentConfiguration : IEntityTypeConfiguration<Tournamen
         builder
             .Property(t => t.RegistrationMode)
             .HasConversion<int>();
-        
-        
-        builder
-            .Property(t => t.Created)
-            .ValueGeneratedOnAdd()
-            .HasDefaultValueSql("now()");
+
+
+        builder.ComplexProperty(x => x.Creator, property =>
+        {
+            property.Property(p => p.CreatorId)
+                .HasColumnName("CreatorId")
+                .HasConversion<ParticipantIdConverter>();
+
+            property.Property(p => p.CreatedOnUtc)
+                .HasColumnName("CreatedOnUtc");
+        });
 
         /*builder
             .Property(t => t.CreatorId)

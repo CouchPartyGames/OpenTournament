@@ -42,6 +42,11 @@ public enum RegistrationMode
     Dynamic
 };
 
+public sealed record Creator(ParticipantId CreatorId, DateTime CreatedOnUtc)
+{
+    public static Creator New(ParticipantId participantId) => new Creator(participantId, DateTime.UtcNow);
+}
+
 public sealed class Tournament
 {
     [Column(TypeName = "varchar(36)")]
@@ -65,9 +70,8 @@ public sealed class Tournament
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
 
-    public DateTime Created { get; init; }
-    //public Participant Creator { get; set; }
-    //public ParticipantId CreatorId { get; set; }
+    public Creator Creator { get; init; }
+    
     public DateTime Completed { get; init; }
 
     public ICollection<Match> Matches { get; init; }
