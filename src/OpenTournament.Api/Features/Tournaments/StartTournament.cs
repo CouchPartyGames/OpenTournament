@@ -25,7 +25,7 @@ public static class StartTournament
         
         var tournament = await dbContext
             .Tournaments
-            .FirstOrDefaultAsync(m => m.Id == tournamentId);
+            .FirstOrDefaultAsync(m => m.Id == tournamentId, token);
         if (tournament is null)
         {
             return TypedResults.NotFound();
@@ -61,7 +61,7 @@ public static class StartTournament
                 StartType = StartType.Manual
             };
             var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:tournament-started"));
-            await endpoint.Send(msg);
+            await endpoint.Send(msg, token);
 
             // Make Changes
             await dbContext.SaveChangesAsync(token);

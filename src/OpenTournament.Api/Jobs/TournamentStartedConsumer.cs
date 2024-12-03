@@ -1,6 +1,8 @@
 using CouchPartyGames.TournamentGenerator;
 using CouchPartyGames.TournamentGenerator.Position;
+using CouchPartyGames.TournamentGenerator.Type;
 using MassTransit;
+using OneOf.Types;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
 using OpenTournament.Api.DomainEvents;
@@ -47,8 +49,8 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             // Step - Create First Round Matches
             foreach (var localMatch in firstRoundMatches)
             {
-                
-                var match = Match.New(tournamentId, localMatch, GlobalConstants.ByeOpponent);
+                var progression = GetProgressionFromLocalMatch(localMatch);
+                var match = GetMatch(localMatch, tournamentId, GlobalConstants.ByeOpponent.Id, progression);
                 dbContext.Add(match);
 
                 // Add 2nd Round Match with Single Opponent
@@ -59,7 +61,9 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
                     var nextMatch = tournament.GetWinProgressionMatch(localMatch.LocalMatchId);
                     if (nextMatch is null) continue;
                     
-                    match = Match.CreateWithOneOpponent(tournamentId, nextMatch.LocalMatchId, nextMatch.WinProgression, participant.Id);
+                    
+                    progression = GetProgressionFromLocalMatch(nextMatch);
+                    match = Match.NewOneOpponent(tournamentId, nextMatch.LocalMatchId, progression, participant.Id);
                     dbContext.Add(match);
                 }
             }
@@ -80,4 +84,28 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             .Select(x => x.Participant)
             .ToList();
 
+    private Progression GetProgressionFromLocalMatch(Match<Participant> localMatch)
+    {
+        return localMatch switch
+        {
+            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } =>
+                Progression.NewNoProgression(),
+            { LoseProgression: Progression.NoProgression } => Progression.NewWin(localMatch.WinProgression),
+            _ => Progression.NewWinLose(localMatch.WinProgression, localMatch.LoseProgression)
+        };
+    }
+
+    private Match GetMatch(Match<Participant> localMatch, 
+        TournamentId tournamentId,
+        ParticipantId byeOpponentId,
+        Progression progression)
+    {
+        if (localMatch.Opponent2.Id == byeOpponentId || localMatch.Opponent1.Id == byeOpponentId)
+        {
+            var winnerId = localMatch.Opponent2.Id;
+            return Match.NewCompleted(tournamentId, localMatch, progression, Completion.New(winnerId));
+        }
+
+        return Match.NewUndetermined(tournamentId, localMatch, progression);
+    }
 }

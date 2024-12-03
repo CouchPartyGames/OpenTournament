@@ -44,15 +44,30 @@ public sealed class MatchConfiguration : IEntityTypeConfiguration<Match>
             .Property(m => m.Created)
             .HasDefaultValueSql("now()");
 
-        builder
+        /*builder
             .ComplexProperty(m => m.Completion, property =>
                 {
                     property.Property(p => p.WinnerId)
                         .HasColumnName("WinnerId2")
                         .HasConversion<ParticipantIdConverter>();
-                    
+
                     property.Property(p => p.CompletedOnUtc)
-                        .HasColumnName("CompletedOnUtc");
-                });
+                        .HasColumnName("CompletedOnUtc")
+                        .IsRequired(true)
+                        .HasDefaultValueSql("null");
+
+                });*/
+
+        builder
+            .ComplexProperty(m => m.Progression, property => 
+            {
+                property.Property(p => p.WinProgressionId)
+                    .HasColumnName("WinProgressionId")
+                    .HasDefaultValue(Progression.NoProgression);
+                
+                property.Property(p => p.LoseProgressionId)
+                    .HasColumnName("LoseProgressionId")
+                    .HasDefaultValue(Progression.NoProgression);
+            });
     }
 }

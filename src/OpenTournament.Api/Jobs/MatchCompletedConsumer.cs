@@ -50,9 +50,11 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 var localMatch = GetLocalMatch(FindNextLocalMatchId(completedLocalMatchId, tournament), tournament);
                 var localMatchId = localMatch.LocalMatchId; 
                 int nextMatchId = localMatch.WinProgression > 0 ? localMatch.WinProgression : Progression.NoProgression;
+
+                var progression = GetProgressionFromLocalMatch(localMatch);
                 
                 // Create Match
-                match = Match.CreateWithOneOpponent(tournamentId, localMatchId, nextMatchId, winnerId);
+                match = Match.NewOneOpponent(tournamentId, localMatchId, progression, winnerId);
                 dbContext.Add(match);
             }
             else
@@ -113,5 +115,16 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
             .Single();
         
         return nextLocalMatchId;
+    }
+    
+    private Progression GetProgressionFromLocalMatch(Match<Participant> localMatch)
+    {
+        return localMatch switch
+        {
+            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } =>
+                Progression.NewNoProgression(),
+            { LoseProgression: Progression.NoProgression } => Progression.NewWin(localMatch.WinProgression),
+            _ => Progression.NewWinLose(localMatch.WinProgression, localMatch.LoseProgression)
+        };
     }
 }

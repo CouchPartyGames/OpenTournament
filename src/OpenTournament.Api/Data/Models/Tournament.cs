@@ -56,7 +56,7 @@ public sealed class Tournament
 
     public Status Status { get; private set; } = Status.Registration;
     
-    public DateTime StartTime { get; init;  }
+    public DateTime StartedOnUtc { get; private set;  }
 
     public int MinParticipants { get; init; } = 2;
 
@@ -72,7 +72,7 @@ public sealed class Tournament
 
     public Creator Creator { get; init; }
     
-    public DateTime Completed { get; init; }
+    public DateTime CompletedOnUtc { get; private set; }
 
     public ICollection<Match> Matches { get; init; }
 
@@ -80,10 +80,12 @@ public sealed class Tournament
     {
         DrawSize = size;
         Status = Status.InProcess;
+        StartedOnUtc = DateTime.UtcNow;
     }
 
     public void Complete()
     {
         Status = Status.Completed;
+        CompletedOnUtc = DateTime.UtcNow;
     }
 }

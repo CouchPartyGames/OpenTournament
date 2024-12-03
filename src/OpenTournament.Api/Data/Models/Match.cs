@@ -21,7 +21,7 @@ public enum MatchState
     Complete
 };
 
-public sealed record Progression(int WinProgressionId, int LoseProgessionId)
+public sealed record Progression(int WinProgressionId, int LoseProgressionId)
 {
     public const int NoProgression = -1;
     public static Progression NewWinLose(int win, int lose) => new(win, lose);
@@ -29,7 +29,10 @@ public sealed record Progression(int WinProgressionId, int LoseProgessionId)
     public static Progression NewNoProgression() => new(NoProgression, NoProgression);
 }
 
-public sealed record Completion(ParticipantId WinnerId, DateTime CompletedOnUtc);
+public sealed record Completion(ParticipantId WinnerId, DateTime CompletedOnUtc)
+{
+    public static Completion New(ParticipantId WinnerId) => new(WinnerId, DateTime.UtcNow);
+}
 
 //public record MatchComplete(ParticipantId WinnerId, MatchState State, DateTime CompletionDate);
 
@@ -58,9 +61,9 @@ public sealed class Match
 
     public int LoseMatchId { get; init; } = Progression.NoProgression;
     
-    //public Progression Progression { get; init; }
+    public Progression Progression { get; init; }
     
-    public Completion Completion { get; private set; }
+    //public Completion Completion { get; private set; }
     
     public ParticipantId? WinnerId { get; private set; }
     
@@ -69,40 +72,11 @@ public sealed class Match
     public DateTime Created { get; init; }
     public DateTime Completed { get; private set; }
 
-    
-    public static Match New(TournamentId tournamentId, 
-        ParticipantId participant1Id, 
-        ParticipantId participant2Id, 
-        int winProgression,
-        int localMatchId)
-    {
-        var state = true ? MatchState.Ready : MatchState.Complete;
-        return new Match()
-        {
-            Id = MatchId.NewMatchId(),
-            TournamentId = tournamentId,
-            Participant1Id = participant1Id,
-            Participant2Id = participant2Id,
-            Created = DateTime.UtcNow,
-            State = state,
-            WinMatchId = winProgression,
-            LoseMatchId = Progression.NoProgression,
-            LocalMatchId = localMatchId
-        };
-    }
-    
-    public static Match New(TournamentId tournamentId, 
+
+    public static Match NewUndetermined(TournamentId tournamentId, 
         LocalMatch.Match<Participant> localMatch,
-        Participant byeOpponent)
+        Progression progression)
     {
-        var state = MatchState.Ready;
-        ParticipantId? winnerId = null;
-        if (HasByeOpponent(localMatch, byeOpponent))
-        {
-            state = MatchState.Complete;
-            winnerId = Match.GetNonByeOpponent(localMatch, byeOpponent).Id;
-        }
-        
         return new Match
         {
             Id = MatchId.NewMatchId(),
@@ -110,24 +84,47 @@ public sealed class Match
             Participant1Id = localMatch.Opponent1.Id,
             Participant2Id = localMatch.Opponent2.Id,
             Created = DateTime.UtcNow,
-            State = state,
+            State = MatchState.Ready,
+            Progression = progression,
             WinMatchId = localMatch.WinProgression,
             LoseMatchId = Progression.NoProgression,
             LocalMatchId = localMatch.LocalMatchId,
-            WinnerId = winnerId
+        };
+    }
+
+    public static Match NewCompleted(TournamentId tournamentId,
+        LocalMatch.Match<Participant> localMatch,
+        Progression progression, 
+        Completion completion)
+    {
+        return new Match
+        {
+            Id = MatchId.NewMatchId(),
+            TournamentId = tournamentId,
+            Participant1Id = localMatch.Opponent1.Id,
+            Participant2Id = localMatch.Opponent2.Id,
+            Created = DateTime.UtcNow,
+            State = MatchState.Complete,
+            WinMatchId = localMatch.WinProgression,
+            LoseMatchId = Progression.NoProgression,
+            LocalMatchId = localMatch.LocalMatchId,
+            Progression = progression,
+            WinnerId = completion.WinnerId,
+            //Completion = completion
         };
     }
     
 
-    public static Match CreateWithOneOpponent(TournamentId tournamentId, int localMatchId, int nextMatchId, ParticipantId participantId) {
+    public static Match NewOneOpponent(TournamentId tournamentId, int localMatchId, Progression progression, ParticipantId participantId) {
         return new Match {
             Id = MatchId.NewMatchId(),
             LocalMatchId = localMatchId,
             TournamentId = tournamentId,
             State = MatchState.Wait,
             Participant1Id = participantId,
-            WinMatchId = nextMatchId,
-            LoseMatchId = Progression.NoProgression
+            WinMatchId = progression.WinProgressionId,
+            Progression = progression,
+            LoseMatchId = progression.LoseProgressionId
         };
     }
 
@@ -141,7 +138,7 @@ public sealed class Match
         State = MatchState.Complete;
         WinnerId = winnerId;
         Completed = DateTime.UtcNow;
-        Completion = new Completion(winnerId, DateTime.UtcNow);
+        //Completion = new Completion(winnerId, DateTime.UtcNow);
     }
 
     public static bool HasByeOpponent(LocalMatch.Match<Participant> match, Participant bye)
