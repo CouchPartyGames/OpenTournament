@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using CouchPartyGames.TournamentGenerator;
 
-namespace OpenTournament.Data.Models;
+namespace OpenTournament.Api.Data.Models;
 
 public sealed record ParticipantId(string Value);
 

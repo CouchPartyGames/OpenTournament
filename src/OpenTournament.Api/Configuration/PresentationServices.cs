@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http.Features;
 
-namespace OpenTournament.Configuration;
+namespace OpenTournament.Api.Configuration;
 
 public static class PresentationServices
 {

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
-using OpenTournament.Data.Models;
-using OpenTournament.Features;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
 
-namespace OpenTournament.Features.Matches;
+namespace OpenTournament.Api.Features.Matches;
 
 public static class UpdateMatch
 {

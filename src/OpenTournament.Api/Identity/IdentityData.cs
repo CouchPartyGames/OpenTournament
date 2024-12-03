@@ -1,4 +1,4 @@
-﻿namespace OpenTournament.Identity;
+﻿namespace OpenTournament.Api.Identity;
 
 public static class IdentityData
 {

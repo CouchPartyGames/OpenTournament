@@ -1,7 +1,7 @@
 using MassTransit;
-using OpenTournament.Data.DomainEvents;
+using OpenTournament.Api.DomainEvents;
 
-namespace OpenTournament.Jobs;
+namespace OpenTournament.Api.Jobs;
 
 public sealed class RegistrationFinalizedConsumer(ILogger<RegistrationFinalizedConsumer> logger) : IConsumer<RegistrationFinalized>
 {

@@ -1,6 +1,4 @@
-using Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal;
-
-namespace OpenTournament.Data;
+namespace OpenTournament.Api.Data;
 
 public sealed class ResilientTransaction
 {

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 
-namespace OpenTournament.Common.Exceptions;
+namespace OpenTournament.Api;
 
 public sealed class GlobalExceptionHandler : IExceptionHandler
 {
@@ -23,7 +22,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
             exception, "Exception occurred: {Message}", exception.Message);
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        await _problemDetailsService.WriteAsync(new()
+        await _problemDetailsService.WriteAsync(new ProblemDetailsContext()
         {
             HttpContext = httpContext, 
             Exception = exception, 

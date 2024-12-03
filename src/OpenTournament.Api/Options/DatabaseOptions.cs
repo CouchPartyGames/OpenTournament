@@ -1,4 +1,4 @@
-namespace OpenTournament.Options;
+namespace OpenTournament.Api.Options;
 
 public sealed class DatabaseOptions
 {

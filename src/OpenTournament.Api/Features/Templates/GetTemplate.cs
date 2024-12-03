@@ -1,6 +1,4 @@
-using OpenTournament.Identity;
-
-namespace OpenTournament.Features.Templates;
+namespace OpenTournament.Api.Features.Templates;
 
 public static class GetTemplate
 {

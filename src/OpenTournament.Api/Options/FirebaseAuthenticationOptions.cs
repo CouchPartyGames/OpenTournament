@@ -1,6 +1,4 @@
-using Microsoft.Extensions.Options;
-
-namespace OpenTournament.Options;
+namespace OpenTournament.Api.Options;
 
 public sealed class FirebaseAuthenticationOptions
 {

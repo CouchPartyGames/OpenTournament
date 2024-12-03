@@ -1,4 +1,4 @@
-namespace OpenTournament.Features.Tournaments.Create;
+namespace OpenTournament.Api.Features.Tournaments.Create;
 
 public class CreateTournamentValidator : AbstractValidator<CreateTournamentCommand>
 {

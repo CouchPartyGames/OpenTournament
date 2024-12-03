@@ -1,4 +1,4 @@
-﻿namespace OpenTournament.Common;
+﻿namespace OpenTournament.Api.Common;
 
 public static class GlobalConstants
 {

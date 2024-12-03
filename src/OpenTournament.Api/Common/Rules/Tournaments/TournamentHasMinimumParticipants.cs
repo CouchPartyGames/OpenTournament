@@ -1,4 +1,4 @@
-namespace OpenTournament.Common.Rules.Tournaments;
+namespace OpenTournament.Api.Common.Rules.Tournaments;
 
 public sealed class TournamentHasMinimumParticipants : IRule
 {

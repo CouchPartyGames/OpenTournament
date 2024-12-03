@@ -4,7 +4,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
-namespace OpenTournament.Observability;
+namespace OpenTournament.Api.Observability;
 
 public static class OpenTelemetryConfiguration
 {

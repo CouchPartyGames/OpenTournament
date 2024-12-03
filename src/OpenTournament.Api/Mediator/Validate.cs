@@ -1,4 +1,4 @@
-namespace OpenTournament.Mediator;
+namespace OpenTournament.Api.Mediator;
 
 /*
 public interface IValidate;

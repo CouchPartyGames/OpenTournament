@@ -1,4 +1,4 @@
-namespace OpenTournament.Data.Models;
+namespace OpenTournament.Api.Data.Models;
 
 public sealed class Registration
 {

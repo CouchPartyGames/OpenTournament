@@ -1,6 +1,6 @@
-namespace OpenTournament.Features.Tournaments.Create;
+using OpenTournament.Api.Data.Models;
 
-using OpenTournament.Data.Models;
+namespace OpenTournament.Api.Features.Tournaments.Create;
 
 public sealed record CreateTournamentCommand(string Name,
 	DateTime StartTime) : IRequest<OneOf<TournamentId, ValidationFailure, ProblemDetails>>;

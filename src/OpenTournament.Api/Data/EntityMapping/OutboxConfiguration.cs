@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using OpenTournament.Data.Models;
-using OpenTournament.Data.ValueConverters;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.Data.ValueConverters;
 
-namespace OpenTournament.Data.EntityMapping;
+namespace OpenTournament.Api.Data.EntityMapping;
 
 public sealed class OutboxConfiguration : IEntityTypeConfiguration<Outbox>
 {

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using LocalMatch = CouchPartyGames.TournamentGenerator.Type;
 
-namespace OpenTournament.Data.Models;
+namespace OpenTournament.Api.Data.Models;
 
 public sealed record MatchId(Guid Value)
 {

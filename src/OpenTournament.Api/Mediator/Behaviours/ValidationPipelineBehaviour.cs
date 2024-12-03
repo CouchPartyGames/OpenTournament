@@ -1,6 +1,4 @@
-namespace OpenTournament.Mediator.Behaviours;
-
-using FluentValidation;
+namespace OpenTournament.Api.Mediator.Behaviours;
 
 public sealed class ValidationPipelineBehaviour<TRequest, TResponse>
     : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull, IRequest<TResponse>

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 
-namespace OpenTournament.Identity.Authorization;
+namespace OpenTournament.Api.Identity.Authorization;
 
 public sealed class CompleteMatchRequirement : IAuthorizationRequirement
 {

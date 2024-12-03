@@ -1,6 +1,4 @@
-using Microsoft.IdentityModel.Tokens;
-
-namespace OpenTournament.Common.Rules;
+namespace OpenTournament.Api.Common.Rules;
 
 public sealed record RuleError(string Name, string Message, string Field);
 

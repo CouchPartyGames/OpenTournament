@@ -1,6 +1,7 @@
 using System.Text.Json;
+using OpenTournament.Api.DomainEvents;
 
-namespace OpenTournament.Data.Models;
+namespace OpenTournament.Api.Data.Models;
 
 public record OutboxId(Guid Value)
 {

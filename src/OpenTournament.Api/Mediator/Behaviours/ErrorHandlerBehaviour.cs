@@ -1,4 +1,4 @@
-namespace OpenTournament.Mediator.Behaviours;
+namespace OpenTournament.Api.Mediator.Behaviours;
 
 
 public sealed class ErrorHandlerBehaviour<TMessage, TResponse> : IPipelineBehavior<TMessage, TResponse>

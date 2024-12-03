@@ -1,5 +1,5 @@
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Data.Models;
 
-namespace OpenTournament.Data.Events;
+namespace OpenTournament.Api.DomainEvents;
 
 public record PaymentProcessed(TournamentId TournamentId);

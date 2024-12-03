@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Components.Web;
-
-namespace OpenTournament.Common;
+namespace OpenTournament.Api.Common;
 
 public sealed class HttpProblemUtility
 {

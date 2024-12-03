@@ -1,8 +1,9 @@
-using OpenTournament.Data.Models;
-using OpenTournament.Data.DomainEvents;
 using MassTransit;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.DomainEvents;
 
-namespace OpenTournament.Features.Tournaments.Create;
+namespace OpenTournament.Api.Features.Tournaments.Create;
 
 
 public static class CreateTournamentEndpoint

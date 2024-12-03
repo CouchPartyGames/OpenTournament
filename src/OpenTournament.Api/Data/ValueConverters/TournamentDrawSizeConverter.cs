@@ -1,7 +1,7 @@
 using CouchPartyGames.TournamentGenerator.Position;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace OpenTournament.Data.ValueConverters;
+namespace OpenTournament.Api.Data.ValueConverters;
 
 public sealed class TournamentDrawSizeConverter : ValueConverter<DrawSize, int>
 {

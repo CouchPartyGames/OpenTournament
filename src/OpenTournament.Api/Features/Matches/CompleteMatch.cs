@@ -1,9 +1,10 @@
 ﻿using MassTransit;
 using Microsoft.AspNetCore.Authorization;
-using OpenTournament.Data.DomainEvents;
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.DomainEvents;
 
-namespace OpenTournament.Features.Matches;
+namespace OpenTournament.Api.Features.Matches;
 
 public static class CompleteMatch
 {

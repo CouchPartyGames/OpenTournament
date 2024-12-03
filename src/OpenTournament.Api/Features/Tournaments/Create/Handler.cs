@@ -1,6 +1,7 @@
-namespace OpenTournament.Features.Tournaments.Create;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
 
-using OpenTournament.Data.Models;
+namespace OpenTournament.Api.Features.Tournaments.Create;
 
 internal sealed class Handler : IRequestHandler<CreateTournamentCommand, OneOf<TournamentId, ValidationFailure, ProblemDetails>>
 {

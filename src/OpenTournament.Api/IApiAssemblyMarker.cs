@@ -1,3 +1,3 @@
-namespace OpenTournament;
+namespace OpenTournament.Api;
 
 public interface IApiAssemblyMarker;

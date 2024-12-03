@@ -1,4 +1,4 @@
-namespace OpenTournament.Features;
+namespace OpenTournament.Api.Features;
 
 public static class ValidationErrors
 {

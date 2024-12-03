@@ -1,8 +1,7 @@
 using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using OpenTelemetry.Resources;
 
-namespace OpenTournament.Common;
+namespace OpenTournament.Api.Common;
 
 public static class Telemetry
 {

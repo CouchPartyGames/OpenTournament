@@ -1,4 +1,4 @@
-namespace OpenTournament.Common;
+namespace OpenTournament.Api.Common;
 
 public sealed record Action(string Name, string Uri, string Method);
 

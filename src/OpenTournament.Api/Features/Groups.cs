@@ -1,13 +1,13 @@
-using Features.Registration;
 using MassTransit;
-using OpenTournament.Features.Authentication;
-using OpenTournament.Features.Matches;
-using OpenTournament.Features.Registration;
-using OpenTournament.Features.Templates;
-using OpenTournament.Features.Tournaments;
-using OpenTournament.Features.Tournaments.Create;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Features.Authentication;
+using OpenTournament.Api.Features.Matches;
+using OpenTournament.Api.Features.Registration;
+using OpenTournament.Api.Features.Templates;
+using OpenTournament.Api.Features.Tournaments;
+using OpenTournament.Api.Features.Tournaments.Create;
 
-namespace OpenTournament.Features;
+namespace OpenTournament.Api.Features;
 
 public static class Groups
 {

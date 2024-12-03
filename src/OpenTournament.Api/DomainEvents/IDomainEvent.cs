@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Serialization;
-using OpenTournament.Data.DomainEvents;
 
-namespace OpenTournament.Data;
+namespace OpenTournament.Api.DomainEvents;
 
 [JsonDerivedType(typeof(TournamentStartedEvent), typeDiscriminator: "TournamentStartedEvent")]
 [JsonDerivedType(typeof(MatchCompletedEvent), typeDiscriminator: "MatchCompletedEvent")]

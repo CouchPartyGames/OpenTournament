@@ -1,11 +1,11 @@
-using MassTransit;
-using OpenTournament.Data.Models;
-using OpenTournament.Data.DomainEvents;
 using CouchPartyGames.TournamentGenerator;
 using CouchPartyGames.TournamentGenerator.Position;
-using LocalMatch = CouchPartyGames.TournamentGenerator.Type;
+using MassTransit;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.DomainEvents;
 
-namespace OpenTournament.Jobs;
+namespace OpenTournament.Api.Jobs;
 
 public record Opponent(Guid Id, string Name, int Rank) : IOpponent;
 

@@ -1,7 +1,6 @@
-﻿using OpenTournament.Data.Models;
-using MassTransit;
+﻿using OpenTournament.Api.Data.Models;
 
-namespace OpenTournament.Data.DomainEvents;
+namespace OpenTournament.Api.DomainEvents;
 
 public record MatchCompletedEvent(MatchId MatchId, TournamentId TournamentId) : IDomainEvent;
 

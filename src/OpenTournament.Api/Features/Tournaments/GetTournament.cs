@@ -1,7 +1,8 @@
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
-namespace OpenTournament.Features.Tournaments;
+namespace OpenTournament.Api.Features.Tournaments;
 
 public static class GetTournament
 {

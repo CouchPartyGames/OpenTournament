@@ -1,7 +1,6 @@
-﻿using OpenTournament.Data.Models;
-using CouchPartyGames.TournamentGenerator.Position;
+﻿using OpenTournament.Api.Data.Models;
 
-namespace OpenTournament.Data.DomainEvents;
+namespace OpenTournament.Api.DomainEvents;
 
 
 public enum StartType {

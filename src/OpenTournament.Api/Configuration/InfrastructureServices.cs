@@ -1,14 +1,16 @@
 using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.Caching.Hybrid;
-using OpenTournament.Identity;
-using OpenTournament.Identity.Authorization;
-using OpenTournament.Jobs;
-using OpenTournament.Observability;
-using OpenTournament.Options;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Identity;
+using OpenTournament.Api.Identity.Authorization;
+using OpenTournament.Api.Jobs;
+using OpenTournament.Api.Observability;
+using OpenTournament.Api.Options;
 
-namespace OpenTournament.Configuration;
+namespace OpenTournament.Api.Configuration;
 
 public static class InfrastructureServices
 {
@@ -89,6 +91,13 @@ public static class InfrastructureServices
 
                 cfg.ConfigureEndpoints(context);
             });
+        });
+        
+        // HTTP Logging
+        services.AddHttpLogging((options) =>
+        {
+            options.CombineLogs = true;
+            options.LoggingFields = HttpLoggingFields.All;
         });
         
         #pragma warning disable

@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using OpenTournament.Data.ValueConverters;
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.Data.ValueConverters;
 
-namespace OpenTournament.Data.EntityMapping;
+namespace OpenTournament.Api.Data.EntityMapping;
 
 public sealed class TournamentConfiguration : IEntityTypeConfiguration<Tournament>
 {

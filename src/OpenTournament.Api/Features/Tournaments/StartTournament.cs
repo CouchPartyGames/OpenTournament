@@ -1,11 +1,12 @@
 using CouchPartyGames.TournamentGenerator.Position;
-using OpenTournament.Data.Models;
-using OpenTournament.Common.Rules;
-using OpenTournament.Common.Rules.Tournaments;
-using OpenTournament.Data.DomainEvents;
 using MassTransit;
+using OpenTournament.Api.Common.Rules;
+using OpenTournament.Api.Common.Rules.Tournaments;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.DomainEvents;
 
-namespace OpenTournament.Features.Tournaments;
+namespace OpenTournament.Api.Features.Tournaments;
 
 public static class StartTournament
 {

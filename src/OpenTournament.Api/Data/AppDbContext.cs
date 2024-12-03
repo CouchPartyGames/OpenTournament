@@ -1,10 +1,7 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using OpenTournament.Data.EntityMapping;
-using OpenTournament.Data.Models;
-using OpenTournament.Options;
+using OpenTournament.Api.Data.EntityMapping;
+using OpenTournament.Api.Data.Models;
 
-namespace OpenTournament.Data;
+namespace OpenTournament.Api.Data;
 
 public class AppDbContext(DbContextOptions options) : DbContext(options)
 {

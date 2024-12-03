@@ -1,6 +1,7 @@
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
 
-namespace OpenTournament.Features.Registration;
+namespace OpenTournament.Api.Features.Registration;
 
 public static class ListRegistration
 {

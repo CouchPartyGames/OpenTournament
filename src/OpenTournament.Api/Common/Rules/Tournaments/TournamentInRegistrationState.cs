@@ -1,6 +1,6 @@
-namespace OpenTournament.Common.Rules.Tournaments;
+using OpenTournament.Api.Data.Models;
 
-using OpenTournament.Data.Models;
+namespace OpenTournament.Api.Common.Rules.Tournaments;
 
 public sealed class TournamentInRegistrationState : IRule
 {

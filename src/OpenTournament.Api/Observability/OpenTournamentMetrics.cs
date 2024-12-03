@@ -1,6 +1,6 @@
 using System.Diagnostics.Metrics;
 
-namespace OpenTournament.Observability;
+namespace OpenTournament.Api.Observability;
 
 public sealed class OpenTournamentMetrics
 {

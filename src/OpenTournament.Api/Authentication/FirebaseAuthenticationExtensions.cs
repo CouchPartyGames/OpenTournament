@@ -1,4 +1,4 @@
-namespace OpenTournament.Authentication;
+namespace OpenTournament.Api.Authentication;
 
 public static class FirebaseAuthenticationExtensions
 {

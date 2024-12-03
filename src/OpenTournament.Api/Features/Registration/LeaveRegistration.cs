@@ -1,9 +1,9 @@
 using MassTransit;
-using OpenTournament.Data.DomainEvents;
-using OpenTournament.Data.Models;
-using OpenTournament.Features;
+using OpenTournament.Api.Data;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.DomainEvents;
 
-namespace Features.Registration;
+namespace OpenTournament.Api.Features.Registration;
 
 public static class LeaveRegistration
 {

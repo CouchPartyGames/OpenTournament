@@ -1,6 +1,6 @@
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Data.Models;
 
-namespace OpenTournament;
+namespace OpenTournament.Api;
 
 public static class GlobalConstants
 {
