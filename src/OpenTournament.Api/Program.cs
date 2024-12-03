@@ -44,6 +44,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
+app.UseStatusCodePages();
 
 app.MapGroup("registrations").MapRegistrationEndpoints();
 app.MapGroup("matches").MapMatchesEndpoints();
