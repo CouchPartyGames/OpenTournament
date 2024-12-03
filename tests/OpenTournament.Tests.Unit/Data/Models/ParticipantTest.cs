@@ -1,5 +1,5 @@
 using JetBrains.Annotations;
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Data.Models;
 
 namespace OpenTournament.Tests.Unit.Data.Models;
 

@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTournament.Data;
+using OpenTournament.Api;
+using OpenTournament.Api.Data;
 using OpenTournament.Tests.Integration.Helpers;
 
 

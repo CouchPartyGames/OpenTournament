@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
-using OpenTournament.Common.Rules.Tournaments;
-using OpenTournament.Data.Models;
+using OpenTournament.Api.Common.Rules.Tournaments;
+using OpenTournament.Api.Data.Models;
 
 namespace OpenTournament.Tests.Unit.Common.Rules.Tournaments;
 

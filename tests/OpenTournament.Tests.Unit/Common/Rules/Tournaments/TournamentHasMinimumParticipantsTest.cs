@@ -1,5 +1,5 @@
 using JetBrains.Annotations;
-using OpenTournament.Common.Rules.Tournaments;
+using OpenTournament.Api.Common.Rules.Tournaments;
 
 namespace OpenTournament.Tests.Unit.Common.Rules.Tournaments;
 

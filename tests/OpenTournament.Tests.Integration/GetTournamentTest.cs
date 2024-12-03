@@ -1,6 +1,3 @@
-using OpenTournament.Data.Models;
-using OpenTournament.Features.Tournaments;
-
 namespace OpenTournament.Tests.Integration;
 
 public class GetTournamentTest(TournamentApiFactory factory, ITestOutputHelper outputHelper) 
