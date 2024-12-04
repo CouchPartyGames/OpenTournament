@@ -28,7 +28,7 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
             .SetSize(TournamentSize.Size4)
             .Build();
 
-        if (completedDbMatch.WinMatchId == Progression.NoProgression)
+        if (completedDbMatch.Progression.WinProgressionId == Progression.NoProgression)
         {
             return Task.CompletedTask;
         }
@@ -36,7 +36,7 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
         nextDbMatch = dbContext
             .Matches
             .Where(x => x.TournamentId == tournamentId)
-            .SingleOrDefault(x => x.LocalMatchId == completedDbMatch.WinMatchId);
+            .SingleOrDefault(x => x.LocalMatchId == completedDbMatch.Progression.WinProgressionId);
         
         var strategy = dbContext.Database.CreateExecutionStrategy();
         strategy.Execute(() =>
@@ -62,7 +62,7 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 match = dbContext
                     .Matches
                     .Where(x => x.TournamentId == tournamentId)
-                    .First(x => x.LocalMatchId == completedDbMatch.WinMatchId);
+                    .First(x => x.LocalMatchId == completedDbMatch.Progression.WinProgressionId);
                 
                 match.UpdateOpponent(winnerId);
             }

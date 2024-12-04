@@ -52,11 +52,6 @@ public sealed class Match
     //[DeleteBehavior(DeleteBehavior.NoAction)]
     public Participant Participant2 { get; init; }
     
-    // LocalMatchId
-    public int? WinMatchId { get; init; } 
-
-    public int LoseMatchId { get; init; } = Progression.NoProgression;
-    
     public Progression Progression { get; init; }
     
     //public Completion Completion { get; private set; }
@@ -82,8 +77,6 @@ public sealed class Match
             Created = DateTime.UtcNow,
             State = MatchState.Ready,
             Progression = progression,
-            WinMatchId = localMatch.WinProgression,
-            LoseMatchId = Progression.NoProgression,
             LocalMatchId = localMatch.LocalMatchId,
         };
     }
@@ -102,8 +95,6 @@ public sealed class Match
             Created = DateTime.UtcNow,
             Completed = DateTime.UtcNow,
             State = MatchState.Complete,
-            WinMatchId = localMatch.WinProgression,
-            LoseMatchId = Progression.NoProgression,
             LocalMatchId = localMatch.LocalMatchId,
             Progression = progression,
             WinnerId = completion.WinnerId,
@@ -119,9 +110,7 @@ public sealed class Match
             TournamentId = tournamentId,
             State = MatchState.Wait,
             Participant1Id = participantId,
-            WinMatchId = progression.WinProgressionId,
             Progression = progression,
-            LoseMatchId = progression.LoseProgressionId
         };
     }
 
