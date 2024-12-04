@@ -10,77 +10,9 @@ public static class CompleteMatch
 {
     public sealed record CompleteMatchCommand(string MatchId, string WinnerId) : IRequest<OneOf<Ok, NotFound>>;
 
-    internal sealed class
-        Handler : IRequestHandler<CompleteMatchCommand, OneOf<Ok, NotFound>>
-    {
-        private readonly AppDbContext _dbContext;
-
-        private readonly IAuthorizationService _authorizationService;
-
-        private readonly IBus _bus;
-
-        public Handler(AppDbContext dbContext, IAuthorizationService authorizationService, IBus bus)
-        {
-            _dbContext = dbContext;
-            _authorizationService = authorizationService;
-            _bus = bus;
-        }
-
-        public async ValueTask<OneOf<Ok, NotFound>> Handle(CompleteMatchCommand command,
-            CancellationToken token)
-        {
-            var matchId = MatchId.TryParse(command.MatchId);
-            var winnerId = new ParticipantId(command.WinnerId);
-            /*
-            // Authorize Dedicated Hosts and Tournament Moderators
-            var authorizationResult = await _authorizationService.AuthorizeAsync(User);
-            if (!authorizationResult.Succeeded)
-            {
-               return Forbid(); 
-            }*/
-                
-            if (matchId is null)
-            {
-                return TypedResults.NotFound();
-//                return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
-            }
-            
-            var match = await _dbContext
-                .Matches
-                .FirstOrDefaultAsync(x => x.Id == matchId, token);
-
-                // Make sure winner is a participant 
-            if (match.Participant1Id != winnerId && match.Participant2Id != winnerId)
-            {
-               // return  
-            }
-
-            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
-            await executionStrategy.Execute(async () =>
-            {
-
-                await using var transaction = await _dbContext.Database.BeginTransactionAsync(token);
-
-                match.Complete(winnerId);
-                var msg = new MatchCompleted {
-                    MatchId = matchId,
-                    TournamentId = match.TournamentId,
-                    WinnerId = match.WinnerId,
-                    CompletedLocalMatchId = match.LocalMatchId
-                };
-                await _bus.Send(msg);
-
-                await _dbContext.SaveChangesAsync(token);
-                await transaction.CommitAsync(token);
-            });
-
-            return TypedResults.Ok();
-        }
-    }
 
 
-
-    public static async Task<Results<Ok, NotFound, ForbidHttpResult, ValidationProblem>> Endpoint(string id,
+    public static async Task<Results<Ok, NotFound, Conflict, ForbidHttpResult, ValidationProblem>> Endpoint(string id,
         CompleteMatchCommand command,
         ISendEndpointProvider sendEndpointProvider,
         AppDbContext dbContext,
@@ -112,7 +44,7 @@ public static class CompleteMatch
 
         if (winnerId != match.Participant1Id && match.Participant2Id != winnerId)
         {
-            return TypedResults.Forbid();
+            return TypedResults.Conflict();
         }
 
 
