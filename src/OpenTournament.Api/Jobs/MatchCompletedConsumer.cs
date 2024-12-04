@@ -1,6 +1,8 @@
 using CouchPartyGames.TournamentGenerator;
+using CouchPartyGames.TournamentGenerator.Position;
 using CouchPartyGames.TournamentGenerator.Type;
 using MassTransit;
+using OpenTournament.Api.Common.Extensions;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
 using OpenTournament.Api.DomainEvents;
@@ -23,9 +25,15 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
         ParticipantId winnerId = context.Message.WinnerId;
         var completedLocalMatchId = context.Message.CompletedLocalMatchId;
 
-        completedDbMatch = dbContext.Matches.Single(x => x.Id == completedMatchId);
+        var dbTournament = dbContext
+            .Tournaments
+            .FirstOrDefaultAsync(x => x.Id == tournamentId).Result;
+
+        int drawSize = 4;
+
+        completedDbMatch = dbContext.Matches.Include(match => match.Progression).Single(x => x.Id == completedMatchId);
         var tournament = new SingleEliminationBuilder<Participant>("Temporary")
-            .SetSize(TournamentSize.Size4)
+            .SetSize(DrawSize.NewRoundBase2(drawSize).Value)
             .Build();
 
         if (completedDbMatch.Progression.WinProgressionId == Progression.NoProgression)
@@ -50,7 +58,7 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 var localMatchId = localMatch.LocalMatchId; 
                 int nextMatchId = localMatch.WinProgression > 0 ? localMatch.WinProgression : Progression.NoProgression;
 
-                var progression = GetProgressionFromLocalMatch(localMatch);
+                var progression = localMatch.GetProgression();
                 
                 // Create Match
                 match = Match.NewOneOpponent(tournamentId, localMatchId, progression, winnerId);
@@ -66,7 +74,6 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 
                 match.UpdateOpponent(winnerId);
             }
-
             dbContext.SaveChangesAsync();
             
             // Double Elimination
@@ -113,15 +120,5 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
             .Single();
         
         return nextLocalMatchId;
-    }
-    
-    private Progression GetProgressionFromLocalMatch(Match<Participant> localMatch)
-    {
-        return localMatch switch
-        {
-            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } => Progression.NewNoProgression(),
-            { LoseProgression: Progression.NoProgression } => Progression.NewWinProgression(localMatch.WinProgression),
-            _ => Progression.NewWinLoseProgression(localMatch.WinProgression, localMatch.LoseProgression)
-        };
     }
 }

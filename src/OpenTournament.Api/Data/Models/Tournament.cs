@@ -75,7 +75,7 @@ public sealed class Tournament
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
 
-    public Creator Creator { get; init; }
+    public required Creator Creator { get; init; }
     
     public DateTime? CompletedOnUtc { get; private set; }
 

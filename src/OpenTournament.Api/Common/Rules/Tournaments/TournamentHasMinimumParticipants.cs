@@ -10,7 +10,7 @@ public sealed class TournamentHasMinimumParticipants : IRule
         _numParticipants = numParticipants;
         _minParticipants = minParticipants;
         Error = new RuleError(nameof(TournamentHasMinimumParticipants),
-            $"Tournament hasn't meet mimimum number of participants ({_numParticipants} Required: {_minParticipants})",
+            $"Tournament hasn't meet minimum number of participants ({_numParticipants} Required: {_minParticipants})",
             "tournament.minParticipants");
     }
 

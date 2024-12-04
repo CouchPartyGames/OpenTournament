@@ -1,4 +1,3 @@
-using OpenTournament;
 using OpenTournament.Api;
 using OpenTournament.Api.Configuration;
 using OpenTournament.Api.Features;
@@ -6,7 +5,6 @@ using OpenTournament.Api.Mediator.Behaviours;
 using Scalar.AspNetCore;
 
 
-//var builder = WebApplication.CreateSlimBuilder(args);
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddMediator();

@@ -2,7 +2,7 @@ using CouchPartyGames.TournamentGenerator;
 using CouchPartyGames.TournamentGenerator.Position;
 using CouchPartyGames.TournamentGenerator.Type;
 using MassTransit;
-using OneOf.Types;
+using OpenTournament.Api.Common.Extensions;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
 using OpenTournament.Api.DomainEvents;
@@ -49,7 +49,7 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             // Step - Create First Round Matches
             foreach (var localMatch in firstRoundMatches)
             {
-                var progression = GetProgressionFromLocalMatch(localMatch);
+                var progression = localMatch.GetProgression();
                 var match = GetMatch(localMatch, tournamentId, GlobalConstants.ByeOpponent, progression);
                 dbContext.Add(match);
 
@@ -60,9 +60,9 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
                     
                     var nextMatch = tournament.GetWinProgressionMatch(localMatch.LocalMatchId);
                     if (nextMatch is null) continue;
-                    
-                    
-                    progression = GetProgressionFromLocalMatch(nextMatch);
+
+
+                    progression = nextMatch.GetProgression(); 
                     match = Match.NewOneOpponent(tournamentId, nextMatch.LocalMatchId, progression, participant.Id);
                     dbContext.Add(match);
                 }
@@ -84,15 +84,6 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             .Select(x => x.Participant)
             .ToList();
 
-    private Progression GetProgressionFromLocalMatch(Match<Participant> localMatch)
-    {
-        return localMatch switch
-        {
-            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } => Progression.NewNoProgression(),
-            { LoseProgression: Progression.NoProgression } => Progression.NewWinProgression(localMatch.WinProgression),
-            _ => Progression.NewWinLoseProgression(localMatch.WinProgression, localMatch.LoseProgression)
-        };
-    }
 
     private Match GetMatch(Match<Participant> localMatch, 
         TournamentId tournamentId,
