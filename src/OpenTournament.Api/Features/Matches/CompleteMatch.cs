@@ -47,6 +47,11 @@ public static class CompleteMatch
             return TypedResults.Conflict();
         }
 
+        if (match.State == MatchState.Complete)
+        {
+            return TypedResults.Conflict();
+        }
+
 
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
         await executionStrategy.Execute(async () =>
