@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.7.8"></a>
+## 0.7.8 (2024-12-04)
+
+### Bug Fixes
+
+* correct match completed logic
+
 <a name="0.7.7"></a>
 ## 0.7.7 (2024-12-03)
 
