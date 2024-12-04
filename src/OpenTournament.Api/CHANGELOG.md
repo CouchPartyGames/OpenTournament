@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.7.7"></a>
+## 0.7.7 (2024-12-03)
+
+### Bug Fixes
+
+* add conflicts for updating completed match
+* conflict when trying to update completed
+* correct match completion, progression issues
+
 <a name="0.7.1"></a>
 ## 0.7.1 (2024-11-27)
 
