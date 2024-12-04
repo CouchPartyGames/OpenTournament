@@ -67,7 +67,6 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 match.UpdateOpponent(winnerId);
             }
 
-
             dbContext.SaveChangesAsync();
             
             // Double Elimination

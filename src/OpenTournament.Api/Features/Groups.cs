@@ -119,7 +119,8 @@ public static class Groups
         builder.MapPut("/{id}", async (string id,
                 UpdateTournament.UpdateTournamentCommand request,
                 IMediator mediator,
-                CancellationToken token) => await UpdateTournament.Endpoint(id, request, mediator, token))
+                AppDbContext dbContext,
+                CancellationToken token) => await UpdateTournament.Endpoint(id, request, mediator, dbContext, token))
             .WithTags("Tournament")
             .WithSummary("Update Tournament")
             .WithDescription("Update Tournament settings")

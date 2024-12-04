@@ -11,7 +11,7 @@ namespace OpenTournament.Api.Features.Tournaments;
 public static class StartTournament
 {
 
-    public static async Task<Results<NoContent, NotFound, BadRequest, ProblemHttpResult>> Endpoint(string id,
+    public static async Task<Results<NoContent, NotFound, BadRequest, ValidationProblem, ProblemHttpResult>> Endpoint(string id,
         IMediator mediator,
         AppDbContext dbContext,
         ISendEndpointProvider sendEndpointProvider,
@@ -44,7 +44,7 @@ public static class StartTournament
         engine.Add(new TournamentHasMinimumParticipants(participants.Count, tournament.MinParticipants));
         if (!engine.Evaluate())
         {
-            return TypedResults.BadRequest();
+            return TypedResults.ValidationProblem(engine.ToValidationExtensions());
         }
 
         DrawSize drawSize = DrawSize.NewRoundBase2(participants.Count);
