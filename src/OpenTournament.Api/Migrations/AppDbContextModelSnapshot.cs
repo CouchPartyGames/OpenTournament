@@ -28,7 +28,7 @@ namespace OpenTournament.Api.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("varchar(36)");
 
-                    b.Property<DateTime>("Completed")
+                    b.Property<DateTime?>("Completed")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("Created")
@@ -61,22 +61,6 @@ namespace OpenTournament.Api.Migrations
 
                     b.Property<string>("WinnerId")
                         .HasColumnType("text");
-
-                    b.ComplexProperty<Dictionary<string, object>>("Completion", "OpenTournament.Api.Data.Models.Match.Completion#Completion", b1 =>
-                        {
-                            b1.IsRequired();
-
-                            b1.Property<DateTime>("CompletedOnUtc")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("timestamp with time zone")
-                                .HasColumnName("CompletedOnUtc")
-                                .HasDefaultValueSql("null");
-
-                            b1.Property<string>("WinnerId")
-                                .IsRequired()
-                                .HasColumnType("text")
-                                .HasColumnName("WinnerId2");
-                        });
 
                     b.ComplexProperty<Dictionary<string, object>>("Progression", "OpenTournament.Api.Data.Models.Match.Progression#Progression", b1 =>
                         {
@@ -140,7 +124,7 @@ namespace OpenTournament.Api.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("Rank")
                         .HasColumnType("integer");
@@ -178,7 +162,7 @@ namespace OpenTournament.Api.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("varchar(36)");
 
-                    b.Property<DateTime>("CompletedOnUtc")
+                    b.Property<DateTime?>("CompletedOnUtc")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("DrawSize")
@@ -195,7 +179,7 @@ namespace OpenTournament.Api.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("RegistrationMode")
                         .HasColumnType("integer");

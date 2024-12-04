@@ -6,12 +6,13 @@ namespace OpenTournament.Api.Data.Models;
 public sealed record ParticipantId(string Value);
 
 
-public sealed class Participant : IOpponent
+public sealed class Participant : IOpponent, IEquatable<Participant>
 {
     [Column(TypeName = "varchar(36)")]
-    public ParticipantId Id { get; init; }
+    public required ParticipantId Id { get; init; }
     
-    public string Name { get; init; }
+    [Column(TypeName = "varchar(50)")]
+    public required string Name { get; init; }
 
     public int Rank { get; init; } = int.MaxValue - 1;
 
@@ -22,5 +23,12 @@ public sealed class Participant : IOpponent
             Name = "Bye",
             Rank = int.MaxValue
         };
+    }
+
+    public bool Equals(Participant? other)
+    {
+        if (other is null) return false;
+
+        return other.Id == Id;
     }
 }

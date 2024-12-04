@@ -8,40 +8,7 @@ namespace OpenTournament.Api.Features.Authentication;
 public static class Login
 {
 
-    public sealed record AuthCommand(ParticipantId Id) : IRequest<bool>;
-
-    internal sealed class Handler : IRequestHandler<AuthCommand, bool>
-    {
-        private readonly AppDbContext _dbContext;
-        
-        public Handler(AppDbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
-
-        public async ValueTask<bool> Handle(AuthCommand request, CancellationToken cancellationToken)
-        {
-            var participant = await _dbContext
-                .Participants
-                .FirstOrDefaultAsync(p => p.Id == request.Id);
-            
-            if (participant is null)
-            {
-                
-                var newParticipant = new Participant()
-                {
-                    Id = request.Id,
-                    Name = "hello",
-                    Rank = 1
-                };
-                _dbContext.Add(newParticipant);
-            }
-
-            return true;
-        }
-    }
     
-
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPost("/auth/login", Endpoint)
             .WithTags("Auth")
@@ -50,13 +17,35 @@ public static class Login
             .WithOpenApi()
             .RequireAuthorization();
 
-    public static async Task<Results<NoContent, NotFound>> Endpoint(IMediator mediator, 
+    public static async Task<Results<NoContent, ForbidHttpResult, Conflict, NotFound>> Endpoint(IMediator mediator, 
         HttpContext httpContext,
+        AppDbContext dbContext,
         CancellationToken token)
     {
         var userId = httpContext.GetUserId();
-        var command = new AuthCommand(new ParticipantId(userId));
-        var result = await mediator.Send(command, token);
+        if (userId is null)
+        {
+            return TypedResults.Forbid();
+        }
+
+        ParticipantId participantId = new ParticipantId(userId);
+        var participant = await dbContext
+            .Participants
+            .FirstOrDefaultAsync(p => p.Id == participantId, token);
+        if (participant is not null)
+        {
+            return TypedResults.Conflict();
+        } 
+            
+        var newParticipant = new Participant()
+        {
+            Id = participantId,
+            Name = "hello",
+            Rank = 1
+        };
+        dbContext.Add(newParticipant);
+        await dbContext.SaveChangesAsync(token);
+        
         return TypedResults.NoContent();
     }
 }

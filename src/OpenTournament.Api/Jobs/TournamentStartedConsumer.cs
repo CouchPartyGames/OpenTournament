@@ -50,7 +50,7 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             foreach (var localMatch in firstRoundMatches)
             {
                 var progression = GetProgressionFromLocalMatch(localMatch);
-                var match = GetMatch(localMatch, tournamentId, GlobalConstants.ByeOpponent.Id, progression);
+                var match = GetMatch(localMatch, tournamentId, GlobalConstants.ByeOpponent, progression);
                 dbContext.Add(match);
 
                 // Add 2nd Round Match with Single Opponent
@@ -96,12 +96,14 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
 
     private Match GetMatch(Match<Participant> localMatch, 
         TournamentId tournamentId,
-        ParticipantId byeOpponentId,
+        Participant byeOpponent,
         Progression progression)
     {
-        if (localMatch.Opponent2.Id == byeOpponentId || localMatch.Opponent1.Id == byeOpponentId)
+        if (localMatch.HasByeOpponent(byeOpponent))
         {
-            var winnerId = localMatch.Opponent2.Id;
+            var winnerId = byeOpponent.Id == localMatch.Opponent2.Id
+                ? localMatch.Opponent1.Id
+                : localMatch.Opponent2.Id;
             return Match.NewCompleted(tournamentId, localMatch, progression, Completion.New(winnerId));
         }
 

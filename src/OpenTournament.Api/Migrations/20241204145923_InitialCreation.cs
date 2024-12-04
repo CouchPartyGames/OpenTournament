@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OpenTournament.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialDb : Migration
+    public partial class InitialCreation : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,7 +32,7 @@ namespace OpenTournament.Api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "varchar(36)", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "varchar(50)", nullable: false),
                     Rank = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
@@ -45,16 +45,17 @@ namespace OpenTournament.Api.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "varchar(36)", nullable: false),
-                    Name = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "varchar(50)", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    StartTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StartedOnUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     MinParticipants = table.Column<int>(type: "integer", nullable: false),
                     MaxParticipants = table.Column<int>(type: "integer", nullable: false),
                     DrawSize = table.Column<int>(type: "integer", nullable: true),
-                    Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                    Completed = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CompletedOnUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     EliminationMode = table.Column<int>(type: "integer", nullable: false),
-                    RegistrationMode = table.Column<int>(type: "integer", nullable: false)
+                    RegistrationMode = table.Column<int>(type: "integer", nullable: false),
+                    CreatedOnUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatorId = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -93,7 +94,9 @@ namespace OpenTournament.Api.Migrations
                     WinnerId = table.Column<string>(type: "text", nullable: true),
                     TournamentId = table.Column<string>(type: "varchar(36)", nullable: false),
                     Created = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "now()"),
-                    Completed = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    Completed = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LoseProgressionId = table.Column<int>(type: "integer", nullable: false, defaultValue: -1),
+                    WinProgressionId = table.Column<int>(type: "integer", nullable: false, defaultValue: -1)
                 },
                 constraints: table =>
                 {

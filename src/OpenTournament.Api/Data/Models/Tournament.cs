@@ -54,6 +54,7 @@ public sealed class Tournament
     [Column(TypeName = "varchar(36)")]
     public TournamentId Id { get; init; }
     
+    [Column(TypeName = "varchar(50)")]
     public required string Name { get; set; }
 
     public Status Status { get; private set; } = Status.Registration;
@@ -76,7 +77,7 @@ public sealed class Tournament
 
     public Creator Creator { get; init; }
     
-    public DateTime CompletedOnUtc { get; private set; }
+    public DateTime? CompletedOnUtc { get; private set; }
 
     public ICollection<Match> Matches { get; init; }
 

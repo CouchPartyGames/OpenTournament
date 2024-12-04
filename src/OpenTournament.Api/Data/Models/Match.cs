@@ -66,7 +66,7 @@ public sealed class Match
     public required TournamentId TournamentId { get; init; }
     
     public DateTime Created { get; init; }
-    public DateTime Completed { get; private set; }
+    public DateTime? Completed { get; private set; }
 
 
     public static Match NewUndetermined(TournamentId tournamentId, 
@@ -100,6 +100,7 @@ public sealed class Match
             Participant1Id = localMatch.Opponent1.Id,
             Participant2Id = localMatch.Opponent2.Id,
             Created = DateTime.UtcNow,
+            Completed = DateTime.UtcNow,
             State = MatchState.Complete,
             WinMatchId = localMatch.WinProgression,
             LoseMatchId = Progression.NoProgression,
