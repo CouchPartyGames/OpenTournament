@@ -5,10 +5,7 @@ namespace OpenTournament.Api.Data.Models;
 
 public sealed record MatchId(Guid Value)
 {
-    public static MatchId? TryParse(string id)
-    {
-        return !Guid.TryParse(id, out Guid guid) ? null : new MatchId(guid);
-    }
+    public static MatchId? TryParse(string id) => !Guid.TryParse(id, out Guid guid) ? null : new MatchId(guid);
 
     public static MatchId NewMatchId() => new (Guid.CreateVersion7());
 }
@@ -24,8 +21,8 @@ public enum MatchState
 public sealed record Progression(int WinProgressionId, int LoseProgressionId)
 {
     public const int NoProgression = -1;
-    public static Progression NewWinLose(int win, int lose) => new(win, lose);
-    public static Progression NewWin(int win) => new(win, NoProgression);
+    public static Progression NewWinLoseProgression(int win, int lose) => new(win, lose);
+    public static Progression NewWinProgression(int win) => new(win, NoProgression);
     public static Progression NewNoProgression() => new(NoProgression, NoProgression);
 }
 
@@ -34,7 +31,6 @@ public sealed record Completion(ParticipantId WinnerId, DateTime CompletedOnUtc)
     public static Completion New(ParticipantId WinnerId) => new(WinnerId, DateTime.UtcNow);
 }
 
-//public record MatchComplete(ParticipantId WinnerId, MatchState State, DateTime CompletionDate);
 
 public sealed class Match
 {

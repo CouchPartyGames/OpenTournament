@@ -46,7 +46,8 @@ public sealed class TournamentConfiguration : IEntityTypeConfiguration<Tournamen
                 .HasConversion<ParticipantIdConverter>();
 
             property.Property(p => p.CreatedOnUtc)
-                .HasColumnName("CreatedOnUtc");
+                .HasColumnName("CreatedOnUtc")
+                .HasDefaultValueSql("getutcdate()");
         });
 
         /*builder

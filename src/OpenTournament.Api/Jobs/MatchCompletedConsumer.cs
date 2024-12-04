@@ -7,7 +7,6 @@ using OpenTournament.Api.DomainEvents;
 
 namespace OpenTournament.Api.Jobs;
 
-public record MyOpponent(string Name, int Rank) : IOpponent;
 
 public sealed class MatchCompletedConsumer(AppDbContext dbContext, 
     ILogger<MatchCompletedConsumer> logger) : IConsumer<MatchCompleted>
@@ -121,10 +120,9 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
     {
         return localMatch switch
         {
-            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } =>
-                Progression.NewNoProgression(),
-            { LoseProgression: Progression.NoProgression } => Progression.NewWin(localMatch.WinProgression),
-            _ => Progression.NewWinLose(localMatch.WinProgression, localMatch.LoseProgression)
+            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } => Progression.NewNoProgression(),
+            { LoseProgression: Progression.NoProgression } => Progression.NewWinProgression(localMatch.WinProgression),
+            _ => Progression.NewWinLoseProgression(localMatch.WinProgression, localMatch.LoseProgression)
         };
     }
 }

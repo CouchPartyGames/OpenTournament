@@ -88,10 +88,9 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
     {
         return localMatch switch
         {
-            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } =>
-                Progression.NewNoProgression(),
-            { LoseProgression: Progression.NoProgression } => Progression.NewWin(localMatch.WinProgression),
-            _ => Progression.NewWinLose(localMatch.WinProgression, localMatch.LoseProgression)
+            { WinProgression: Progression.NoProgression, LoseProgression: Progression.NoProgression } => Progression.NewNoProgression(),
+            { LoseProgression: Progression.NoProgression } => Progression.NewWinProgression(localMatch.WinProgression),
+            _ => Progression.NewWinLoseProgression(localMatch.WinProgression, localMatch.LoseProgression)
         };
     }
 

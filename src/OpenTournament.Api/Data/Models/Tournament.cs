@@ -47,6 +47,8 @@ public sealed record Creator(ParticipantId CreatorId, DateTime CreatedOnUtc)
     public static Creator New(ParticipantId participantId) => new Creator(participantId, DateTime.UtcNow);
 }
 
+public sealed record ParticipantLimits(int MinOpponents, int MaxOpponents);
+
 public sealed class Tournament
 {
     [Column(TypeName = "varchar(36)")]
@@ -61,6 +63,8 @@ public sealed class Tournament
     public int MinParticipants { get; init; } = 2;
 
     public int MaxParticipants { get; init; } = 8;
+    
+    //public ParticipantLimits Limits { get; init; }
 
     public EliminationMode EliminationMode = EliminationMode.Single;
 
