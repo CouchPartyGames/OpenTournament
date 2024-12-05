@@ -15,10 +15,11 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
 {
     public Task Consume(ConsumeContext<MatchCompleted> context)
     {
+        MatchCompletedLog.ConsumerStarted(logger, context.Message.MatchId);
+        
         Match nextDbMatch;
         Match completedDbMatch;
         
-        logger.LogInformation("Match Completed Consumer Started");
         
         MatchId completedMatchId = context.Message.MatchId;
         TournamentId tournamentId = context.Message.TournamentId;
@@ -96,8 +97,8 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
                 }
             }*/
         }); 
-
-        logger.LogInformation("Match Completed Successful");
+        
+        MatchCompletedLog.ConsumerSuccessful(logger, context.Message.MatchId);
         return Task.CompletedTask;
     }
 
@@ -121,4 +122,27 @@ public sealed class MatchCompletedConsumer(AppDbContext dbContext,
         
         return nextLocalMatchId;
     }
+    
+}
+
+
+public static partial class MatchCompletedLog
+{
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Information,
+        Message = "Starting Match Completed consumer `{matchId}`")]
+    public static partial void ConsumerStarted(ILogger logger, MatchId matchId);
+    
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Error,
+        Message = "Match Completed consumer failed {reason} `{matchId}`")]
+    public static partial void ConsumerFailed(ILogger logger, MatchId matchId, string reason);
+    
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Information,
+        Message = "Match Completed successfully `{matchId}`")]
+    public static partial void ConsumerSuccessful(ILogger logger, MatchId matchId);
 }

@@ -16,18 +16,19 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
 {
     public async Task Consume(ConsumeContext<TournamentStarted> context)
     {
-        logger.LogInformation("Tournament Started Consumer");
+        TournamentStartedLog.ConsumerStarted(logger, context.Message.TournamentId);
 
         var tournamentId = context.Message.TournamentId;
         var numOpponents = context.Message.DrawSize;
-        //var order = ParticipantOrder.Order.Ranked;
         
         //await ResilientTransaction.New(dbContext).ExecuteAsync(() =>
         //{
             var oppList = ConvertRegistrationsToParticipants(tournamentId);
             if (oppList.Count == 0)
             {
-                logger.LogError("No opponent registered for this tournament");
+                TournamentStartedLog.ConsumerFailed(logger, context.Message.TournamentId, "No opponents were found");
+                return;
+                //return Task.CompletedTask;
             }
             var tournament = new SingleEliminationBuilder<Participant>("Temporary")
                 .SetSize(DrawSize.NewRoundBase2(numOpponents).Value)
@@ -43,7 +44,8 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
                 .ToList();
             if (firstRoundMatches.Count == 0)
             {
-                logger.LogError($"Unable to find first round matches for {tournamentId}");
+                TournamentStartedLog.ConsumerFailed(logger, context.Message.TournamentId, "Unable to find first round matches");
+                return;
             }
             
             // Step - Create First Round Matches
@@ -74,6 +76,7 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             //return Task.CompletedTask;
         //});
         //return Task.CompletedTask;
+        TournamentStartedLog.ConsumerSuccessful(logger, context.Message.TournamentId);
     }
 
     private List<Participant> ConvertRegistrationsToParticipants(TournamentId tournamentId) =>
@@ -100,4 +103,26 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
 
         return Match.NewUndetermined(tournamentId, localMatch, progression);
     }
+}
+
+public static partial class TournamentStartedLog {
+    
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Information,
+        Message = "Tournament Started consumer running `{tournamentId}`")]
+    public static partial void ConsumerStarted(ILogger logger, TournamentId tournamentId);
+    
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Error,
+        Message = "Tournament Started consumer failed {message} `{tournamentId}`")]
+    public static partial void ConsumerFailed(ILogger logger, TournamentId tournamentId, string message);
+    
+    
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Information,
+        Message = "Tournament Started consumer successfully completed `{tournamentId}`")]
+    public static partial void ConsumerSuccessful(ILogger logger, TournamentId tournamentId);
 }

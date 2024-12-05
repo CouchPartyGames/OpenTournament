@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     
     public DbSet<Registration> Registrations { get; init; }
     
+    //public DbSet<Game> Games { get; init; }
+    
 
     /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

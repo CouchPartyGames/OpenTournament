@@ -1,15 +1,5 @@
-using MassTransit;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
-using Microsoft.Extensions.Caching.Hybrid;
 using OpenTournament.Api.Configuration.Infrastructure;
-using OpenTournament.Api.Data;
-using OpenTournament.Api.Identity;
-using OpenTournament.Api.Identity.Authorization;
-using OpenTournament.Api.Identity.Authorization.Handlers;
-using OpenTournament.Api.Jobs;
-using OpenTournament.Api.Observability;
 
 namespace OpenTournament.Api.Configuration;
 
