@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.8.2"></a>
+## 0.8.2 (2024-12-05)
+
 <a name="0.8.1"></a>
 ## 0.8.1 (2024-12-05)
 
