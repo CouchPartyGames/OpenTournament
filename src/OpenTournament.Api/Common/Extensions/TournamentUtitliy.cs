@@ -30,6 +30,7 @@ public static class TournamentUtility
     }
     */
     
+    
     public static Tournament<Participant> GetLocalDoubleTournament(TournamentStarted message, 
         List<Participant> oppList, 
         Participant bye) => 
@@ -48,4 +49,23 @@ public static class TournamentUtility
             .Set3rdPlace(Tournament3rdPlace.NoThirdPlace)
             .WithOpponents(oppList, bye)
             .Build();
+
+    public static DrawSeeding GetDrawSeeding(this TournamentSeeding seed) => seed switch
+    {
+        TournamentSeeding.Random => DrawSeeding.Random,
+        _ => DrawSeeding.Seeded
+    };
+
+    public static TournamentSeeding GetTournamentSeeding(this DrawSeeding seed) => seed switch
+    {
+        DrawSeeding.Random => TournamentSeeding.Random,
+        _ => TournamentSeeding.Ranked
+    };
+
+    /*
+    public static  Get3rdPlace(this Tournament3rdPlace place) => place switch
+    {
+
+    };*/
+
 }

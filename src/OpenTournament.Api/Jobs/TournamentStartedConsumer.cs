@@ -9,7 +9,6 @@ using OpenTournament.Api.DomainEvents;
 
 namespace OpenTournament.Api.Jobs;
 
-public record Opponent(Guid Id, string Name, int Rank) : IOpponent;
 
 public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer> logger,
     AppDbContext dbContext) : IConsumer<TournamentStarted>

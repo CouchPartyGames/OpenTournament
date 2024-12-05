@@ -18,8 +18,7 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        _logger.LogError(
-            exception, "Exception occurred: {Message}", exception.Message);
+        GlobalExceptionHandlerLog.LogError(_logger, exception.Message);
 
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await _problemDetailsService.WriteAsync(new ProblemDetailsContext()
@@ -29,4 +28,13 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         });
         return true;
     }
+}
+
+public static partial class GlobalExceptionHandlerLog
+{
+    [LoggerMessage(
+        EventId = 0,
+        Level = LogLevel.Error,
+        Message = "Exception occurred: `{Message}`")]
+    public static partial void LogError(ILogger logger, string message);
 }

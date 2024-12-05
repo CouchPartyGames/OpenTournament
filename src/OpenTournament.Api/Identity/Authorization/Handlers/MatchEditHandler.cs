@@ -5,7 +5,7 @@ using OpenTournament.Api.Identity.Authorization.Requirements;
 namespace OpenTournament.Api.Identity.Authorization.Handlers;
 
 public sealed class MatchEditHandler : AuthorizationHandler<MatchEditRequirement, Match>
-{
+{ 
    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context,
       MatchEditRequirement requirement,
       Match match)

@@ -42,6 +42,7 @@ public enum RegistrationMode
     Dynamic
 };
 
+
 public sealed record Creator(ParticipantId CreatorId, DateTime CreatedOnUtc)
 {
     public static Creator New(ParticipantId participantId) => new Creator(participantId, DateTime.UtcNow);
@@ -74,6 +75,8 @@ public sealed class Tournament
     public DrawSeeding DrawSeeding = DrawSeeding.Random;
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
+    
+    //public bool Has3rdPlace { get; init; }
 
     public required Creator Creator { get; init; }
     
