@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.Identity.Authorization.Requirements;
 
-namespace OpenTournament.Api.Identity.Authorization;
+namespace OpenTournament.Api.Identity.Authorization.Handlers;
 
 public sealed class MatchEditHandler : AuthorizationHandler<MatchEditRequirement, Match>
 {

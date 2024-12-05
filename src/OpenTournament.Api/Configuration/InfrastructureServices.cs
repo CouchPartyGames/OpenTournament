@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Identity;
 using OpenTournament.Api.Identity.Authorization;
+using OpenTournament.Api.Identity.Authorization.Handlers;
 using OpenTournament.Api.Jobs;
 using OpenTournament.Api.Observability;
 using OpenTournament.Api.Options;
@@ -71,6 +72,9 @@ public static class InfrastructureServices
                 policyBuilder.RequireClaim(IdentityData.ServerClaimName, "server");
             });
         });
+        //services.AddSingleton<IAuthorizationHandler, TournamentDeleteHandler>();
+        //services.AddSingleton<IAuthorizationHandler, MatchCompleteHandler>();
+        //services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
         
         // Observability (OpenTelemetry)
         services.AddObservability(configuration);

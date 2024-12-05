@@ -8,44 +8,46 @@ namespace OpenTournament.Api.Features.Tournaments;
 
 public static class UpdateTournament
 {
-   public sealed record UpdateTournamentCommand(TournamentId Id, string Name) : IRequest<OneOf<bool, OneOf.Types.NotFound>>;
+   public sealed record UpdateTournamentCommand(
+      string Name,
+      DateTime StartTime,
+      int MinParticipants,
+      int MaxParticipants,
+      EliminationMode EliminationMode,
+      DrawSeeding Seeding);
    
 
    private sealed class Validator : AbstractValidator<UpdateTournamentCommand>
    {
       public Validator()
       {
-         RuleFor(c => c.Name)
-            .NotEmpty()
-            .MinimumLength(3);
+			RuleFor(c => c.Name)
+				.Length(3, 50)
+				.NotEmpty();
+         
+			RuleFor(c => c.StartTime)
+				.GreaterThan(DateTime.Now);
       }
    }
 
 
    public static async Task<Results<NoContent, NotFound, ProblemHttpResult, ValidationProblem>> Endpoint(string id,
-      UpdateTournamentCommand request,
+      UpdateTournamentCommand command,
       IMediator mediator,
       AppDbContext dbContext,
       CancellationToken token)
    {
-      var tournamentId = TournamentId.TryParse(id);
-      if (tournamentId is null)
-      {
-         return TypedResults.ValidationProblem(ValidationErrors.TournamentIdFailure);
-      }
-         
-      var command = request with { Id = tournamentId };
       Validator validator = new();
-      ValidationResult validationResult = validator.Validate(command);
+      ValidationResult validationResult = await validator.ValidateAsync(command, token);
       if (!validationResult.IsValid)
       {
          return TypedResults.ValidationProblem(validationResult.ToDictionary());
       }
 
-
+      var tournamentId = TournamentId.TryParse(id);
       var tournament = await dbContext
          .Tournaments
-         .FirstOrDefaultAsync(m => m.Id == command.Id, token);
+         .FirstOrDefaultAsync(m => m.Id == tournamentId, token);
       if (tournament is null)
       {
          return TypedResults.NotFound();

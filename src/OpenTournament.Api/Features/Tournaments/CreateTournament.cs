@@ -1,8 +1,8 @@
 using MassTransit;
-using OpenTournament.Api.Authentication;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
 using OpenTournament.Api.DomainEvents;
+using OpenTournament.Api.Identity.Authentication;
 using ValidationResult = FluentValidation.Results.ValidationResult;
 
 namespace OpenTournament.Api.Features.Tournaments;

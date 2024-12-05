@@ -1,6 +1,6 @@
-﻿using OpenTournament.Api.Authentication;
-using OpenTournament.Api.Data;
+﻿using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
+using OpenTournament.Api.Identity.Authentication;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
 namespace OpenTournament.Api.Features.Authentication;

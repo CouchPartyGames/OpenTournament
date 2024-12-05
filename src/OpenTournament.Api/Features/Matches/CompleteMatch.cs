@@ -16,17 +16,19 @@ public static class CompleteMatch
         CompleteMatchCommand command,
         ISendEndpointProvider sendEndpointProvider,
         AppDbContext dbContext,
+        /*IAuthorizationService authorizationService,*/
         CancellationToken token)
     {
         var matchId = MatchId.TryParse(command.MatchId);
         var winnerId = new ParticipantId(command.WinnerId);
 
-        /*
+        
         // Authorize Dedicated Hosts and Tournament Moderators
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User);
+        /*
+        var authorizationResult = await authorizationService.AuthorizeAsync(currentUser, tournamentAdmins, new MatchCompleteRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return Forbid(); 
+            return TypedResults.Forbid(); 
         }*/
             
         if (matchId is null)
