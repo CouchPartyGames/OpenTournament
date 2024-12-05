@@ -12,6 +12,7 @@ public static class GlobalConstants
     
     public static readonly Participant ByeOpponent = Participant.CreateBye();
     
+    // Cors Policies
     public const string ProdCorsPolicyName = "prod";
     public const string DevCorsPolicyName = "dev";
 }

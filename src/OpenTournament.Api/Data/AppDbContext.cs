@@ -13,7 +13,6 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     
     public DbSet<Registration> Registrations { get; init; }
     
-    public DbSet<Outbox> Outboxes { get; set; }
 
     /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -33,7 +32,6 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         modelBuilder.ApplyConfiguration(new MatchConfiguration());
         modelBuilder.ApplyConfiguration(new ParticipantConfiguration());
         modelBuilder.ApplyConfiguration(new RegistrationConfiguration());
-        modelBuilder.ApplyConfiguration(new OutboxConfiguration());
         //modelBuilder.ApplyConfiguration(new TemplateConfiguration());
     }
 }

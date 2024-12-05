@@ -35,11 +35,7 @@ public static class InfrastructureServices
         }, ServiceLifetime.Singleton);
         
         // Authentication
-        services.Configure<FirebaseAuthenticationOptions>(
-        configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
-        
-        // Authentication
-        services.AddSingleton<IAuthorizationHandler, MatchEditHandler>();
+        services.Configure<FirebaseAuthenticationOptions>(configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
         
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
         {
