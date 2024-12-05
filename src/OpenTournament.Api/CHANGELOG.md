@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.8.0"></a>
+## 0.8.0 (2024-12-05)
+
+### Features
+
+* add dev/prod cors policies
+
 <a name="0.7.11"></a>
 ## 0.7.11 (2024-12-05)
 
