@@ -1,8 +1,8 @@
-namespace OpenTournament.Api.Options;
+namespace OpenTournament.Api.Configuration.Infrastructure;
 
-public sealed class DatabaseOptions
+public sealed class PostgresOptions
 {
-    public const string SectionName = "Database";
+    public const string SectionName = "Postgres";
 
     public string Type { get; set; } = String.Empty;
     public string ConnectionString { get; set; } = String.Empty;

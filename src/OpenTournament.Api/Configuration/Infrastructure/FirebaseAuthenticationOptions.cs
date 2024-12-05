@@ -1,4 +1,4 @@
-namespace OpenTournament.Api.Options;
+namespace OpenTournament.Api.Configuration.Infrastructure;
 
 public sealed class FirebaseAuthenticationOptions
 {
