@@ -16,6 +16,16 @@ builder.Services.AddHealthChecks();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors(opts =>
+{
+    opts.AddPolicy(GlobalConstants.DevCorsPolicyName, policy => policy.AllowAnyOrigin());
+    opts.AddPolicy(GlobalConstants.ProdCorsPolicyName, policy =>
+    {
+        policy
+            .WithOrigins("https://api.opentournament.online")
+            .WithMethods("GET", "POST", "PUT", "DELETE");
+    });
+});
 
 //builder.Services.AddDomainServices();
 //builder.Services.AddApplicationServices();
@@ -30,6 +40,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseCors(app.Environment.IsDevelopment() ? GlobalConstants.DevCorsPolicyName : GlobalConstants.ProdCorsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();

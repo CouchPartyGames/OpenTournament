@@ -16,7 +16,7 @@ public static class CompleteMatch
         CompleteMatchCommand command,
         ISendEndpointProvider sendEndpointProvider,
         AppDbContext dbContext,
-        /*IAuthorizationService authorizationService,*/
+        //IAuthorizationService authorizationService,
         CancellationToken token)
     {
         var matchId = MatchId.TryParse(command.MatchId);
@@ -24,6 +24,7 @@ public static class CompleteMatch
 
         
         // Authorize Dedicated Hosts and Tournament Moderators
+        
         /*
         var authorizationResult = await authorizationService.AuthorizeAsync(currentUser, tournamentAdmins, new MatchCompleteRequirement());
         if (!authorizationResult.Succeeded)

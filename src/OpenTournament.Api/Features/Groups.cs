@@ -1,4 +1,5 @@
 using MassTransit;
+using Microsoft.AspNetCore.Authentication;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Features.Authentication;
 using OpenTournament.Api.Features.Matches;
@@ -26,14 +27,12 @@ public static class Groups
     public static RouteGroupBuilder MapMatchesEndpoints(this RouteGroupBuilder builder)
     {
         
-        builder.MapPut("/{id}/complete", (string id,
+        builder.MapPut("/{id}/complete", async (string id,
                 CompleteMatch.CompleteMatchCommand command,
                 ISendEndpointProvider sendEndpointProvider,
                 AppDbContext dbContext,
-                CancellationToken token) =>
-            {
-                return CompleteMatch.Endpoint(id, command, sendEndpointProvider, dbContext, token);
-            })
+                IAuthenticationService authenticationService,
+                CancellationToken token) => await CompleteMatch.Endpoint(id, command, sendEndpointProvider, dbContext, token))
             .WithTags("Match")
             .WithSummary("Complete Match")
             .WithDescription("Complete an Individual Match")
