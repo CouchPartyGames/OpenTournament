@@ -15,11 +15,20 @@ public static class Groups
     public static RouteGroupBuilder MapAuthenticationEndpoints(this RouteGroupBuilder builder)
     {
         builder.MapPost("/login", Login.Endpoint)
-            .WithTags("Auth")
+            .WithTags("Authentication", "Login")
             .WithSummary("Login")
             .WithDescription("Login/Register a user")
             .WithOpenApi()
             .RequireAuthorization();
+
+
+        /*
+        builder.MapPost("/register", Register.Endpoint)
+            .WithTags("Authentication", "Register")
+            .WithSummary("Register")
+            .WithDescription("Register a user")
+            .WithOpenApi();
+            */
         
         return builder;
     }

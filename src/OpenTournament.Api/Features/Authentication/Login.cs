@@ -8,15 +8,6 @@ namespace OpenTournament.Api.Features.Authentication;
 public static class Login
 {
 
-    
-    public static void MapEndpoint(this IEndpointRouteBuilder app) =>
-        app.MapPost("/auth/login", Endpoint)
-            .WithTags("Auth")
-            .WithSummary("Login")
-            .WithDescription("Login/Register a user")
-            .WithOpenApi()
-            .RequireAuthorization();
-
     public static async Task<Results<NoContent, ForbidHttpResult, Conflict, NotFound>> Endpoint(IMediator mediator, 
         HttpContext httpContext,
         AppDbContext dbContext,

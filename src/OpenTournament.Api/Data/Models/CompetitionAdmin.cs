@@ -2,7 +2,7 @@ namespace OpenTournament.Api.Data.Models;
 
 public sealed class CompetitionAdmin
 {
-    public CompetitionId CompetitionId { get; set; }
+    public required CompetitionId CompetitionId { get; init; }
     
-    public ParticipantId ParticipantId { get; set; }
+    public required ParticipantId ParticipantId { get; init; }
 }

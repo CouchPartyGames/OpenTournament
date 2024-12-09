@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations.Schema;
 using CouchPartyGames.TournamentGenerator.Position;
 
@@ -26,7 +27,9 @@ public enum Status
 
 public enum EliminationMode
 {
+    [property: Description("Single Elimination Tournament")]
     Single = 0,
+    [property: Description("Double Elimination Tournament")]
     Double
 };
 

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.OpenApi;
 using OpenTournament.Api;
 using OpenTournament.Api.Configuration;
 using OpenTournament.Api.Features;
@@ -12,8 +14,16 @@ builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPip
 //builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
 
 /* Move to Infrastructure Layer */
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(opts =>
+{
+    //opts.CreateSchemaReferenceId = (type) => type.Type.IsEnum ? null : OpenApiOptions.CreateDefaultSchemaReferenceId(type);
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(opts =>
 {
@@ -50,7 +60,7 @@ app.MapGroup("registrations").MapRegistrationEndpoints();
 app.MapGroup("matches").MapMatchesEndpoints();
 app.MapGroup("tournaments").MapTournamentsEndpoints();
 app.MapGroup("templates").MapTemplatesEndpoints();
-app.MapGroup("auth").MapAuthenticationEndpoints();
+app.MapGroup("authentication").MapAuthenticationEndpoints();
 
 app.MapHealthChecks(GlobalConstants.HealthPageUri);
 

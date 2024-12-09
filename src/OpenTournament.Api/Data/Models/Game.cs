@@ -10,4 +10,8 @@ public class Game
     
     [Column(TypeName = "varchar(36)")]
     public string Name { get; init; }
+    
+    public string Url { get; init; }
+    
+    // Platforms
 }

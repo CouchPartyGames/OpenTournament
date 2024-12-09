@@ -58,8 +58,7 @@ public static class OpenTelemetryConfiguration
             {
                 traceBuilder.SetSampler(new TraceIdRatioBasedSampler(1.0));
                 traceBuilder.AddHttpClientInstrumentation()
-                    .AddAspNetCoreInstrumentation()
-                    .AddGrpcClientInstrumentation();
+                    .AddAspNetCoreInstrumentation();
 
                 traceBuilder.AddOtlpExporter(export =>
                 {
