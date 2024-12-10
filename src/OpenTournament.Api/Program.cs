@@ -1,7 +1,6 @@
 using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Asp.Versioning.Builder;
-using Microsoft.AspNetCore.OpenApi;
 using OpenTournament.Api;
 using OpenTournament.Api.Configuration;
 using OpenTournament.Api.Features;
@@ -23,6 +22,15 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =
 });
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi();
+builder.Services.AddApiVersioning(opts =>
+{
+    opts.DefaultApiVersion = new ApiVersion(1, 0);
+    opts.ApiVersionReader = new UrlSegmentApiVersionReader();
+}).AddApiExplorer(opts =>
+{
+    opts.GroupNameFormat = "'v'V";
+    opts.SubstituteApiVersionInUrl = true;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(opts =>
 {
@@ -55,16 +63,26 @@ app.UseHttpLogging();
 app.UseExceptionHandler(options => {});
 app.UseStatusCodePages();
 
-/*var apiVersionSet = app.NewVersionedApi()
-    .HasApiVersion(1.0)
+ApiVersionSet apiVersionSet = app.NewApiVersionSet()
+    .HasApiVersion(new ApiVersion(1))
     .ReportApiVersions()
-    .Build();*/
+    .Build();
 
-app.MapGroup("registrations").MapRegistrationEndpoints();
-app.MapGroup("matches").MapMatchesEndpoints();
-app.MapGroup("tournaments").MapTournamentsEndpoints();
-app.MapGroup("templates").MapTemplatesEndpoints();
-app.MapGroup("authentication").MapAuthenticationEndpoints();
+app.MapGroup("registrations/v{apiVersion:apiVersion}")
+    .MapRegistrationEndpoints()
+    .WithApiVersionSet(apiVersionSet);
+app.MapGroup("matches/v{apiVersion:apiVersion}")
+    .MapMatchesEndpoints()
+    .WithApiVersionSet(apiVersionSet);
+app.MapGroup("tournaments/v{apiVersion:apiVersion}")
+    .MapTournamentsEndpoints()
+    .WithApiVersionSet(apiVersionSet);
+app.MapGroup("templates/v{apiVersion:apiVersion}")
+    .MapTemplatesEndpoints()
+    .WithApiVersionSet(apiVersionSet);
+app.MapGroup("authentication/v{apiVersion:apiVersion}")
+    .MapAuthenticationEndpoints()
+    .WithApiVersionSet(apiVersionSet);
 
 app.MapHealthChecks(GlobalConstants.HealthPageUri);
 
