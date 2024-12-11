@@ -8,7 +8,9 @@ public static class FirebaseAuthenticationServices
    {
         services.Configure<FirebaseAuthenticationOptions>(configuration.GetSection(FirebaseAuthenticationOptions.SectionName));
         
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+        services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
         {
             var firebaseAuth = configuration
                 .GetSection(FirebaseAuthenticationOptions.SectionName)

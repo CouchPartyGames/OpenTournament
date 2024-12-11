@@ -14,6 +14,10 @@ public static class DeleteTournament
         CancellationToken token)
     {
         var tournamentId = TournamentId.TryParse(id);
+        if (tournamentId is null)
+        {
+            return TypedResults.NotFound();
+        }
         var tournament = dbContext
             .Tournaments
             .FirstOrDefaultAsync(t => t.Id == tournamentId, token);

@@ -15,11 +15,10 @@ public static class PostgresServices
             var connectionString = dbOptions.ConnectionString;
             opts.UseNpgsql(connectionString, pgOpts =>
                 {
-                    //pgOpts.EnableRetryOnFailure(4);
+                    pgOpts.EnableRetryOnFailure();
                     pgOpts.CommandTimeout(15);
                     //pgOpts.ExecutionStrategy();
                 })
-                .EnableSensitiveDataLogging()
                 .EnableSensitiveDataLogging();
         }, ServiceLifetime.Singleton);
         
