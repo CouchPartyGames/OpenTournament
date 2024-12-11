@@ -53,7 +53,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.MapScalarApiReference();
+    app.MapScalarApiReference(opts =>
+    {
+        opts.Theme = ScalarTheme.BluePlanet;
+        opts.DefaultHttpClient = new(ScalarTarget.CSharp, ScalarClient.HttpClient);
+        opts.ShowSidebar = true;
+    });
 }
 
 app.UseCors(app.Environment.IsDevelopment() ? GlobalConstants.DevCorsPolicyName : GlobalConstants.ProdCorsPolicyName);
