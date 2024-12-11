@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.9.1"></a>
+## 0.9.1 (2024-12-11)
+
+### Bug Fixes
+
+* correct version of endpoint groups
+* default scalar to csharp
+
 <a name="0.9.0"></a>
 ## 0.9.0 (2024-12-10)
 
