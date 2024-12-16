@@ -39,8 +39,7 @@ builder.Services.AddCors(opts =>
         policy
             .AllowAnyOrigin()
             .WithMethods("GET", "POST", "PUT", "DELETE")
-            .AllowAnyHeader()
-            .AllowCredentials();
+            .AllowAnyHeader();
     });
     opts.AddPolicy(GlobalConstants.ProdCorsPolicyName, policy =>
     {
