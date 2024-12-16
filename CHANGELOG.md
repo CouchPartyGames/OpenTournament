@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.9.3"></a>
+## 0.9.3 (2024-12-16)
+
+### Bug Fixes
+
+* correct directory for publishing images
+
 <a name="0.9.1"></a>
 ## 0.9.1 (2024-12-11)
 
