@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.9.5"></a>
+## 0.9.5 (2024-12-16)
+
+### Bug Fixes
+
+* only tags for registries
+
 <a name="0.9.3"></a>
 ## 0.9.3 (2024-12-16)
 
