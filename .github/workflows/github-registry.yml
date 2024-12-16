@@ -6,9 +6,7 @@ on:
   # trigger workflow on push to master when changes happen in one folder
   push:
     tags:
-      - '*'
-    #branches:
-    #  - main
+      - 'v*'
 
 jobs:
   publish:
