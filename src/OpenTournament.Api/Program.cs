@@ -34,12 +34,21 @@ builder.Services.AddApiVersioning(opts =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(opts =>
 {
-    opts.AddPolicy(GlobalConstants.DevCorsPolicyName, policy => policy.AllowAnyOrigin());
+    opts.AddPolicy(GlobalConstants.DevCorsPolicyName, policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .WithMethods("GET", "POST", "PUT", "DELETE")
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
     opts.AddPolicy(GlobalConstants.ProdCorsPolicyName, policy =>
     {
         policy
             .WithOrigins("https://api.opentournament.online")
-            .WithMethods("GET", "POST", "PUT", "DELETE");
+            .WithMethods("GET", "POST", "PUT", "DELETE")
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
