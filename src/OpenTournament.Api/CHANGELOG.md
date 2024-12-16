@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.9.2"></a>
+## 0.9.2 (2024-12-16)
+
+### Bug Fixes
+
+* allow credentials in cors, update dependencies
+* correct dev cors error
+* correct login tag
+
 <a name="0.8.3"></a>
 ## 0.8.3 (2024-12-05)
 
