@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [versionize](https://github.com/versionize/versionize) for commit guidelines.
 
+<a name="0.10.0"></a>
+## 0.10.0 (2024-12-18)
+
+### Features
+
+* add pools, stages, events models
+
+### Bug Fixes
+
+* add simple updates to frontend
+* correct location of unit tests
+
 <a name="0.9.4"></a>
 ## 0.9.4 (2024-12-16)
 
