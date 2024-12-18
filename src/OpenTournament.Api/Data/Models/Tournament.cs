@@ -4,20 +4,6 @@ using CouchPartyGames.TournamentGenerator.Position;
 
 namespace OpenTournament.Api.Data.Models;
 
-public sealed record TournamentId(Guid Value)
-{
-    public static TournamentId? TryParse(string id)
-    {
-        if (!Guid.TryParse(id, out Guid guid))
-        {
-            return null;
-        }
-        return new(guid);
-    }
-    
-    public static TournamentId NewTournamentId() => new(Guid.CreateVersion7());
-}
-
 public enum Status
 {
     Registration = 0,

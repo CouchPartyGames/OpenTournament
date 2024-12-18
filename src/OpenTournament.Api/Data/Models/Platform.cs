@@ -1,6 +1,5 @@
 namespace OpenTournament.Api.Data.Models;
 
-public sealed record PlatformId(int Value);
 
 public class Platform
 {

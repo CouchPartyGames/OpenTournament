@@ -30,12 +30,15 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        //modelBuilder.ApplyConfiguration(new CompetitionConfiguration());
-        //modelBuilder.ApplyConfiguration(new EventConfiguration());
+        modelBuilder.ApplyConfiguration(new CompetitionConfiguration());
+        modelBuilder.ApplyConfiguration(new EventConfiguration());
+        //modelBuilder.ApplyConfiguration(new GameConfiguration());
         modelBuilder.ApplyConfiguration(new MatchConfiguration());
         modelBuilder.ApplyConfiguration(new ParticipantConfiguration());
+        modelBuilder.ApplyConfiguration(new PlatformConfiguration());
+        modelBuilder.ApplyConfiguration(new PoolConfiguration());
         modelBuilder.ApplyConfiguration(new RegistrationConfiguration());
+        modelBuilder.ApplyConfiguration(new StageConfiguration());
         modelBuilder.ApplyConfiguration(new TournamentConfiguration());
-        //modelBuilder.ApplyConfiguration(new TemplateConfiguration());
     }
 }

@@ -4,7 +4,7 @@ using OpenTournament.Api.Data.ValueConverters;
 
 namespace OpenTournament.Api.Data.EntityMapping;
 
-public class CompetitionConfiguration : IEntityTypeConfiguration<Competition>
+public sealed class CompetitionConfiguration : IEntityTypeConfiguration<Competition>
 {
     public void Configure(EntityTypeBuilder<Competition> builder)
     {
@@ -14,5 +14,8 @@ public class CompetitionConfiguration : IEntityTypeConfiguration<Competition>
         builder
             .Property(c => c.CompetitionId)
             .HasConversion<CompetitionIdConverter>();
+        
+        builder.Property(c => c.GameId)
+            .HasConversion<GameIdConverter>();
     }
 }
