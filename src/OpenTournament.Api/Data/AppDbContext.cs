@@ -32,7 +32,7 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     {
         modelBuilder.ApplyConfiguration(new CompetitionConfiguration());
         modelBuilder.ApplyConfiguration(new EventConfiguration());
-        //modelBuilder.ApplyConfiguration(new GameConfiguration());
+        modelBuilder.ApplyConfiguration(new GameConfiguration());
         modelBuilder.ApplyConfiguration(new MatchConfiguration());
         modelBuilder.ApplyConfiguration(new ParticipantConfiguration());
         modelBuilder.ApplyConfiguration(new PlatformConfiguration());

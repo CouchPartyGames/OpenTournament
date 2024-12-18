@@ -4,6 +4,7 @@ using OpenTournament.Api.Data.ValueConverters;
 
 namespace OpenTournament.Api.Data.EntityMapping;
 
+// Setup Data Modeling
 public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
 {
     public void Configure(EntityTypeBuilder<Event> builder)
