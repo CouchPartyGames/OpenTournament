@@ -19,6 +19,7 @@
 			players: 128,
 			prize: "$10,000",
 			image: "https://svelte0.dev/images/ui-placeholder.png",
+			uri: '/event/super-smash-ultimate-championship',
 		},
 		{
 			title: "Street Fighter 6 Pro League",
@@ -27,6 +28,7 @@
 			players: 64,
 			prize: "$5,000",
 			image: "https://svelte0.dev/images/ui-placeholder.png",
+			uri: '/event/super-smash-ultimate-championship',
 		},
 		{
 			title: "Tekken 8 World Tour",
@@ -35,6 +37,7 @@
 			players: 256,
 			prize: "$15,000",
 			image: "https://svelte0.dev/images/ui-placeholder.png",
+			uri: '/event/super-smash-ultimate-championship',
 		},
 	]);
 </script>
@@ -46,7 +49,9 @@
 		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 			{#each tournaments as tournament}
 				<div class="group rounded-xl bg-white/5 p-4 transition-all hover:bg-white/10">
-					<img src={tournament.image} alt={tournament.title} class="mb-4 h-48 w-full rounded-lg object-cover" />
+					<a href="{tournament.uri}">
+						<img src={tournament.image} alt={tournament.title} class="mb-4 h-48 w-full rounded-lg object-cover" />
+					</a>
 					<h3 class="mb-2 text-xl font-semibold">{tournament.title}</h3>
 					<p class="mb-4 text-sm text-gray-400">{tournament.game}</p>
 

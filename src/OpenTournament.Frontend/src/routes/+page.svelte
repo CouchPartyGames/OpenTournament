@@ -5,6 +5,8 @@
     import HomePage from '$lib/components/homepage/index.js';
     //import { siteName } from '$lib/server/global.js';
     let siteName = 'ggparty.online';
+
+    let { data } = $props();
 </script>
 <svelte:head>
     <title>{siteName}</title>
