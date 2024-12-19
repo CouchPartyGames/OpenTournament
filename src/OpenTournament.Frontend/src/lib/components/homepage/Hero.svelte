@@ -3,7 +3,7 @@
 </script>
 
 <section class="relative min-h-screen pt-20">
-	<div class="absolute inset-0 bg-[url('$assets/ui-placeholder.png')] bg-cover bg-center opacity-20"></div>
+	<div class="absolute inset-0 bg-[url('https://svelte0.dev/images/ui-placeholder.png')] bg-cover bg-center opacity-20"></div>
 	<div class="relative mx-auto max-w-7xl px-4 py-20">
 		<div class="flex flex-col items-center text-center" in:fade>
 			<h1 class="mb-6 text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">

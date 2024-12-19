@@ -18,7 +18,7 @@
 			date: "Dec 15, 2023",
 			players: 128,
 			prize: "$10,000",
-			image: "$assets/ui-placeholder.png",
+			image: "https://svelte0.dev/images/ui-placeholder.png",
 		},
 		{
 			title: "Street Fighter 6 Pro League",
@@ -26,7 +26,7 @@
 			date: "Dec 20, 2023",
 			players: 64,
 			prize: "$5,000",
-			image: "$assets/ui-placeholder.png",
+			image: "https://svelte0.dev/images/ui-placeholder.png",
 		},
 		{
 			title: "Tekken 8 World Tour",
@@ -34,7 +34,7 @@
 			date: "Dec 25, 2023",
 			players: 256,
 			prize: "$15,000",
-			image: "$assets/ui-placeholder.png",
+			image: "https://svelte0.dev/images/ui-placeholder.png",
 		},
 	]);
 </script>

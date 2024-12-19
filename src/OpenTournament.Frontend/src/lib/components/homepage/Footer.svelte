@@ -1,12 +1,14 @@
-<script>
-	import { Github, Twitter, Discord } from "lucide-svelte";
+<script lang="ts">
+	import { Github, Twitter } from "lucide-svelte";
+	const siteName: string = 'ggparty.online';
+	const currentYear: number = new Date().getFullYear();
 </script>
 
 <footer class="border-t border-white/10 bg-black/20">
 	<div class="mx-auto max-w-7xl px-4 py-12">
 		<div class="grid gap-8 md:grid-cols-4">
 			<div>
-				<h3 class="mb-4 text-lg font-bold">start.gg</h3>
+				<h3 class="mb-4 text-lg font-bold">{siteName}</h3>
 				<p class="text-sm text-gray-400">The ultimate tournament platform for competitive gaming communities.</p>
 			</div>
 
@@ -39,15 +41,12 @@
 					<a href="https://twitter.com" target="_blank" class="hover:text-blue-500">
 						<Twitter class="h-6 w-6" />
 					</a>
-					<a href="https://discord.com" target="_blank" class="hover:text-blue-500">
-						<Discord class="h-6 w-6" />
-					</a>
 				</div>
 			</div>
 		</div>
 
 		<div class="mt-8 border-t border-white/10 pt-8 text-center text-sm text-gray-400">
-			<p>&copy; 2023 start.gg. All rights reserved.</p>
+			<p>&copy; {currentYear} {siteName}. All rights reserved.</p>
 		</div>
 	</div>
 </footer>

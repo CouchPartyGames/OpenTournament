@@ -1,8 +1,13 @@
 <script>
-    import Footer from "$lib/Footer.svelte";
-	import Hero from "$lib/Hero.svelte";
-	import NavBar from "$lib/NavBar.svelte";
+	export const prerender = true;
+	export const ssr = true;
+
+    import HomePage from '$lib/components/homepage/index.js';
+    //import { siteName } from '$lib/server/global.js';
+    let siteName = 'ggparty.online';
 </script>
-<NavBar />
-<Hero />
-<Footer />
+<svelte:head>
+    <title>{siteName}</title>
+    <meta name="description" content="Tournaments and Brackets for competition" />
+</svelte:head>
+<HomePage></HomePage>

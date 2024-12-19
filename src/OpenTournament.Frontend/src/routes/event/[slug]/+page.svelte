@@ -1,10 +1,9 @@
 <script>
-import EventBanner from "$lib/event/EventBanner.svelte";
-import { page } from '$app/stores';
-</script>
+	export const prerender = true;
 
-<div>
-    <img src="" />
-</div>
-<h1>Event {$page.params.slug}</h1>
-<EventBanner></EventBanner>
+    import { siteName } from '$lib/server/global.js';
+</script>
+<svelte:head>
+    <title>{siteName}</title>
+    <meta name="description" content="Tournaments and Brackets for competition" />
+</svelte:head>

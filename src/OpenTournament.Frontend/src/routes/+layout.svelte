@@ -1,4 +1,6 @@
-<script>
-  import "tailwindcss/tailwind.css";
+<script lang="ts">
+	import '../app.css';
+	let { children } = $props();
 </script>
-<slot />
+
+{@render children()}

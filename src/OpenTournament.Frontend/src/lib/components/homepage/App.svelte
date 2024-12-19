@@ -1,9 +1,9 @@
 <script lang="ts">
-	import Nav from "$project/Nav.svelte";
-	import Hero from "$project/Hero.svelte";
-	import Tournaments from "$project/Tournaments.svelte";
-	import Features from "$project/Features.svelte";
-	import Footer from "$project/Footer.svelte";
+	import Nav from "./Nav.svelte";
+	import Hero from "./Hero.svelte";
+	import Tournaments from "./Tournaments.svelte";
+	import Features from "./Features.svelte";
+	import Footer from "../Footer.svelte";
 	import { fade } from "svelte/transition";
 
 	// State to handle loading
