@@ -15,7 +15,7 @@
 			<div>
 				<h4 class="mb-4 font-semibold">Quick Links</h4>
 				<ul class="space-y-2 text-sm text-gray-400">
-					<li><a href="#" class="hover:text-white">Home</a></li>
+					<li><a href="/" class="hover:text-white">Home</a></li>
 					<li><a href="#tournaments" class="hover:text-white">Tournaments</a></li>
 					<li><a href="#features" class="hover:text-white">Features</a></li>
 					<li><a href="#" class="hover:text-white">Communities</a></li>
@@ -25,7 +25,7 @@
 			<div>
 				<h4 class="mb-4 font-semibold">Support</h4>
 				<ul class="space-y-2 text-sm text-gray-400">
-					<li><a href="#" class="hover:text-white">Help Center</a></li>
+					<!-- <li><a href="#" class="hover:text-white">Help Center</a></li> -->
 					<li><a href="/terms" class="hover:text-white">Terms of Service</a></li>
 					<li><a href="/privacy" class="hover:text-white">Privacy Policy</a></li>
 					<li><a href="/contact" class="hover:text-white">Contact Us</a></li>

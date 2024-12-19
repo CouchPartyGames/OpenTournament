@@ -3,12 +3,13 @@
 
 	// Mobile menu state
 	let isMenuOpen: boolean = $state(false);
+	const siteName: string = "ggparty.online";
 </script>
 
 <nav class="fixed z-50 w-full border-b border-white/10 bg-[#1a1a1a]/95 backdrop-blur">
 	<div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
 		<div class="flex items-center gap-10">
-			<a href="#" class="text-2xl font-bold">start.gg</a>
+			<a href="/" class="text-2xl font-bold">{siteName}</a>
 			<div class="hidden items-center gap-6 lg:flex">
 				<a href="#tournaments" class="hover:text-primary">Tournaments</a>
 				<a href="#features" class="hover:text-primary">Features</a>
