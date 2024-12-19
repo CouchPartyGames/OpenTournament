@@ -5,28 +5,26 @@ namespace OpenTournament.Api.Data;
 
 public class AppDbContext(DbContextOptions options) : DbContext(options)
 {
-    public DbSet<Tournament> Tournaments { get; init; }
+    public DbSet<Competition> Competitions { get; init; }
+    
+    public DbSet<Event> Events { get; init; }
+    
+    public DbSet<Game> Games { get; init; }
     
     public DbSet<Match> Matches { get; init; }
     
     public DbSet<Participant> Participants { get; init; }
     
+    public DbSet<Platform> Platforms { get; init; }
+    
+    public DbSet<Platform> Pools { get; init; }
+    
     public DbSet<Registration> Registrations { get; init; }
     
-    //public DbSet<Game> Games { get; init; }
+    public DbSet<Stage> Stages { get; init; }
     
-
-    /*protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder
-            .UseNpgsql(_dbOptions.ConnectionString, opts =>
-            {
-                opts.EnableRetryOnFailure();
-                opts.CommandTimeout(10);    // in seconds
-            })
-            .EnableSensitiveDataLogging()
-            .EnableDetailedErrors();
-    }*/
+    public DbSet<Tournament> Tournaments { get; init; }
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

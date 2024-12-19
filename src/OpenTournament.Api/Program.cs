@@ -14,13 +14,14 @@ builder.Services.AddMediator();
 builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehaviour<,>));
 //builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 /* Move to Infrastructure Layer */
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 {
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddOpenApi();
 builder.Services.AddApiVersioning(opts =>
 {
