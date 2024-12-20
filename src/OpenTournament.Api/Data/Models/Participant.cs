@@ -3,9 +3,6 @@ using CouchPartyGames.TournamentGenerator;
 
 namespace OpenTournament.Api.Data.Models;
 
-public sealed record ParticipantId(string Value);
-
-
 public sealed class Participant : IOpponent, IEquatable<Participant>
 {
     [Column(TypeName = "varchar(36)")]

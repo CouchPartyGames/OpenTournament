@@ -6,7 +6,6 @@ public interface ILocation;
 
 public sealed record Location(string Address1, string Address2, string City, string State, string ZipCode) : ILocation;
 
-public sealed record OnlineLocation();
 
 
 public sealed class Event

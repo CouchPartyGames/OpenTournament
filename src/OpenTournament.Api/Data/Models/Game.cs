@@ -9,9 +9,9 @@ public sealed class Game
     public required GameId GameId { get; init; }
     
     [Column(TypeName = "varchar(36)")]
-    public string Name { get; init; }
+    public required string Name { get; init; }
     
-    public string Url { get; init; }
+    public string Image { get; init; } = string.Empty;
     
     // Platforms
 }
