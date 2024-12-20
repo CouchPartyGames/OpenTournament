@@ -11,9 +11,9 @@ public sealed class PlatformConfiguration : IEntityTypeConfiguration<Platform>
         builder
             .HasKey(c => c.PlatformId);
 
-        builder
+        /*builder
             .Property(c => c.PlatformId)
-            .HasConversion<PlatformIdConverter>();
+            .HasConversion<PlatformIdConverter>();*/
 
         builder.HasData(
             new Platform { PlatformId = 1, Name = "XBox" },
