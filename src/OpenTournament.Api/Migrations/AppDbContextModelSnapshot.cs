@@ -190,11 +190,8 @@ namespace OpenTournament.Api.Migrations
 
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Platform", b =>
                 {
-                    b.Property<int>("PlatformId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PlatformId"));
+                    b.Property<string>("PlatformId")
+                        .HasColumnType("varchar(36)");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
@@ -206,30 +203,30 @@ namespace OpenTournament.Api.Migrations
 
                     b.HasKey("PlatformId");
 
-                    b.ToTable("Platform");
+                    b.ToTable("Platforms");
 
                     b.HasData(
                         new
                         {
-                            PlatformId = 1,
+                            PlatformId = "0193f4b3-4938-79bc-9bf4-a9f1b693730e",
                             ImageUrl = "",
-                            Name = "XBox"
+                            Name = "XBox Series X"
                         },
                         new
                         {
-                            PlatformId = 2,
+                            PlatformId = "0193f4b6-873e-7d40-a6dd-bd898f206abb",
                             ImageUrl = "",
                             Name = "Playstation 5"
                         },
                         new
                         {
-                            PlatformId = 3,
+                            PlatformId = "0193f4b6-d6b8-7191-a2b8-07cc4c8a86fc",
                             ImageUrl = "",
                             Name = "Nintendo Switch"
                         },
                         new
                         {
-                            PlatformId = 4,
+                            PlatformId = "0193f4b7-078f-79cd-ba3b-f06d448481f5",
                             ImageUrl = "",
                             Name = "PC"
                         });
@@ -242,7 +239,7 @@ namespace OpenTournament.Api.Migrations
 
                     b.HasKey("PoolId");
 
-                    b.ToTable("Pool");
+                    b.ToTable("Pools");
                 });
 
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Registration", b =>

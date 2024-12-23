@@ -12,13 +12,14 @@ public static class CreateCompetition
         [property: Description("name of the competition")]
         string Name);
 
-    public static async Task<Results<Created, ValidationProblem>> Endpoint(AppDbContext dbContext,
+    public static async Task<Results<Created, ValidationProblem>> Endpoint(CreateCompetitionCommand command, 
+        AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
         var competition = new Competition
         {
             CompetitionId = CompetitionId.New(),
-            Name = "My Name"
+            Name = command.Name
         };
         dbContext.Add(competition);
         await dbContext.SaveChangesAsync(cancellationToken);

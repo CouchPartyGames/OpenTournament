@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OpenTournament.Api.Data.Models;
 
+[Table("Games")]
 public sealed class Game
 {
     [Column(TypeName = "varchar(36)")]

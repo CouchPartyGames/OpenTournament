@@ -17,6 +17,7 @@ public enum GameMode
 }
 
 
+[Table("Competitions")]
 public sealed class Competition
 {
     public enum Visibility

@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace OpenTournament.Api.Data.Models;
 
+[Table("Stages")]
 public sealed class Stage
 {
     public enum State

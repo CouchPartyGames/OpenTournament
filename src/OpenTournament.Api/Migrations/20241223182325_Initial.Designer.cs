@@ -13,8 +13,8 @@ using OpenTournament.Api.Data;
 namespace OpenTournament.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241218212441_Stages")]
-    partial class Stages
+    [Migration("20241223182325_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,85 @@ namespace OpenTournament.Api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("OpenTournament.Api.Data.Models.Competition", b =>
+                {
+                    b.Property<string>("CompetitionId")
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<int>("CompetitionVisibility")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EventId")
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Rules")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("CompetitionId");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("Competitions");
+                });
+
+            modelBuilder.Entity("OpenTournament.Api.Data.Models.Event", b =>
+                {
+                    b.Property<string>("EventId")
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("EventState")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EventVisibility")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("Events");
+                });
+
+            modelBuilder.Entity("OpenTournament.Api.Data.Models.Game", b =>
+                {
+                    b.Property<string>("GameId")
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(36)");
+
+                    b.HasKey("GameId");
+
+                    b.ToTable("Games");
+                });
 
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Match", b =>
                 {
@@ -112,6 +191,50 @@ namespace OpenTournament.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("OpenTournament.Api.Data.Models.Platform", b =>
+                {
+                    b.Property<string>("PlatformId")
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("varchar(25)");
+
+                    b.HasKey("PlatformId");
+
+                    b.ToTable("Platforms");
+
+                    b.HasData(
+                        new
+                        {
+                            PlatformId = "0193f4b3-4938-79bc-9bf4-a9f1b693730e",
+                            ImageUrl = "",
+                            Name = "XBox Series X"
+                        },
+                        new
+                        {
+                            PlatformId = "0193f4b6-873e-7d40-a6dd-bd898f206abb",
+                            ImageUrl = "",
+                            Name = "Playstation 5"
+                        },
+                        new
+                        {
+                            PlatformId = "0193f4b6-d6b8-7191-a2b8-07cc4c8a86fc",
+                            ImageUrl = "",
+                            Name = "Nintendo Switch"
+                        },
+                        new
+                        {
+                            PlatformId = "0193f4b7-078f-79cd-ba3b-f06d448481f5",
+                            ImageUrl = "",
+                            Name = "PC"
+                        });
+                });
+
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Pool", b =>
                 {
                     b.Property<Guid>("PoolId")
@@ -119,7 +242,7 @@ namespace OpenTournament.Api.Migrations
 
                     b.HasKey("PoolId");
 
-                    b.ToTable("Pool");
+                    b.ToTable("Pools");
                 });
 
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Registration", b =>
@@ -144,7 +267,7 @@ namespace OpenTournament.Api.Migrations
 
                     b.HasKey("StageId");
 
-                    b.ToTable("Stage");
+                    b.ToTable("Stages");
                 });
 
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Tournament", b =>
@@ -199,6 +322,13 @@ namespace OpenTournament.Api.Migrations
                     b.ToTable("Tournaments");
                 });
 
+            modelBuilder.Entity("OpenTournament.Api.Data.Models.Competition", b =>
+                {
+                    b.HasOne("OpenTournament.Api.Data.Models.Event", null)
+                        .WithMany("Competitions")
+                        .HasForeignKey("EventId");
+                });
+
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Match", b =>
                 {
                     b.HasOne("OpenTournament.Api.Data.Models.Participant", "Participant1")
@@ -231,6 +361,11 @@ namespace OpenTournament.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Participant");
+                });
+
+            modelBuilder.Entity("OpenTournament.Api.Data.Models.Event", b =>
+                {
+                    b.Navigation("Competitions");
                 });
 
             modelBuilder.Entity("OpenTournament.Api.Data.Models.Tournament", b =>

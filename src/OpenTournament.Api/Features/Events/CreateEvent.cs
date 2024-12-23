@@ -1,4 +1,5 @@
-﻿using OpenTournament.Api.Data;
+﻿using System.ComponentModel;
+using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
 using EventId = OpenTournament.Api.Data.Models.EventId;
 
@@ -6,7 +7,11 @@ namespace OpenTournament.Api.Features.Events;
 
 public static class CreateEvent
 {
-    public static async Task<Results<Created, ValidationProblem>> Endpoint(
+    public sealed record CreateEventCommand(
+        [property: Description("name of the event")]
+        string Name);
+    
+    public static async Task<Results<Created, ValidationProblem>> Endpoint(CreateEventCommand command,
         AppDbContext dbContext,
         CancellationToken cancellationToken)
     {
@@ -14,13 +19,13 @@ public static class CreateEvent
         var myEvent = new Event()
         {
             EventId = EventId.New(),
-            Name = "New Event",
+            Name = command.Name,
             Description = "New Event",
             Slug = "new-event"
         };
         dbContext.Add(myEvent);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return TypedResults.Created();
+        return TypedResults.Created(myEvent.EventId.Value.ToString());
     }
 }

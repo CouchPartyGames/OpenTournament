@@ -8,6 +8,7 @@ public sealed record Location(string Address1, string Address2, string City, str
 
 
 
+[Table("Events")]
 public sealed class Event
 {
     public enum State

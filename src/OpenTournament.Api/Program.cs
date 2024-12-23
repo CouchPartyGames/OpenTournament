@@ -82,20 +82,23 @@ ApiVersionSet apiVersionSet = app.NewApiVersionSet()
     .ReportApiVersions()
     .Build();
 
-app.MapGroup("registrations/v{apiVersion:apiVersion}")
-    .MapRegistrationEndpoints()
+app.MapGroup("authentication/v{apiVersion:apiVersion}")
+    .MapAuthenticationEndpoints()
+    .WithApiVersionSet(apiVersionSet);
+app.MapGroup("competitions/v{apiVersion:apiVersion}")
+    .MapCompetitionsEndpoints()
+    .WithApiVersionSet(apiVersionSet);
+app.MapGroup("events/v{apiVersion:apiVersion}")
+    .MapEventsEndpoints()
     .WithApiVersionSet(apiVersionSet);
 app.MapGroup("matches/v{apiVersion:apiVersion}")
     .MapMatchesEndpoints()
     .WithApiVersionSet(apiVersionSet);
+app.MapGroup("registrations/v{apiVersion:apiVersion}")
+    .MapRegistrationEndpoints()
+    .WithApiVersionSet(apiVersionSet);
 app.MapGroup("tournaments/v{apiVersion:apiVersion}")
     .MapTournamentsEndpoints()
-    .WithApiVersionSet(apiVersionSet);
-app.MapGroup("templates/v{apiVersion:apiVersion}")
-    .MapTemplatesEndpoints()
-    .WithApiVersionSet(apiVersionSet);
-app.MapGroup("authentication/v{apiVersion:apiVersion}")
-    .MapAuthenticationEndpoints()
     .WithApiVersionSet(apiVersionSet);
 
 app.MapHealthChecks(GlobalConstants.HealthPageUri);

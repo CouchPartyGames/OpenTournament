@@ -171,7 +171,21 @@ public static class Groups
             .WithSummary("Create Competition")
             .WithDescription("Create a Competition within an Event")
             .WithOpenApi();
+        
+        builder.MapGet("/{id}", GetCompetition.Endpoint)
+            .WithTags("Competition")
+            .WithSummary("Get Competition")
+            .WithDescription("Get a Competition within an Event")
+            .WithOpenApi();
 
+        /*
+        builder.MapDelete("/{id}", DeleteCompetition.Endpoint)
+            .WithTags("Competition")
+            .WithSummary("Get Competition")
+            .WithDescription("Get a Competition within an Event")
+            .WithOpenApi();
+            */
+        
         return builder;
     }
 
@@ -183,6 +197,25 @@ public static class Groups
             .WithDescription("Create an Event")
             .WithOpenApi();
 
+        builder.MapGet("/{id}", GetEvent.Endpoint)
+            .WithTags("Event")
+            .WithSummary("Get Event")
+            .WithDescription("Get an Event")
+            .WithOpenApi();
+        
+        builder.MapGet("", GetFilteredEvents.Endpoint)
+            .WithTags("Event")
+            .WithSummary("Get Event")
+            .WithDescription("Get an Filtered Events")
+            .WithOpenApi();
+        /*
+        builder.MapDelete("/{id}", DeleteEvent.Endpoint)
+            .WithTags("Event")
+            .WithSummary("Delete Event")
+            .WithDescription("Delete an Event")
+            .WithOpenApi();
+            */
+        
         return builder;
     }
 }
