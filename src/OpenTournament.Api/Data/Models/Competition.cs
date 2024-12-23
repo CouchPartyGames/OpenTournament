@@ -26,10 +26,10 @@ public sealed class Competition
     };
     
     [Column(TypeName = "varchar(36)")]
-    public CompetitionId CompetitionId { get; private set; }
+    public required CompetitionId CompetitionId { get; init; }
     
     [Column(TypeName = "varchar(50)")]
-    public string Name { get; private set; }
+    public required string Name { get; init; }
     
     [Column(TypeName = "varchar(36)")]
     public GameId GameId { get; private set; }

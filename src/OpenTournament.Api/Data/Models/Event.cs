@@ -25,7 +25,7 @@ public sealed class Event
     public required EventId EventId { get; init; }
     
     [Column(TypeName = "varchar(50)")]
-    public string Name { get; init; }
+    public required string Name { get; init; }
     
     public string Description { get; init; }
     

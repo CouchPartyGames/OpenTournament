@@ -2,6 +2,8 @@ using MassTransit;
 using Microsoft.AspNetCore.Authentication;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Features.Authentication;
+using OpenTournament.Api.Features.Competitions;
+using OpenTournament.Api.Features.Events;
 using OpenTournament.Api.Features.Matches;
 using OpenTournament.Api.Features.Registration;
 using OpenTournament.Api.Features.Templates;
@@ -159,6 +161,28 @@ public static class Groups
             .WithDescription("Update a Tournament Template")
             .WithOpenApi();
         
+        return builder;
+    }
+
+    public static RouteGroupBuilder MapCompetitionsEndpoints(this RouteGroupBuilder builder)
+    {
+        builder.MapPost("", CreateCompetition.Endpoint)
+            .WithTags("Competition")
+            .WithSummary("Create Competition")
+            .WithDescription("Create a Competition within an Event")
+            .WithOpenApi();
+
+        return builder;
+    }
+
+    public static RouteGroupBuilder MapEventsEndpoints(this RouteGroupBuilder builder)
+    {
+        builder.MapPost("", CreateEvent.Endpoint)
+            .WithTags("Event")
+            .WithSummary("Create Event")
+            .WithDescription("Create an Event")
+            .WithOpenApi();
+
         return builder;
     }
 }
