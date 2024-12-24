@@ -1,10 +1,9 @@
 import { error } from '@sveltejs/kit';
-import { HTTP_PROTOCOL, HTTP_HOST } from '$env/static/public';
+import { PUBLIC_BASE_URL } from '$env/static/public';
 
 export const load = async ({ params }) => {
     console.log('slug: ' + params.slug);
-    console.log(HTTP_PROTOCOL + "://" + HTTP_HOST);
-    const resp = await fetch('https://dummyjson.com/products');
+    const resp = await fetch(PUBLIC_BASE_URL + '/products/v1');
     const data = await resp.json();
     if (data) {
         console.log(data);
