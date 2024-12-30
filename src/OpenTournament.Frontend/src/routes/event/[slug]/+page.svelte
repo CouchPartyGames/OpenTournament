@@ -1,7 +1,6 @@
 <script>
-	export const prerender = true;
-
-    const siteName = 'ggparty.online';
+    import { PUBLIC_HOSTNAME } from '$env/static/public'
+    const siteName = PUBLIC_HOSTNAME;
     let { data } = $props();
     import  Details from '$lib/components/details/index.js';
 </script>

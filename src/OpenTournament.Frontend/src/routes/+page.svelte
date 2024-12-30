@@ -1,10 +1,10 @@
 <script>
-	//export const prerender = true;
 	//export const ssr = true;
 
+    import { PUBLIC_HOSTNAME } from '$env/static/public'
     import HomePage from '$lib/components/homepage/index.js';
     //import { siteName } from '$lib/server/global.js';
-    let siteName = 'ggparty.online';
+    const siteName = PUBLIC_HOSTNAME;
 
     //let { data } = $props();
 </script>

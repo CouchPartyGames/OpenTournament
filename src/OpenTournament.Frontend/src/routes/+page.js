@@ -1,5 +1,6 @@
 import { PUBLIC_BASE_URL } from '$env/static/public';
 
+export const prerender = true;
 export const load = async () => {
 	
 	const host = PUBLIC_BASE_URL;
