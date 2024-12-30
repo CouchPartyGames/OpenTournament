@@ -1,12 +1,12 @@
 ﻿<fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box">
     
-    <legend class="fieldset-legend">Page details</legend>
+    <legend class="fieldset-legend">Event</legend>
 
     <label class="fieldset-label">Name</label>
     <input type="text" class="input" placeholder="My awesome page" />
 
     <label class="fieldset-label">Description</label>
-    <input type="text" class="input" placeholder="My awesome page" />
+    <textarea class="textarea" placeholder="Event description .."></textarea>
     
     <label class="fieldset-label">Slug</label>
     <input type="text" class="input" placeholder="my-awesome-page" />

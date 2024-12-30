@@ -1,6 +1,6 @@
 ﻿<fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box">
 
-    <legend class="fieldset-legend">Competition details</legend>
+    <legend class="fieldset-legend">Competition</legend>
 
     <label class="fieldset-label">Name</label>
     <input type="text" class="input" placeholder="My awesome page" />
