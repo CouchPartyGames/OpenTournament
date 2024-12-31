@@ -52,7 +52,7 @@
 					<a href="{tournament.uri}">
 						<img src={tournament.image} alt={tournament.title} class="mb-4 h-48 w-full rounded-lg object-cover" />
 					</a>
-					<h3 class="mb-2 text-xl font-semibold">{tournament.title}</h3>
+					<h3 class="mb-2 text-xl font-semibold"><a href="{tournament.uri}">{tournament.title}</a></h3>
 					<p class="mb-4 text-sm text-gray-400">{tournament.game}</p>
 
 					<div class="flex flex-wrap gap-4 text-sm">
