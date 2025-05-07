@@ -25,6 +25,8 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
     
     public DbSet<Tournament> Tournaments { get; init; }
     
+    public DbSet<TournamentMatches> TournamentMatches { get; init; }
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,5 +40,6 @@ public class AppDbContext(DbContextOptions options) : DbContext(options)
         modelBuilder.ApplyConfiguration(new RegistrationConfiguration());
         modelBuilder.ApplyConfiguration(new StageConfiguration());
         modelBuilder.ApplyConfiguration(new TournamentConfiguration());
+        modelBuilder.ApplyConfiguration(new TournamentMatchesConfiguration());
     }
 }

@@ -65,7 +65,6 @@ public sealed class Tournament
 
     public RegistrationMode RegistrationMode = RegistrationMode.Dynamic;
     
-    //public bool Has3rdPlace { get; init; }
 
     public required Creator Creator { get; init; }
     

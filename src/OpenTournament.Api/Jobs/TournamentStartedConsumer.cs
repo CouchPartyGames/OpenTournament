@@ -36,6 +36,22 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
                 .WithOpponents(oppList, GlobalConstants.ByeOpponent)
                 .Build();
 
+            /* GDO-414
+            var tournamentMatches = new TournamentMatches()
+            {
+                TournamentId = tournamentId,
+                Matches =
+                [
+                    new MatchMetadata
+                    {
+                        MatchId = MatchId.NewMatchId(),
+                        MatchState = MatchMetadata.State.Ready,
+                        Metadata = {}
+                    }
+                ]
+            };
+            dbContext.Add(tournamentMatches);
+            */
 
             var firstRoundMatches = tournament
                 .Matches
