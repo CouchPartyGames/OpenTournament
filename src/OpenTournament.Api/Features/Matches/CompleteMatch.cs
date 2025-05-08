@@ -36,24 +36,17 @@ public static class CompleteMatch
         {
             return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
         }
-        
+
+        /*
+        SELECT * FROM TournamentMatches WHERE TournamentMatches.Matches @> [{"MatchId":"matchId"}]
+        var query = "[{\"MatchId\": \"{matchId}\"}]";
         var match = await dbContext
-            .Matches
-            .FirstOrDefaultAsync(x => x.Id == matchId, token);
-        if (match is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        if (winnerId != match.Participant1Id && match.Participant2Id != winnerId)
-        {
-            return TypedResults.Conflict();
-        }
-
-        if (match.State == MatchState.Complete)
-        {
-            return TypedResults.Conflict();
-        }
+            .TournamentMatches
+            .Where(x => x.Matches.Any(m => m.MatchId == matchId))
+            .ToListAsync(token);
+            //.Where(x => EF.Functions.Contains(x, query))
+            //.ToListAsync(token);
+            */
 
 
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
@@ -62,20 +55,15 @@ public static class CompleteMatch
             await using var transaction = await dbContext.Database.BeginTransactionAsync(token);
 
             // Complete Match
-            match.Complete(winnerId);
-            var msg = new MatchCompleted {
-                MatchId = matchId,
-                TournamentId = match.TournamentId,
-                WinnerId = match.WinnerId,
-                CompletedLocalMatchId = match.LocalMatchId
-            };
-
+            //match.Matches[0].MatchResults = null;
+            //match.Matches[0].CompletedOnUtc = DateTime.UtcNow;
+            
             await dbContext.SaveChangesAsync(token);
             await transaction.CommitAsync(token);
 
             // Publish Results
-            var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:match-completed"));
-            await endpoint.Send(msg, token);
+            //var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:match-completed"));
+            //await endpoint.Send(msg, token);
         });
 
         return TypedResults.Ok();
