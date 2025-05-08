@@ -23,4 +23,8 @@ public class MatchMetadata
     public State MatchState { get; set; } = State.Waiting;
     
     public Dictionary<string, string> Metadata { get; set; }
+    
+    public DateTime StartedOnUtc { get; set; }
+    
+    public DateTime CompletedOnUtc { get; set; }
 }
