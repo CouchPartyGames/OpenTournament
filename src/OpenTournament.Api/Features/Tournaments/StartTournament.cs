@@ -12,7 +12,8 @@ namespace OpenTournament.Api.Features.Tournaments;
 public static class StartTournament
 {
 
-    public static async Task<Results<NoContent, NotFound, BadRequest, ValidationProblem, ProblemHttpResult>> Endpoint(string id,
+    public static async Task<Results<NoContent, NotFound, BadRequest, ValidationProblem, ProblemHttpResult>> Endpoint(
+        string id,
         IMediator mediator,
         AppDbContext dbContext,
         ISendEndpointProvider sendEndpointProvider,
@@ -23,7 +24,7 @@ public static class StartTournament
         {
             return TypedResults.NotFound();
         }
-        
+
         var tournament = await dbContext
             .Tournaments
             .FirstOrDefaultAsync(m => m.Id == tournamentId, token);
@@ -37,9 +38,9 @@ public static class StartTournament
             .Where(x => x.TournamentId == tournament.Id)
             .Select(x => x.Participant)
             .ToListAsync(token);
-        
-            
-            // Apply Rules
+
+
+        // Apply Rules
         var engine = new RuleEngine();
         engine.Add(new TournamentInRegistrationState(tournament.Status));
         engine.Add(new TournamentHasMinimumParticipants(participants.Count, tournament.MinParticipants));
@@ -66,7 +67,7 @@ public static class StartTournament
             await endpoint.Send(msg, token);
             */
             var oppList = ConvertRegistrationsToParticipants(tournamentId, dbContext);
-            
+
             var tournamentSingle = new SingleEliminationBuilder<Participant>("Temporary")
                 .SetSize(DrawSize.NewRoundBase2((int)drawSize.Value).Value)
                 .SetSeeding(TournamentSeeding.Ranked)
@@ -84,10 +85,13 @@ public static class StartTournament
                 var someMatch = new MatchMetadata()
                 {
                     MatchId = MatchId.NewMatchId(),
-                    MatchState = MatchMetadata.State.Waiting,
+                    LocalMatchId = match.LocalMatchId,
+                    MatchState = GetMatchState(match.Opponent1, match.Opponent2),
+                    MatchParticipants = GetParticipants(match.Opponent1.Id, match.Opponent2.Id)
                 };
                 tournamentMatches.Matches.Add(someMatch);
             }
+
             dbContext.Add(tournamentMatches);
 
             // Make Changes
@@ -97,12 +101,35 @@ public static class StartTournament
 
         return TypedResults.NoContent();
     }
-    
-    private static List<Participant> ConvertRegistrationsToParticipants(TournamentId tournamentId, AppDbContext dbContext) =>
+
+    private static List<Participant> ConvertRegistrationsToParticipants(TournamentId tournamentId,
+        AppDbContext dbContext) =>
         dbContext
             .Registrations
             .AsNoTracking()
             .Where(x => x.TournamentId == tournamentId)
             .Select(x => x.Participant)
             .ToList();
+
+    private static MatchMetadata.State GetMatchState(Participant p1, Participant p2)
+    {
+        if (p1.Id == GlobalConstants.ByeOpponent.Id || p2.Id == GlobalConstants.ByeOpponent.Id)
+        {
+            return MatchMetadata.State.Completed;
+        } else if (p1.Id != GlobalConstants.ByeOpponent.Id && p2.Id != GlobalConstants.ByeOpponent.Id)
+        {
+            return MatchMetadata.State.Ready;
+        }
+        return MatchMetadata.State.Waiting;
+    }
+    
+    private static Dictionary<int, ParticipantId> GetParticipants(ParticipantId opp1, ParticipantId opp2)
+    {
+        if (opp1 != null && opp2 != null)
+        {
+            return new() { {0, opp1}, {1, opp2} };
+        }
+        
+        return new();
+    }
 }

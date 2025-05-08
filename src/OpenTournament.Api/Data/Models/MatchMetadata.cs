@@ -12,9 +12,11 @@ public class MatchMetadata
     
     public MatchId MatchId { get; set; }
     
+    public int LocalMatchId { get; set; }
+    
     public MatchResults MatchResults { get; set; }
     
-    public MatchParticipants MatchParticipants { get; set; }
+    public Dictionary<int, ParticipantId> MatchParticipants { get; set; }
     
     public MatchProgressions MatchProgressions { get; set; }
 
