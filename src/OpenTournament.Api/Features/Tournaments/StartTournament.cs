@@ -1,3 +1,4 @@
+using CouchPartyGames.TournamentGenerator;
 using CouchPartyGames.TournamentGenerator.Position;
 using MassTransit;
 using OpenTournament.Api.Common.Rules;
@@ -55,6 +56,7 @@ public static class StartTournament
             await using var transaction = await dbContext.Database.BeginTransactionAsync(token);
             tournament.Start(drawSize);
 
+            /*
             var msg = new TournamentStarted {
                 TournamentId = tournamentId,
                 DrawSize = (int)drawSize.Value,
@@ -62,6 +64,31 @@ public static class StartTournament
             };
             var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:tournament-started"));
             await endpoint.Send(msg, token);
+            */
+            var oppList = ConvertRegistrationsToParticipants(tournamentId, dbContext);
+            
+            var tournamentSingle = new SingleEliminationBuilder<Participant>("Temporary")
+                .SetSize(DrawSize.NewRoundBase2((int)drawSize.Value).Value)
+                .SetSeeding(TournamentSeeding.Ranked)
+                .Set3rdPlace(Tournament3rdPlace.NoThirdPlace)
+                .WithOpponents(oppList, GlobalConstants.ByeOpponent)
+                .Build();
+
+            var tournamentMatches = new TournamentMatches()
+            {
+                TournamentId = tournamentId,
+                Matches = []
+            };
+            foreach (var match in tournamentSingle.Matches)
+            {
+                var someMatch = new MatchMetadata()
+                {
+                    MatchId = MatchId.NewMatchId(),
+                    MatchState = MatchMetadata.State.Waiting,
+                };
+                tournamentMatches.Matches.Add(someMatch);
+            }
+            dbContext.Add(tournamentMatches);
 
             // Make Changes
             await dbContext.SaveChangesAsync(token);
@@ -70,4 +97,12 @@ public static class StartTournament
 
         return TypedResults.NoContent();
     }
+    
+    private static List<Participant> ConvertRegistrationsToParticipants(TournamentId tournamentId, AppDbContext dbContext) =>
+        dbContext
+            .Registrations
+            .AsNoTracking()
+            .Where(x => x.TournamentId == tournamentId)
+            .Select(x => x.Participant)
+            .ToList();
 }

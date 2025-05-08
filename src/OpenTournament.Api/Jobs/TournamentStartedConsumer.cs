@@ -20,39 +20,37 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
         var tournamentId = context.Message.TournamentId;
         var numOpponents = context.Message.DrawSize;
         
-        //await ResilientTransaction.New(dbContext).ExecuteAsync(() =>
-        //{
-            var oppList = ConvertRegistrationsToParticipants(tournamentId);
-            if (oppList.Count == 0)
-            {
-                TournamentStartedLog.ConsumerFailed(logger, context.Message.TournamentId, "No opponents were found");
-                return;
-                //return Task.CompletedTask;
-            }
-            var tournament = new SingleEliminationBuilder<Participant>("Temporary")
-                .SetSize(DrawSize.NewRoundBase2(numOpponents).Value)
-                .SetSeeding(TournamentSeeding.Ranked)
-                .Set3rdPlace(Tournament3rdPlace.NoThirdPlace)
-                .WithOpponents(oppList, GlobalConstants.ByeOpponent)
-                .Build();
+        var oppList = ConvertRegistrationsToParticipants(tournamentId);
+        if (oppList.Count == 0)
+        {
+            TournamentStartedLog.ConsumerFailed(logger, context.Message.TournamentId, "No opponents were found");
+            return;
+        }
+        
+        var tournament = new SingleEliminationBuilder<Participant>("Temporary")
+            .SetSize(DrawSize.NewRoundBase2(numOpponents).Value)
+            .SetSeeding(TournamentSeeding.Ranked)
+            .Set3rdPlace(Tournament3rdPlace.NoThirdPlace)
+            .WithOpponents(oppList, GlobalConstants.ByeOpponent)
+            .Build();
 
-            /* GDO-414
-            var tournamentMatches = new TournamentMatches()
+        var tournamentMatches = new TournamentMatches()
+        {
+            TournamentId = tournamentId,
+            Matches = []
+        };
+        foreach (var match in tournament.Matches)
+        {
+            var someMatch = new MatchMetadata()
             {
-                TournamentId = tournamentId,
-                Matches =
-                [
-                    new MatchMetadata
-                    {
-                        MatchId = MatchId.NewMatchId(),
-                        MatchState = MatchMetadata.State.Ready,
-                        Metadata = {}
-                    }
-                ]
+                MatchId = MatchId.NewMatchId(),
+                MatchState = MatchMetadata.State.Waiting,
             };
-            dbContext.Add(tournamentMatches);
-            */
+            tournamentMatches.Matches.Add(someMatch);
+        }
+        dbContext.Add(tournamentMatches);
 
+            /*
             var firstRoundMatches = tournament
                 .Matches
                 .Where(m => m.Round == 1)
@@ -91,6 +89,7 @@ public sealed class TournamentStartedConsumer(ILogger<TournamentStartedConsumer>
             //return Task.CompletedTask;
         //});
         //return Task.CompletedTask;
+        */
         TournamentStartedLog.ConsumerSuccessful(logger, context.Message.TournamentId);
     }
 

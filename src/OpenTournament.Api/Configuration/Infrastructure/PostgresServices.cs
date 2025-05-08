@@ -1,3 +1,4 @@
+using Npgsql;
 using OpenTournament.Api.Data;
 
 namespace OpenTournament.Api.Configuration.Infrastructure;
@@ -12,11 +13,14 @@ public static class PostgresServices
         
         services.AddDbContext<AppDbContext>(opts =>
         {
-            var connectionString = dbOptions.ConnectionString;
-            opts.UseNpgsql(connectionString, pgOpts =>
+            var dataSource = new NpgsqlDataSourceBuilder(dbOptions.ConnectionString)
+                .EnableDynamicJson()
+                .Build();
+            
+            opts.UseNpgsql(dataSource, pgOpts =>
                 {
-                    pgOpts.EnableRetryOnFailure();
-                    pgOpts.CommandTimeout(15);
+                    //pgOpts.EnableRetryOnFailure();
+                    //pgOpts.CommandTimeout(15);
                     //pgOpts.ExecutionStrategy();
                 })
                 .EnableSensitiveDataLogging();
