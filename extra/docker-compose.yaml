@@ -44,15 +44,14 @@ services:
       #- ".data/rabbitmq_data"
 
   dashboard:
-    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:8.0.0
-    #image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
+    image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
     container_name: opentournament-dashboard
     restart: always
     environment:
       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: true
     ports:
-      - 18888:18888
-      - 4317:18889
+      - 18888:18888			# Web UI
+      - 4317:18889			# OTEL
     
 #volumes:
 #  db_data:
