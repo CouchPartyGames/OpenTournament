@@ -43,12 +43,15 @@ services:
     #volumes:
       #- ".data/rabbitmq_data"
 
+    # https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/standalone?tabs=bash
   dashboard:
     image: mcr.microsoft.com/dotnet/nightly/aspire-dashboard:latest
     container_name: opentournament-dashboard
     restart: always
     environment:
       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: true
+      #OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+	  #OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost"
     ports:
       - 18888:18888			# Web UI
       - 4317:18889			# OTEL
