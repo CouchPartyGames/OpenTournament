@@ -18,6 +18,10 @@ public static class AuthorizationServices
             {
                 policyBuilder.RequireClaim(IdentityData.ServerClaimName, "server");
             });
+
+                // Set a Fallback Policy to apply to all non explicit endpoints
+            //options.FallbackPolicy
+            //options.DefaultPolicy = options.FallbackPolicy;
         });
         //services.AddSingleton<IAuthorizationHandler, TournamentDeleteHandler>();
         //services.AddSingleton<IAuthorizationHandler, MatchCompleteHandler>();
@@ -25,5 +29,4 @@ public static class AuthorizationServices
         
         return services;
     }
-    
 }
