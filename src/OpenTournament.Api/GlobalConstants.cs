@@ -11,8 +11,4 @@ public static class GlobalConstants
     public const string HealthPageUri = "/health";
     
     public static readonly Participant ByeOpponent = Participant.CreateBye();
-    
-    // Cors Policies
-    public const string ProdCorsPolicyName = "prod";
-    public const string DevCorsPolicyName = "dev";
 }

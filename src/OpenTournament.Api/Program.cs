@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Asp.Versioning.Builder;
 using OpenTournament.Api;
 using OpenTournament.Api.Configuration;
+using OpenTournament.Api.Configuration.Infrastructure;
 using OpenTournament.Api.Features;
 using OpenTournament.Api.Mediator.Behaviours;
 using Scalar.AspNetCore;
@@ -35,21 +36,8 @@ builder.Services.AddApiVersioning(opts =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(opts =>
 {
-    opts.AddPolicy(GlobalConstants.DevCorsPolicyName, policy =>
-    {
-        policy
-            .AllowAnyOrigin()
-            .WithMethods("GET", "POST", "PUT", "DELETE")
-            .AllowAnyHeader();
-    });
-    opts.AddPolicy(GlobalConstants.ProdCorsPolicyName, policy =>
-    {
-        policy
-            .WithOrigins("https://api.opentournament.online")
-            .WithMethods("GET", "POST", "PUT", "DELETE")
-            .AllowAnyHeader()
-            .AllowCredentials();
-    });
+    opts.AddPolicy(CorsExtensions.DevCorsPolicyName, CorsExtensions.GetDevCorsPolicy());
+    opts.AddPolicy(CorsExtensions.ProdCorsPolicyName, CorsExtensions.GetProdCorsPolicy());
 });
 
 //builder.Services.AddDomainServices();
@@ -70,7 +58,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseCors(app.Environment.IsDevelopment() ? GlobalConstants.DevCorsPolicyName : GlobalConstants.ProdCorsPolicyName);
+app.UseCors(app.Environment.IsDevelopment() ? CorsExtensions.DevCorsPolicyName : CorsExtensions.ProdCorsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
