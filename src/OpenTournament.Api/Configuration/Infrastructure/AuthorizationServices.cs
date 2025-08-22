@@ -6,22 +6,17 @@ public static class AuthorizationServices
 {
     public static IServiceCollection AddAuthorizationServices(this IServiceCollection services)
     {
-        // Authorization
         services.AddAuthorization(options =>
         {
-            options.AddPolicy(IdentityData.ParticipantPolicyName, policyBuilder =>
-            {
-                policyBuilder.RequireAuthenticatedUser();
-            });
+            options.AddPolicy(AuthorizationPolicyExtensions.ParticipantPolicyName, 
+                AuthorizationPolicyExtensions.GetParticipantPolicy());
             
-            options.AddPolicy(IdentityData.ServerPolicyName, policyBuilder =>
-            {
-                policyBuilder.RequireClaim(IdentityData.ServerClaimName, "server");
-            });
+            options.AddPolicy(AuthorizationPolicyExtensions.ServerPolicyName, 
+                AuthorizationPolicyExtensions.GetServerPolicy());
 
                 // Set a Fallback Policy to apply to all non explicit endpoints
-            //options.FallbackPolicy
-            //options.DefaultPolicy = options.FallbackPolicy;
+            options.FallbackPolicy = AuthorizationPolicyExtensions.GetParticipantPolicy();
+            options.DefaultPolicy = options.FallbackPolicy;
         });
         //services.AddSingleton<IAuthorizationHandler, TournamentDeleteHandler>();
         //services.AddSingleton<IAuthorizationHandler, MatchCompleteHandler>();
