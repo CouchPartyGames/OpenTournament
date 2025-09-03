@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OpenTournament.Api/OpenTournament.Api.csproj" />
+    <Project Path="src/OpenTournament.Frontend/OpenTournament.Frontend.csproj" />
+    <Project Path="src/OpenTournament.Mobile/OpenTournament.Mobile.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OpenTournament.Tests.Integration/OpenTournament.Tests.Integration.csproj" />
+    <Project Path="tests/OpenTournament.Tests.Unit/OpenTournament.Tests.Unit.csproj" />
+  </Folder>
+</Solution>
