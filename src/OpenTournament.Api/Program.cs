@@ -10,7 +10,7 @@ using Scalar.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.WebHost.UseKestrel(opts => opts.AddServerHeader = false);
 builder.Services.AddMediator();
 builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ValidationPipelineBehaviour<,>));
 //builder.Services.AddSingleton(typeof(IPipelineBehavior<,>), typeof(ErrorLoggerHandler<,>));
@@ -62,7 +62,7 @@ app.UseCors(app.Environment.IsDevelopment() ? CorsExtensions.DevCorsPolicyName :
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpLogging();
-app.UseExceptionHandler(options => {});
+app.UseExceptionHandler(_ => {});
 app.UseStatusCodePages();
 
 ApiVersionSet apiVersionSet = app.NewApiVersionSet()
