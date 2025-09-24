@@ -12,6 +12,7 @@ public static class CorsExtensions
             .WithMethods("GET", "POST", "PUT", "DELETE")
             .AllowAnyHeader()
             .AllowCredentials()
+            .SetPreflightMaxAge(TimeSpan.FromMinutes(30))
             .Build();
 
     
