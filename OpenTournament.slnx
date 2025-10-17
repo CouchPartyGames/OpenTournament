@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/OpenTournament.Api/OpenTournament.Api.csproj" />
     <Project Path="src/OpenTournament.Frontend/OpenTournament.Frontend.csproj" />
+    <Project Path="src\OpenTournament.Core\OpenTournament.Core.csproj" Type="Classic C#" />
     <Project Path="src\OpenTournament.WebApi\OpenTournament.WebApi.csproj" Type="Classic C#" />
   </Folder>
   <Folder Name="/tests/">
