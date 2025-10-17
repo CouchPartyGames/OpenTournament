@@ -1,0 +1,6 @@
+@OpenTournament.WebApi_HostAddress = http://localhost:5089
+
+GET {{OpenTournament.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
