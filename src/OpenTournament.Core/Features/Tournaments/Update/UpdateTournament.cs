@@ -1,4 +1,8 @@
-using OpenTournament.Core.Domain.Entities;
+using FluentValidation;
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
@@ -25,7 +29,6 @@ public static class UpdateTournament
 
    public static async Task<Results<NoContent, NotFound, ProblemHttpResult, ValidationProblem>> Endpoint(string id,
       UpdateTournamentCommand command,
-      IMediator mediator,
       AppDbContext dbContext,
       CancellationToken token)
    {
