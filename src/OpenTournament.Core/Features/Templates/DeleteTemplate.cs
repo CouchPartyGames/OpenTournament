@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace OpenTournament.Api.Features.Templates;
+namespace OpenTournament.Core.Features.Templates;
 
 public static class DeleteTemplate
 {
