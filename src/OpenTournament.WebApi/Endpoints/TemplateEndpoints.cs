@@ -5,26 +5,23 @@ namespace OpenTournament.WebApi.Endpoints;
 public static class TemplateEndpoints
 {
     
-    public static RouteGroupBuilder MapTemplateEndpoints(this RouteGroupBuilder builder)
+    public static IEndpointRouteBuilder MapTemplateEndpoints(this RouteGroupBuilder builder)
     {
         builder.MapPost("", CreateTemplate.Endpoint)
             .WithTags("Template")
             .WithSummary("Create Template")
-            .WithDescription("Create a Tournament Template")
-            .WithOpenApi();
-        
-        
+            .WithDescription("Create a Tournament Template");
+
+
         builder.MapDelete("/{id}", DeleteTemplate.Endpoint)
             .WithTags("Template")
             .WithSummary("Delete Template")
-            .WithDescription("Delete an available Template")
-            .WithOpenApi();
-        
+            .WithDescription("Delete an available Template");
+
         builder.MapPut("/templates/{id}", UpdateTemplate.Endpoint)
             .WithTags("Template")
             .WithSummary("Update Template")
-            .WithDescription("Update a Tournament Template")
-            .WithOpenApi();
+            .WithDescription("Update a Tournament Template");
         
         return builder;
     }

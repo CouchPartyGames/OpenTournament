@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
-using OpenTournament.Api.DomainEvents;
+using OpenTournament.Core.Domain.Events;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 

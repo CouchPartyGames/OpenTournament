@@ -4,7 +4,7 @@ namespace OpenTournament.WebApi.Endpoints;
 
 public static class AuthenticationEndpoints
 {
-    public static RouteGroupBuilder MapAuthenticationEndpoints(this RouteGroupBuilder builder)
+    public static IEndpointRouteBuilder MapAuthenticationEndpoints(this RouteGroupBuilder builder)
     {
         builder.MapPost("/login", Login.Endpoint)
             .WithTags("Authentication")

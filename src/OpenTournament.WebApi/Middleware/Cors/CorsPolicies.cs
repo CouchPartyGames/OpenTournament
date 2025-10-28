@@ -14,6 +14,7 @@ public static class CorsPolicies
             .AllowAnyOrigin()
             .AllowAnyHeader()
             .WithMethods("GET", "POST", "PUT", "DELETE")
+            .AllowCredentials()
             .SetPreflightMaxAge(TimeSpan.FromMinutes(1))
             .Build();
     }

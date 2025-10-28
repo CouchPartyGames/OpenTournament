@@ -1,23 +1,12 @@
-using OpenTournament.Api.Common.Rules;
-using OpenTournament.Api.Common.Rules.Tournaments;
-using OpenTournament.Api.Data;
-using OpenTournament.Api.Data.Models;
 using OpenTournament.Core.Domain.Entities;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
-namespace OpenTournament.Api.Features.Tournaments;
+namespace OpenTournament.Core.Features.Tournaments.Update;
 
 public static class UpdateTournament
 {
-   public sealed record UpdateTournamentCommand(
-      string Name,
-      DateTime StartTime,
-      int MinParticipants,
-      int MaxParticipants,
-      EliminationMode EliminationMode,
-      DrawSeeding Seeding);
    
 
    private sealed class Validator : AbstractValidator<UpdateTournamentCommand>

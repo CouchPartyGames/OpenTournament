@@ -1,12 +1,20 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/OpenTournament.Api/OpenTournament.Api.csproj" />
-    <Project Path="src/OpenTournament.Frontend/OpenTournament.Frontend.csproj" />
+    <Project Path="src/OpenTournament.Api/OpenTournament.Api.csproj">
+      <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
+    </Project>
+    <Project Path="src/OpenTournament.Frontend/OpenTournament.Frontend.csproj">
+      <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
+    </Project>
     <Project Path="src\OpenTournament.Core\OpenTournament.Core.csproj" Type="Classic C#" />
     <Project Path="src\OpenTournament.WebApi\OpenTournament.WebApi.csproj" Type="Classic C#" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/OpenTournament.Tests.Integration/OpenTournament.Tests.Integration.csproj" />
-    <Project Path="tests/OpenTournament.Tests.Unit/OpenTournament.Tests.Unit.csproj" />
+    <Project Path="tests/OpenTournament.Tests.Integration/OpenTournament.Tests.Integration.csproj">
+      <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
+    </Project>
+    <Project Path="tests/OpenTournament.Tests.Unit/OpenTournament.Tests.Unit.csproj">
+      <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
+    </Project>
   </Folder>
 </Solution>
