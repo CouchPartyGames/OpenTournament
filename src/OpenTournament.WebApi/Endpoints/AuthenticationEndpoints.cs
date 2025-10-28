@@ -1,4 +1,4 @@
-using OpenTournament.Api.Features.Authentication;
+using OpenTournament.Core.Features.Authentication;
 
 namespace OpenTournament.WebApi.Endpoints;
 

@@ -36,9 +36,8 @@ public static class TournamentEndpoints
             
         builder.MapPut("/{id}", async (string id,
                 UpdateTournament.UpdateTournamentCommand request,
-                IMediator mediator,
                 AppDbContext dbContext,
-                CancellationToken token) => await UpdateTournament.Endpoint(id, request, mediator, dbContext, token))
+                CancellationToken token) => await UpdateTournament.Endpoint(id, request, dbContext, token))
             .WithTags("Tournament")
             .WithSummary("Update Tournament")
             .WithDescription("Update Tournament settings")

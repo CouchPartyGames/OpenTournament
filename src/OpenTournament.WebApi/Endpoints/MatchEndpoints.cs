@@ -31,10 +31,9 @@ public static class MatchEndpoints
         
         builder.MapPut("/{id}", (string id,
                 UpdateMatch.UpdateMatchCommand cmd,
-                IMediator mediator,
                 CancellationToken token) =>
             {
-                return UpdateMatch.Endpoint(id, cmd, mediator, token);
+                return UpdateMatch.Endpoint(id, cmd, token);
             })
             .WithTags("Match")
             .WithSummary("Update Match")
