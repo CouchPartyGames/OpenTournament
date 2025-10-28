@@ -1,6 +1,8 @@
-using OpenTournament.Api.Data;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Api.Features.Events;
+namespace OpenTournament.Core.Features.Events;
 
 public static class GetEvent
 {

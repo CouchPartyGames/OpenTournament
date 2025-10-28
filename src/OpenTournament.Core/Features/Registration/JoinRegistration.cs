@@ -1,7 +1,12 @@
 using MassTransit;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
 using OpenTournament.Api.DomainEvents;
+using OpenTournament.Core.Domain.ValueObjects;
+using OpenTournament.Core.Infrastructure.Persistence;
 
 namespace OpenTournament.Api.Features.Registration;
 
@@ -40,7 +45,7 @@ public static class JoinRegistration
         }*/
 
         var participantId = new ParticipantId(participantClaim.Value);
-        dbContext.Add(Data.Models.Registration.Create(tournamentId, participantId));
+        dbContext.Add(Core.Domain.Entities.Registration.Create(tournamentId, participantId));
         var result = await dbContext.SaveChangesAsync(token);
         if (result < 1)
         {

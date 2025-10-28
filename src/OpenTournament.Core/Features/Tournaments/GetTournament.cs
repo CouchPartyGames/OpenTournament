@@ -1,5 +1,8 @@
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
+using OpenTournament.Core.Domain.Entities;
+using OpenTournament.Core.Domain.ValueObjects;
+using OpenTournament.Core.Infrastructure.Persistence;
 using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
 
 namespace OpenTournament.Api.Features.Tournaments;

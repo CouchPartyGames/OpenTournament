@@ -5,6 +5,9 @@ using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
 using OpenTournament.Api.DomainEvents;
 using OpenTournament.Api.Identity.Authentication;
+using OpenTournament.Core.Domain.Entities;
+using OpenTournament.Core.Domain.ValueObjects;
+using OpenTournament.Core.Infrastructure.Persistence;
 using ValidationResult = FluentValidation.Results.ValidationResult;
 
 namespace OpenTournament.Api.Features.Tournaments;

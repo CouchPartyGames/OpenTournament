@@ -7,7 +7,9 @@
   </PropertyGroup>
     
     <ItemGroup>
-        <PackageReference Include="OneOf" />
-        <PackageReference Include="OneOf.SourceGenerator" />
+		<PackageReference Include="CouchPartyGames.TournamentGenerator" />
+        <PackageReference Include="ErrorOr" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     </ItemGroup>
 </Project>

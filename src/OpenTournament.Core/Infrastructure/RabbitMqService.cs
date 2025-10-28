@@ -1,7 +1,7 @@
-using MassTransit;
-using OpenTournament.Api.Jobs;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace OpenTournament.Api.Configuration.Infrastructure;
+namespace OpenTournament.Core.Infrastructure;
 
 public static class RabbitMqService
 {

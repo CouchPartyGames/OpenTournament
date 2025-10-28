@@ -1,13 +1,12 @@
 using CouchPartyGames.TournamentGenerator;
 using CouchPartyGames.TournamentGenerator.Position;
-using MassTransit;
-using OpenTournament.Api.Common.Rules;
-using OpenTournament.Api.Common.Rules.Tournaments;
-using OpenTournament.Api.Data;
-using OpenTournament.Api.Data.Models;
-using OpenTournament.Api.DomainEvents;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using OpenTournament.Core.Domain.Entities;
+using OpenTournament.Core.Domain.ValueObjects;
+using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Api.Features.Tournaments;
+namespace OpenTournament.Core.Features.Tournaments;
 
 public static class StartTournament
 {

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using CouchPartyGames.TournamentGenerator;
+using OpenTournament.Core.Domain.ValueObjects;
 
-namespace OpenTournament.Api.Data.Models;
+namespace OpenTournament.Core.Domain.Entities;
 
 public sealed class Participant : IOpponent, IEquatable<Participant>
 {

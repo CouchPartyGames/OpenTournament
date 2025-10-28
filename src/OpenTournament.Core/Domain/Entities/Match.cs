@@ -1,7 +1,8 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using OpenTournament.Core.Domain.ValueObjects;
 using LocalMatch = CouchPartyGames.TournamentGenerator.Type;
 
-namespace OpenTournament.Api.Data.Models;
+namespace OpenTournament.Core.Domain.Entities;
 
 public enum MatchState
 {

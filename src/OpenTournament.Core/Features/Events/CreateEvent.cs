@@ -1,9 +1,11 @@
 ﻿using System.ComponentModel;
 using OpenTournament.Api.Data;
 using OpenTournament.Api.Data.Models;
+using OpenTournament.Core.Domain.Entities;
+using OpenTournament.Core.Infrastructure.Persistence;
 using EventId = OpenTournament.Api.Data.Models.EventId;
 
-namespace OpenTournament.Api.Features.Events;
+namespace OpenTournament.Core.Features.Events;
 
 public static class CreateEvent
 {

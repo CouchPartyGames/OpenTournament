@@ -1,6 +1,8 @@
-namespace OpenTournament.Api.Data.Models;
+using OpenTournament.Core.Domain.ValueObjects;
 
-public class Results
+namespace OpenTournament.Core.Domain.Entities;
+
+public sealed class Results
 {
     Dictionary<ParticipantId, int> Ordering { get; set; }
 }

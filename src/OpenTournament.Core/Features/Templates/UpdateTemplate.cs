@@ -1,4 +1,7 @@
-namespace OpenTournament.Api.Features.Templates;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+
+namespace OpenTournament.Core.Features.Templates;
 
 public static class UpdateTemplate
 {

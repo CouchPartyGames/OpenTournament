@@ -1,4 +1,4 @@
-namespace OpenTournament.Api.Data.Models;
+namespace OpenTournament.Core.Domain.ValueObjects;
 
 public sealed record MatchId(Guid Value)
 {

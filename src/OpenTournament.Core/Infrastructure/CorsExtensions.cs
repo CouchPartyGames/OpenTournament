@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Cors.Infrastructure;
 
-namespace OpenTournament.Api.Configuration.Infrastructure;
+namespace OpenTournament.Core.Infrastructure;
 
 public static class CorsExtensions
 {

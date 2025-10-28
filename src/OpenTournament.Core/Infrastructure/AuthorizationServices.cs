@@ -1,4 +1,6 @@
-namespace OpenTournament.Api.Configuration.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace OpenTournament.Core.Infrastructure;
 
 public static class AuthorizationServices
 {

@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using OpenTournament.Api.Data.Models;
+using OpenTournament.Core.Domain.ValueObjects;
 
-namespace OpenTournament.Api.Data.Models;
+namespace OpenTournament.Core.Domain.Entities;
 
 [Table("Stages")]
 public sealed class Stage

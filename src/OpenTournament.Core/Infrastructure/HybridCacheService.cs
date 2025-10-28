@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace OpenTournament.Api.Configuration.Infrastructure;
+namespace OpenTournament.Core.Infrastructure;
 
 public static class HybridCacheService
 {

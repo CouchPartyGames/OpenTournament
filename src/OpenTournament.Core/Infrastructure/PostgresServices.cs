@@ -1,7 +1,10 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
-using OpenTournament.Api.Data;
+using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Api.Configuration.Infrastructure;
+namespace OpenTournament.Core.Infrastructure;
 
 public static class PostgresServices
 {

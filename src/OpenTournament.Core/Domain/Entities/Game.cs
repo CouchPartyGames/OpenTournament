@@ -1,7 +1,7 @@
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using OpenTournament.Core.Domain.ValueObjects;
 
-namespace OpenTournament.Api.Data.Models;
+namespace OpenTournament.Core.Domain.Entities;
 
 [Table("Games")]
 public sealed class Game

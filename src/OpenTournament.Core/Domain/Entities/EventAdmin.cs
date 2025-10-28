@@ -1,3 +1,5 @@
+using OpenTournament.Core.Domain.ValueObjects;
+
 namespace OpenTournament.Api.Data.Models;
 
 public sealed class EventAdmin

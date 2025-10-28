@@ -1,9 +1,12 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using OpenTournament.Api.Data;
-using OpenTournament.Api.Data.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using OpenTournament.Core.Domain.Entities;
+using OpenTournament.Core.Domain.ValueObjects;
+using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Api.Features.Competitions;
+namespace OpenTournament.Core.Features.Competitions;
 
 public static class CreateCompetition
 {

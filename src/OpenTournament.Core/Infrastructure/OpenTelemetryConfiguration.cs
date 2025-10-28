@@ -1,10 +1,8 @@
-using OpenTelemetry.Exporter;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using OpenTournament.Api.Configuration.Infrastructure;
 
-namespace OpenTournament.Api.Configuration.Infrastructure;
+namespace OpenTournament.Core.Infrastructure;
 
 public static class OpenTelemetryConfiguration
 {

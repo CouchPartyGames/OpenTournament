@@ -1,6 +1,4 @@
-using CouchPartyGames.TournamentGenerator.Type;
-
-namespace OpenTournament.Api.Data.Models;
+namespace OpenTournament.Core.Domain.Entities;
 
 public class MatchProgressions
 {

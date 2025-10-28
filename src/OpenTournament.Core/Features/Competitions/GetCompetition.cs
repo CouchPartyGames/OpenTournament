@@ -1,6 +1,6 @@
-using OpenTournament.Api.Data;
+using Microsoft.AspNetCore.Http.Results;
 
-namespace OpenTournament.Api.Features.Competitions;
+namespace OpenTournament.Core.Features.Competitions;
 
 public static class GetCompetition
 {

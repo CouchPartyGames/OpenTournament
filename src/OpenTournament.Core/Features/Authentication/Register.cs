@@ -1,4 +1,4 @@
-namespace OpenTournament.Api.Features.Authentication;
+namespace OpenTournament.Core.Features.Authentication;
 
 public static class Register
 {

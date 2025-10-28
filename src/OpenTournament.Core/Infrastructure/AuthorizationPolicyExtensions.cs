@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 
-namespace OpenTournament.Api.Configuration.Infrastructure;
+namespace OpenTournament.Core.Infrastructure;
 
 public static class AuthorizationPolicyExtensions
 {

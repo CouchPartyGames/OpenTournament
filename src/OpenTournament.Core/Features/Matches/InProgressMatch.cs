@@ -1,4 +1,4 @@
-namespace OpenTournament.Api.Features.Matches;
+namespace OpenTournament.Core.Features.Matches;
 
 public static class InProgressMatch
 {

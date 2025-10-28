@@ -1,4 +1,9 @@
-namespace OpenTournament.Api.Features.Templates;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Routing;
+
+namespace OpenTournament.Core.Features.Templates;
 
 public static class CreateTemplate
 {
