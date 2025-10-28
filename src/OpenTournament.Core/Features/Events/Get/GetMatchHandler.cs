@@ -1,27 +1,20 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
+using ErrorOr;
 using Microsoft.EntityFrameworkCore;
-using OpenTournament.Core.Domain.Entities;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Core.Features.Matches;
+namespace OpenTournament.Core.Features.Events.Get;
 
-public static class GetMatch
+public static class GetMatchHandler
 {
-
-    public sealed record GetMatchResponse(Match Match);
-
-
-    public static async Task<Results<Ok<Match>, ValidationProblem, NotFound>> Endpoint(string id,
-        IMediator mediator,
+    public static async Task<ErrorOr<GetMatchResponse>> HandleAsync(string id,
         AppDbContext dbContext,
         CancellationToken token)
     {
         var matchId = MatchId.TryParse(id);
         if (matchId is null)
         {
-            return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
+            return Error.Validation();
         }
 
         var match = await dbContext
@@ -32,9 +25,9 @@ public static class GetMatch
 
         if (match is null)
         {
-            return TypedResults.NotFound();
+            return Error.NotFound();
         }
 
-        return TypedResults.Ok(match);
+        return new GetMatchResponse(match);
     }
 }
