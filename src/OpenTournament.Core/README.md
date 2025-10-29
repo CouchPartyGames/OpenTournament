@@ -103,28 +103,90 @@ if (!user.HasPermission(Permission.CreateCompetition))
 ```
 OpenTournament.Core/
 ├── Domain/
-│   ├── Entities/          # Domain entities (Tournament, Competition, Event, Match)
+│   ├── Entities/          # Domain entities
+│   │   ├── Tournament.cs
+│   │   ├── Competition.cs, CompetitionAdmin.cs, CompetitionRules.cs
+│   │   ├── Event.cs, EventAdmin.cs, EventRegistration.cs
+│   │   ├── Match.cs, MatchMetadata.cs, MatchParticipants.cs, MatchProgressions.cs, MatchResults.cs
+│   │   ├── Participant.cs, Registration.cs, RegistrationRules.cs
+│   │   ├── Game.cs, Platform.cs
+│   │   ├── Pool.cs, Stage.cs
+│   │   └── TournamentMatches.cs, Results.cs
+│   ├── Events/            # Domain events
+│   │   ├── MatchEvents.cs
+│   │   ├── PaymentEvents.cs
+│   │   ├── RegistrationEvents.cs
+│   │   └── TournamentEvents.cs
 │   └── ValueObjects/      # Strongly-typed IDs and value objects
+│       ├── TournamentId.cs
+│       ├── CompetitionId.cs
+│       ├── EventId.cs
+│       ├── MatchId.cs
+│       ├── ParticipantId.cs
+│       ├── GameId.cs, PlatformId.cs
+│       ├── PoolId.cs, StageId.cs
+│       └── UserId.cs
 ├── Features/              # Vertical slices organized by feature
 │   ├── Authentication/
+│   │   └── Login/
 │   ├── Competitions/
+│   │   ├── Create/
+│   │   └── Get/
 │   ├── Events/
+│   │   ├── Create/
+│   │   └── Get/
 │   ├── Matches/
+│   │   ├── Complete/
+│   │   ├── Get/
+│   │   └── Update/
 │   ├── Registration/
+│   │   ├── Join/
+│   │   ├── Leave/
+│   │   └── List/
 │   ├── Templates/
+│   │   ├── Create/
+│   │   ├── Delete/
+│   │   ├── Get/
+│   │   ├── List/
+│   │   └── Update/
 │   └── Tournaments/
-└── Infrastructure/        # Cross-cutting concerns
-    ├── Persistence/
-    │   ├── AppDbContext.cs
-    │   ├── Configurations/
-    │   └── ValueConverters/
-    ├── AuthenticationServices.cs
-    ├── AuthorizationServices.cs
-    ├── HybridCacheService.cs
-    ├── OpenTelemetryConfiguration.cs
-    ├── PostgresServices.cs
-    ├── RabbitMqService.cs
-    └── SignalRService.cs
+│       ├── Create/
+│       ├── Delete/
+│       ├── Get/
+│       ├── Start/
+│       └── Update/
+├── Infrastructure/        # Cross-cutting concerns
+│   ├── Authentication/
+│   │   ├── AuthenticationSchemes.cs
+│   │   └── AuthenticationServices.cs
+│   ├── Authorization/
+│   │   ├── AuthorizationPolicies.cs
+│   │   ├── AuthorizationPolicyExtensions.cs
+│   │   └── AuthorizationServices.cs
+│   ├── Caching/
+│   │   ├── HybridCacheOptions.cs
+│   │   └── HybridCacheService.cs
+│   ├── Messaging/
+│   │   ├── RabbitMqOptions.cs
+│   │   └── RabbitMqService.cs
+│   ├── Observability/
+│   │   ├── OpenTelemetryConfiguration.cs
+│   │   └── OpenTelemetryOptions.cs
+│   ├── Persistence/
+│   │   ├── AppDbContext.cs
+│   │   ├── PostgresOptions.cs
+│   │   ├── PostgresServices.cs
+│   │   ├── Configurations/    # EF Core entity configurations
+│   │   └── Converters/        # EF Core value converters for strongly-typed IDs
+│   ├── AuthenticationServices.cs
+│   ├── FirebaseAuthenticationOptions.cs
+│   └── GoogleAuthenticationOptions.cs
+└── Rules/                 # Business rules engine
+    ├── IRule.cs
+    ├── RuleEngine.cs
+    └── Tournaments/
+        ├── TournamentHasMinimumParticipants.cs
+        └── TournamentInRegistrationState.cs
 ```
 
 ## Domain Layer
@@ -133,12 +195,27 @@ OpenTournament.Core/
 
 Domain entities are located in `Domain/Entities/` and represent core business concepts:
 
-- `Tournament` - Tournament container
-- `Competition` - Competition within a tournament
-- `Event` - Individual event in a competition
-- `Match` - Individual match between participants
-- `Participant` - User or team participating
-- `Template` - Tournament template configuration
+- `Tournament` - Top-level tournament container
+- `Competition` - Competition within a tournament (with `CompetitionAdmin`, `CompetitionRules`)
+- `Event` - Individual event in a competition (with `EventAdmin`, `EventRegistration`)
+- `Match` - Individual match between participants (with `MatchMetadata`, `MatchParticipants`, `MatchProgressions`, `MatchResults`)
+- `Participant` - User or team participating in tournaments
+- `Registration` - Registration for events (with `RegistrationRules`)
+- `Game` - Game definition (e.g., "Super Smash Bros Ultimate")
+- `Platform` - Platform definition (e.g., "Nintendo Switch")
+- `Pool` - Pool grouping within a stage
+- `Stage` - Tournament stage (e.g., "Round Robin", "Single Elimination")
+- `TournamentMatches` - Match organization within tournaments
+- `Results` - Match and tournament results
+
+### Domain Events
+
+Domain events in `Domain/Events/` represent significant business occurrences:
+
+- `MatchEvents` - Match-related domain events (started, completed, etc.)
+- `PaymentEvents` - Payment-related domain events
+- `RegistrationEvents` - Registration-related domain events
+- `TournamentEvents` - Tournament-related domain events
 
 ### Value Objects
 
@@ -149,6 +226,11 @@ Strongly-typed identifiers in `Domain/ValueObjects/` provide type safety:
 - `EventId` - Event identifier
 - `MatchId` - Match identifier
 - `ParticipantId` - Participant identifier
+- `GameId` - Game identifier
+- `PlatformId` - Platform identifier
+- `PoolId` - Pool identifier
+- `StageId` - Stage identifier
+- `UserId` - User identifier
 
 **Benefits:**
 - Type safety (can't accidentally mix up IDs)
@@ -168,19 +250,77 @@ var parsed = CompetitionId.TryParse(idString);     // Parse from string
 - **DbContext**: `AppDbContext` in `Infrastructure/Persistence/`
 - **Database**: PostgreSQL
 - **Configurations**: Entity configurations in `Infrastructure/Persistence/Configurations/`
-- **Value Converters**: Custom type converters in `Infrastructure/Persistence/ValueConverters/`
+- **Converters**: Custom type converters for strongly-typed IDs in `Infrastructure/Persistence/Converters/`
 
 ### Services
 
-Infrastructure services are configured and registered in the `Infrastructure/` folder:
+Infrastructure services are organized into subdirectories and configured through extension methods:
 
-- **Authentication**: Firebase JWT authentication (`AuthenticationServices.cs`)
-- **Authorization**: Policy-based authorization (`AuthorizationServices.cs`)
-- **Caching**: Hybrid cache with Redis (`HybridCacheService.cs`)
-- **Database**: PostgreSQL with EF Core (`PostgresServices.cs`)
-- **Messaging**: RabbitMQ integration (`RabbitMqService.cs`)
-- **Observability**: OpenTelemetry (`OpenTelemetryConfiguration.cs`)
-- **Real-time**: SignalR configuration (`SignalRService.cs`)
+- **Authentication** (`Infrastructure/Authentication/`):
+  - Firebase and Google authentication schemes
+  - JWT authentication configuration
+  - `AuthenticationServices.cs` - Service registration
+
+- **Authorization** (`Infrastructure/Authorization/`):
+  - `AuthorizationPolicies.cs` - Policy definitions
+  - `AuthorizationPolicyExtensions.cs` - Policy builder extensions
+  - `AuthorizationServices.cs` - Service registration
+
+- **Caching** (`Infrastructure/Caching/`):
+  - `HybridCacheService.cs` - Hybrid cache with Redis
+  - `HybridCacheOptions.cs` - Cache configuration
+
+- **Messaging** (`Infrastructure/Messaging/`):
+  - `RabbitMqService.cs` - RabbitMQ integration with MassTransit
+  - `RabbitMqOptions.cs` - Messaging configuration
+
+- **Observability** (`Infrastructure/Observability/`):
+  - `OpenTelemetryConfiguration.cs` - Distributed tracing and metrics
+  - `OpenTelemetryOptions.cs` - Observability configuration
+
+- **Persistence** (`Infrastructure/Persistence/`):
+  - `AppDbContext.cs` - EF Core DbContext
+  - `PostgresServices.cs` - Database service registration
+  - `PostgresOptions.cs` - Database configuration
+
+## Business Rules Engine
+
+The `Rules/` directory contains a business rules engine for validating domain operations:
+
+- **IRule.cs** - Interface for business rules
+- **RuleEngine.cs** - Executes rules and aggregates results
+- **Tournaments/** - Tournament-specific business rules:
+  - `TournamentHasMinimumParticipants.cs` - Validates minimum participant count
+  - `TournamentInRegistrationState.cs` - Validates tournament state
+
+### Usage Example
+
+```csharp
+public static async Task<ErrorOr<Success>> StartTournament(
+    Tournament tournament,
+    RuleEngine ruleEngine)
+{
+    // Execute business rules
+    var rules = new List<IRule>
+    {
+        new TournamentInRegistrationState(),
+        new TournamentHasMinimumParticipants()
+    };
+
+    var ruleResults = await ruleEngine.ExecuteAsync(tournament, rules);
+
+    if (!ruleResults.IsValid)
+    {
+        return Error.Validation(
+            "Tournament.RulesViolated",
+            string.Join(", ", ruleResults.Errors)
+        );
+    }
+
+    // Proceed with starting tournament
+    return Result.Success;
+}
+```
 
 ## Creating a New Feature
 
@@ -439,7 +579,7 @@ public static async Task<ErrorOr<Created>> Endpoint(...)
 ## Related Documentation
 
 - See [OpenTournament main README](../../../README.md) for overall project documentation
-- See [OpenTournament.Api README](../OpenTournament.Api/README.md) for API-specific documentation
+- See [OpenTournament.WebApi README](../OpenTournament.WebApi/README.md) for API-specific documentation
 
 ## License
 
