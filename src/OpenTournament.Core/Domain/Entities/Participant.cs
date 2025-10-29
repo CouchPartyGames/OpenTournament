@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using CouchPartyGames.TournamentGenerator;
 using OpenTournament.Core.Domain.ValueObjects;
 
 namespace OpenTournament.Core.Domain.Entities;

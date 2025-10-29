@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
+using FluentValidation;
+using FluentValidation.Results;
 
 namespace OpenTournament.Core.Features.Tournaments.Update;
+
 
 using ErrorOr;
 

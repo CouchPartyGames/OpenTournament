@@ -1,25 +1,20 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.Entities;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
-using NotFound = Microsoft.AspNetCore.Http.HttpResults.NotFound;
+using ErrorOr;
 
-namespace OpenTournament.Core.Features.Authentication;
+namespace OpenTournament.Core.Features.Authentication.Login;
 
-public static class Login
+public static class LoginHandler
 {
-
-    public static async Task<Results<NoContent, ForbidHttpResult, Conflict, NotFound>> Endpoint( 
-        HttpContext httpContext,
-        AppDbContext dbContext,
+    public static async Task<ErrorOr<Success>> HandleAsync(string userId,
+        AppDbContext dbContext, 
         CancellationToken token)
     {
-        var userId = httpContext.GetUserId();
-        if (userId is null)
+        if (userId == "")
         {
-            return TypedResults.Forbid();
+            return Error.Forbidden();
         }
 
         ParticipantId participantId = new ParticipantId(userId);
@@ -28,7 +23,7 @@ public static class Login
             .FirstOrDefaultAsync(p => p.Id == participantId, token);
         if (participant is not null)
         {
-            return TypedResults.Conflict();
+            return Error.NotFound();
         } 
             
         var newParticipant = new Participant()
@@ -39,7 +34,7 @@ public static class Login
         };
         await dbContext.AddAsync(newParticipant, token);
         await dbContext.SaveChangesAsync(token);
-        
-        return TypedResults.NoContent();
+
+        return Result.Success;
     }
 }

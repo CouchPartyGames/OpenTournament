@@ -10,6 +10,7 @@ namespace OpenTournament.Core.Features.Tournaments.Create;
 public static class CreateTournamentHandler
 {
     public static async Task<ErrorOr<Created>> HandleAsync(CreateTournamentCommand command, 
+        string userId,
         AppDbContext dbContext,
         CancellationToken ct)
     {
@@ -21,12 +22,11 @@ public static class CreateTournamentHandler
             //return TypedResults.ValidationProblem(validationResult.ToDictionary()); 
         }
 		
-        var creatorId = httpContext.GetUserId();
         var tournament = new Tournament
         {
             Id = TournamentId.NewTournamentId(),
             Name = command.Name,
-            Creator = Creator.New(new ParticipantId(creatorId))
+            Creator = Creator.New(new ParticipantId(userId))
         };
 
         await dbContext.AddAsync(tournament, ct);
