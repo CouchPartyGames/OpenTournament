@@ -7,7 +7,7 @@ namespace OpenTournament.Core.Features.Matches.Complete;
 
 public static class CompleteMatchHandler
 {
-    public async static Task<ErrorOr<Success>> HandleAsync(CompleteMatchCommand command, 
+    public static async Task<ErrorOr<Success>> HandleAsync(CompleteMatchCommand command, 
         AppDbContext dbContext,
         CancellationToken token)
     {

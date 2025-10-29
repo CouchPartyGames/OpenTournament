@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.Entities;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
+using OpenTournament.Core.Rules;
+using OpenTournament.Core.Rules.Tournaments;
 
 namespace OpenTournament.Core.Features.Tournaments.Start;
 using ErrorOr;

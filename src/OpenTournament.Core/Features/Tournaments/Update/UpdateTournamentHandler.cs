@@ -1,9 +1,9 @@
-using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
-using FluentValidation;
-using FluentValidation.Results;
+using OpenTournament.Core.Rules;
+using OpenTournament.Core.Rules.Tournaments;
+using ValidationResult = FluentValidation.Results.ValidationResult;
 
 namespace OpenTournament.Core.Features.Tournaments.Update;
 
@@ -19,7 +19,7 @@ public static class UpdateTournamentHandler
         CancellationToken token)
     {
 
-        Validator validator = new();
+        UpdateTournamentValidator validator = new();
         ValidationResult validationResult = await validator.ValidateAsync(command, token);
         if (!validationResult.IsValid)
         {

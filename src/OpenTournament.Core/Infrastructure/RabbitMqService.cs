@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,8 +14,8 @@ public static class RabbitMqService
         services.AddMassTransit(opts => {
             opts.SetKebabCaseEndpointNameFormatter();
 
-            opts.AddConsumer<TournamentStartedConsumer>();
-            opts.AddConsumer<MatchCompletedConsumer>();
+            //opts.AddConsumer<TournamentStartedConsumer>();
+            //opts.AddConsumer<MatchCompletedConsumer>();
 
             //opts.UsingInMemory();
             opts.UsingRabbitMq((context, cfg) => {
