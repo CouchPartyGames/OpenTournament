@@ -1,11 +1,13 @@
-using OpenTournament.Api.Features.Templates;
+using OpenTournament.Core.Features.Templates.Create;
+using OpenTournament.Core.Features.Templates.Delete;
+using OpenTournament.Core.Features.Templates.Update;
 
 namespace OpenTournament.WebApi.Endpoints;
 
 public static class TemplateEndpoints
 {
     
-    public static IEndpointRouteBuilder MapTemplateEndpoints(this RouteGroupBuilder builder)
+    public static RouteGroupBuilder MapTemplateEndpoints(this RouteGroupBuilder builder)
     {
         builder.MapPost("", CreateTemplate.Endpoint)
             .WithTags("Template")

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http.HttpResults;
-using OpenTournament.Api.Features.Competitions;
 using OpenTournament.Core.Features.Competitions.Create;
 using OpenTournament.Core.Features.Competitions.Get;
 using OpenTournament.Core.Infrastructure.Persistence;
@@ -10,7 +9,7 @@ namespace OpenTournament.WebApi.Endpoints;
 public static class CompetitionEndpoints
 {
     
-    public static IEndpointRouteBuilder MapCompetitionEndpoints(this RouteGroupBuilder builder)
+    public static RouteGroupBuilder MapCompetitionEndpoints(this RouteGroupBuilder builder)
     {
         builder.MapPost("", async Task<Results<Created, BadRequest>> (CreateCompetitionCommand command, 
                 AppDbContext dbContext, 

@@ -1,5 +1,5 @@
 using ErrorOr;
-using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 
@@ -43,21 +43,23 @@ public static class CompleteMatchHandler
 
 
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
-        await executionStrategy.Execute(async () =>
+        await executionStrategy.ExecuteAsync(async (ct) =>
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(token);
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
 
             // Complete Match
             //match.Matches[0].MatchResults = null;
             //match.Matches[0].CompletedOnUtc = DateTime.UtcNow;
-            
-            await dbContext.SaveChangesAsync(token);
-            await transaction.CommitAsync(token);
+
+            await dbContext.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
             // Publish Results
             //var endpoint = await sendEndpointProvider.GetSendEndpoint(new Uri("queue:match-completed"));
-            //await endpoint.Send(msg, token);
-        });
+            //await endpoint.Send(msg, ct);
+
+            return true;
+        }, token);
 
         return Result.Success;
     }

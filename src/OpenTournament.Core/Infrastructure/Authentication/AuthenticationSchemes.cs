@@ -1,4 +1,4 @@
-namespace OpenTournament.Api.Configuration.Infrastructure;
+namespace OpenTournament.Core.Infrastructure.Authentication;
 
 public static class AuthenticationSchemes
 {

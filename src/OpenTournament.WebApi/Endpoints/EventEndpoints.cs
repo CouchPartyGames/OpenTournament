@@ -8,7 +8,7 @@ namespace OpenTournament.WebApi.Endpoints;
 
 public static class EventEndpoints
 {
-    public static IEndpointRouteBuilder MapEventEndpoints(this RouteGroupBuilder builder)
+    public static RouteGroupBuilder MapEventEndpoints(this RouteGroupBuilder builder)
     {
         builder.MapPost("", async Task<Results<Created, BadRequest>> (CreateEventCommand command, 
                 AppDbContext dbContext, 
@@ -41,7 +41,10 @@ public static class EventEndpoints
             .WithSummary("Get Event")
             .WithDescription("Get an Event");
 
-        builder.MapGet("", GetFilteredEvents.Endpoint)
+        builder.MapGet("", () =>
+            {
+               
+            })
             .WithTags("Event")
             .WithSummary("Get Event")
             .WithDescription("Get an Filtered Events");

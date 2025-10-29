@@ -11,7 +11,7 @@ namespace OpenTournament.WebApi.Endpoints;
 public static class MatchEndpoints
 {
     
-    public static IEndpointRouteBuilder MapMatchEndpoints(this RouteGroupBuilder builder)
+    public static RouteGroupBuilder MapMatchEndpoints(this RouteGroupBuilder builder)
     {
 
         builder.MapPut("/{id}/complete", async Task<Results<NoContent, BadRequest>> (string id,

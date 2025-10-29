@@ -9,7 +9,7 @@ namespace OpenTournament.WebApi.Endpoints;
 public static class RegistrationEndpoints
 {
     
-    public static IEndpointRouteBuilder MapRegistrationEndpoints(this RouteGroupBuilder builder)
+    public static RouteGroupBuilder MapRegistrationEndpoints(this RouteGroupBuilder builder)
     {
         builder.MapPut("/{id}/join", async Task<Results<NoContent, BadRequest>> (string id, 
                 HttpContext httpContext, 

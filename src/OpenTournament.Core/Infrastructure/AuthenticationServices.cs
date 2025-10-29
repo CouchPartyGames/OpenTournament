@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OpenTournament.Api.Configuration.Infrastructure;
 
 namespace OpenTournament.Core.Infrastructure;
 

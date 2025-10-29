@@ -1,8 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/OpenTournament.Api/OpenTournament.Api.csproj">
-      <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
-    </Project>
     <Project Path="src/OpenTournament.Frontend/OpenTournament.Frontend.csproj">
       <Configuration Solution="Debug|Any CPU" Project="Debug|Any CPU|NoBuild" />
     </Project>

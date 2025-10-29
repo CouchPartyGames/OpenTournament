@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace OpenTournament.Core.Infrastructure;
+namespace OpenTournament.Core.Infrastructure.Authorization;
 
 public static class AuthorizationServices
 {

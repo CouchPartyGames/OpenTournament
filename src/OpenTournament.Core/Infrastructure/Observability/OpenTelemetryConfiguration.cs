@@ -5,7 +5,6 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using OpenTournament.Api.Configuration.Infrastructure;
 
 namespace OpenTournament.Core.Infrastructure;
 
