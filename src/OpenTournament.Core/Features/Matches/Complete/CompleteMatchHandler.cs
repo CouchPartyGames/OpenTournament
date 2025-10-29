@@ -1,21 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
+using ErrorOr;
+using Microsoft.AspNetCore.Http;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Core.Features.Matches;
+namespace OpenTournament.Core.Features.Matches.Complete;
 
-public static class CompleteMatch
+public static class CompleteMatchHandler
 {
-    public sealed record CompleteMatchCommand(string MatchId, string WinnerId) : IRequest<OneOf<Ok, NotFound>>;
-
-
-
-    public static async Task<Results<Ok, NotFound, Conflict, ForbidHttpResult, ValidationProblem>> Endpoint(string id,
-        CompleteMatchCommand command,
-        ISendEndpointProvider sendEndpointProvider,
+    public async static Task<ErrorOr<Success>> HandleAsync(CompleteMatchCommand command, 
         AppDbContext dbContext,
-        //IAuthorizationService authorizationService,
         CancellationToken token)
     {
         var matchId = MatchId.TryParse(command.MatchId);
@@ -28,12 +21,13 @@ public static class CompleteMatch
         var authorizationResult = await authorizationService.AuthorizeAsync(currentUser, tournamentAdmins, new MatchCompleteRequirement());
         if (!authorizationResult.Succeeded)
         {
-            return TypedResults.Forbid(); 
+            return TypedResults.Forbid();
         }*/
             
         if (matchId is null)
         {
-            return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
+            return Error.Validation();
+            //return TypedResults.ValidationProblem(ValidationErrors.MatchIdFailure);
         }
 
         /*
@@ -65,6 +59,7 @@ public static class CompleteMatch
             //await endpoint.Send(msg, token);
         });
 
-        return TypedResults.Ok();
+        return Result.Success;
     }
+    
 }

@@ -6,7 +6,10 @@ public static class AuthenticationEndpoints
 {
     public static IEndpointRouteBuilder MapAuthenticationEndpoints(this RouteGroupBuilder builder)
     {
-        builder.MapPost("/login", Login.Endpoint)
+        builder.MapPost("/login", async () =>
+            {
+                
+            })
             .WithTags("Authentication")
             .WithSummary("Login")
             .WithDescription("Login/Register a user")

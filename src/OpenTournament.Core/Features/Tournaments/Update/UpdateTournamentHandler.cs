@@ -14,20 +14,21 @@ public static class UpdateTournamentHandler
         string id,
         UpdateTournamentCommand command,
         AppDbContext dbContext, 
-        CancellationToken cancellationToken)
+        CancellationToken token)
     {
 
         Validator validator = new();
         ValidationResult validationResult = await validator.ValidateAsync(command, token);
         if (!validationResult.IsValid)
         {
-            return TypedResults.ValidationProblem(validationResult.ToDictionary());
+            return Error.Validation();
+            //return TypedResults.ValidationProblem(validationResult.ToDictionary());
         }
 
         var tournamentId = TournamentId.TryParse(id);
         var tournament = await dbContext
             .Tournaments
-            .FirstOrDefaultAsync(m => m.Id == tournamentId, cancellationToken);
+            .FirstOrDefaultAsync(m => m.Id == tournamentId, token);
         if (tournament is null)
         {
             return Error.NotFound();
@@ -42,7 +43,7 @@ public static class UpdateTournamentHandler
         }
 
         tournament.Name = command.Name;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(token);
       
         return Result.Updated;
     }

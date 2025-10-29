@@ -1,5 +1,8 @@
-using OpenTournament.Api.Data;
-using OpenTournament.Api.Features.Tournaments;
+using Microsoft.AspNetCore.Http.HttpResults;
+using OpenTournament.Core.Features.Tournaments.Create;
+using OpenTournament.Core.Features.Tournaments.Delete;
+using OpenTournament.Core.Features.Tournaments.Get;
+using OpenTournament.Core.Infrastructure.Persistence;
 
 namespace OpenTournament.WebApi.Endpoints;
 
@@ -7,19 +10,48 @@ public static class TournamentEndpoints
 {
     public static IEndpointRouteBuilder MapTournamentEndpoints(this RouteGroupBuilder builder)
     {
-        builder.MapPost("", CreateTournament.EndPoint)
+        builder.MapPost("", async Task<Results<Created, BadRequest>> (CreateTournamentCommand command, 
+                AppDbContext dbContext, 
+                CancellationToken cancellationToken) =>
+        {
+            var result = await CreateTournamentHandler.HandleAsync(command, dbContext, cancellationToken);
+            return result switch
+            {
+                { IsError: false } => TypedResults.Created(),
+                _ => TypedResults.BadRequest()
+            };
+        })
             .WithTags("Tournament")
             .WithSummary("Create Tournament")
             .WithDescription("Create a new tournament")
             .RequireAuthorization();
         
-        builder.MapGet("/{id}/", GetTournament.Endpoint)
+        
+        builder.MapGet("/{id}/", async Task<Results<Ok<GetTournamentResponse>, BadRequest>> (string id, AppDbContext dbContext, CancellationToken token) =>
+            {
+                var result = await GetTournamentHandler.HandleAsync(id, dbContext, token);
+                return result switch
+                {
+                    { IsError: false } => TypedResults.Ok(result.Value),
+                    _ => TypedResults.BadRequest()
+                };
+            })
             .WithTags("Tournament")
             .WithSummary("Get Tournament")
             .WithDescription("Return an existing tournament.")
             .AllowAnonymous();
 
-        builder.MapDelete("/{id}", DeleteTournament.Endpoint)
+        builder.MapDelete("/{id}", async Task<Results<NoContent, BadRequest>> (string id, 
+                AppDbContext dbContext, 
+                CancellationToken token) =>
+            {
+                var result = await DeleteTournamentHandler.HandleAsync(id, dbContext, token);
+                return result switch
+                {
+                    { IsError: false } => TypedResults.NoContent(),
+                    _ => TypedResults.BadRequest()
+                };
+            })
             .WithTags("Tournament")
             .WithSummary("Delete Tournament")
             .WithDescription("Delete an existing tournament");

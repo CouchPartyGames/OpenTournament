@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Core.Features.Registration;
+namespace OpenTournament.Core.Features.Registration.Leave;
 
 public static class LeaveRegistration
 {

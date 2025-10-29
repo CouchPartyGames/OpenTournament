@@ -5,7 +5,7 @@ using OpenTournament.Core.Domain.Entities;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Core.Features.Registration;
+namespace OpenTournament.Core.Features.Registration.List;
 
 public static class ListRegistration
 {

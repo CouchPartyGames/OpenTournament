@@ -6,7 +6,7 @@ using OpenTournament.Core.Domain.Entities;
 using OpenTournament.Core.Domain.ValueObjects;
 using OpenTournament.Core.Infrastructure.Persistence;
 
-namespace OpenTournament.Core.Features.Tournaments;
+namespace OpenTournament.Core.Features.Tournaments.Start;
 
 public static class StartTournament
 {
