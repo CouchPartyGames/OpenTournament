@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using OpenTournament.Core.Domain.Events;
 using OpenTournament.Core.Domain.ValueObjects;
@@ -7,13 +6,15 @@ using OpenTournament.Core.Infrastructure.Persistence;
 
 namespace OpenTournament.Core.Features.Registration.Join;
 
-public static class JoinRegistration
+using ErrorOr;
+
+public static class JoinRegistrationHandler
 {
-    public static async Task<Results<NoContent, ValidationProblem, NotFound, Conflict>> Endpoint(string id, 
+    public static async Task<ErrorOr<Success>> HandleAsync(string id, 
         HttpContext context,
-        IMediator mediator, 
+        //IMediator mediator, 
         AppDbContext dbContext,
-        IPublishEndpoint publishEndpoint,
+        //IPublishEndpoint publishEndpoint,
         CancellationToken token)
     {
 
@@ -21,7 +22,7 @@ public static class JoinRegistration
         var tournamentId = TournamentId.TryParse(id);
         if (tournamentId is null)
         {
-            return TypedResults.ValidationProblem(ValidationErrors.TournamentIdFailure);
+            return Error.Validation();
         }
         
         var tournament = await dbContext
@@ -29,17 +30,17 @@ public static class JoinRegistration
             .FirstOrDefaultAsync(m => m.Id == tournamentId, token);
         if (tournament is null)
         {
-            return TypedResults.NotFound();
+            return Error.NotFound();
         }
 
-            // Rules
-            /*
-        var engine = new RuleEngine();
-        engine.Add(new TournamentInRegistrationState(tournament.Status));
-        if (!engine.Evaluate())
-        {
-            return TypedResults.Conflict();
-        }*/
+        // Rules
+        /*
+    var engine = new RuleEngine();
+    engine.Add(new TournamentInRegistrationState(tournament.Status));
+    if (!engine.Evaluate())
+    {
+        return TypedResults.Conflict();
+    }*/
 
         var participantId = new ParticipantId(participantClaim.Value);
         dbContext.Add(Core.Domain.Entities.Registration.Create(tournamentId, participantId));
@@ -49,11 +50,12 @@ public static class JoinRegistration
         }
         
         var msg = new PlayerJoined {
-           TournamentId = tournamentId,
-           ParticipantId = participantId 
+            TournamentId = tournamentId,
+            ParticipantId = participantId 
         };
-        await publishEndpoint.Publish(msg, token);
+        //await publishEndpoint.Publish(msg, token);
 
-        return TypedResults.NoContent();
+        return Result.Success;
     }
+    
 }

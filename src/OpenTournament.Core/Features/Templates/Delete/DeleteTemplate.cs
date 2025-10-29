@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace OpenTournament.Core.Features.Templates;
+namespace OpenTournament.Core.Features.Templates.Delete;
 
 public static class DeleteTemplate
 {
@@ -17,8 +17,7 @@ public static class DeleteTemplate
             })
             .WithTags("Template")
             .WithSummary("Delete Template")
-            .WithDescription("Delete an available Template")
-            .WithOpenApi();
+            .WithDescription("Delete an available Template");
     }
 
     public static async Task<Results<NoContent, NotFound>> Endpoint(string id, CancellationToken token)

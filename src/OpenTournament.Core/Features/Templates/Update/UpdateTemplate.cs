@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 
-namespace OpenTournament.Core.Features.Templates;
+namespace OpenTournament.Core.Features.Templates.Update;
 
 public static class UpdateTemplate
 {

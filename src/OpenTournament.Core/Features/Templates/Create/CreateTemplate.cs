@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
-namespace OpenTournament.Core.Features.Templates;
+namespace OpenTournament.Core.Features.Templates.Create;
 
 public static class CreateTemplate
 {
     public record CreateTemplateCommand();
 
-    
+
     public static void MapEndpoint(this IEndpointRouteBuilder app) =>
         app.MapPost("templates", (CreateTemplateCommand cmd, CancellationToken token) =>
             {
@@ -17,8 +17,7 @@ public static class CreateTemplate
             })
             .WithTags("Template")
             .WithSummary("Create Template")
-            .WithDescription("Create a Tournament Template")
-            .WithOpenApi();
+            .WithDescription("Create a Tournament Template");
 
     public static async Task<Results<Created, NotFound>> Endpoint(CreateTemplateCommand cmd, CancellationToken token)
     {

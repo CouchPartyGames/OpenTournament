@@ -1,4 +1,4 @@
-namespace OpenTournament.Core.Features.Templates;
+namespace OpenTournament.Core.Features.Templates.List;
 
 public static class ListTemplate
 {
