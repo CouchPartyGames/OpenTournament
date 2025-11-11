@@ -11,7 +11,7 @@ COPY package-lock.json ./
 RUN npm i
 COPY . ./
 
-RUN npm build
+RUN npm run build
 
 FROM node:20.10-bookworm-slim
 

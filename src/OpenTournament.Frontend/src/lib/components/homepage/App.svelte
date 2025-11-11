@@ -10,7 +10,7 @@
 	// Simulate loading
 	setTimeout(() => {
 		loading = false;
-	}, 1000);
+	}, 500);
 </script>
 
 {#if loading}

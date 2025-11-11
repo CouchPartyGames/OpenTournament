@@ -1,4 +1,5 @@
-﻿<fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box">
+﻿<form>
+<fieldset class="fieldset w-xs bg-base-200 border border-base-300 p-4 rounded-box">
 
     <legend class="fieldset-legend">Competition</legend>
 
@@ -15,9 +16,16 @@
     <input type="text" class="input" placeholder="my-awesome-page" />
 
     <label class="fieldset-label">Visibility</label>
-    <input type="text" class="input" placeholder="Name" />
+    <div class="join">
+        Public <input type="radio" name="radio-3" class="radio radio-primary" checked="checked" />
+        Private <input type="radio" name="radio-3" class="radio radio-primary" />
+    </div>
     
-    <label class="fieldset-label">Player Cap</label>
+    <label class="fieldset-label" htmlFor="">Player Cap</label>
     <input type="text" class="input" placeholder="Name" />
 
+    <button class="btn-primary">
+        Save changes
+    </button>
 </fieldset>
+</form>
