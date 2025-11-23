@@ -71,15 +71,22 @@ app.MapGroup("competitions/v{apiVersion:apiVersion}")
     .WithApiVersionSet(apiVersionSet);
 */
 app.MapGroup("events/v{apiVersion:apiVersion}")
+    .WithTags("events")
     .MapEventEndpoints()
     .WithApiVersionSet(apiVersionSet);
+
 app.MapGroup("matches/v{apiVersion:apiVersion}")
+    .WithTags("matches")
     .MapMatchEndpoints()
     .WithApiVersionSet(apiVersionSet);
+
 app.MapGroup("registrations/v{apiVersion:apiVersion}")
+    .WithTags("registrations")
     .MapRegistrationEndpoints()
     .WithApiVersionSet(apiVersionSet);
+
 app.MapGroup("tournaments/v{apiVersion:apiVersion}")
+    .WithTags("tournaments")
     .MapTournamentEndpoints()
     .WithApiVersionSet(apiVersionSet);
 
