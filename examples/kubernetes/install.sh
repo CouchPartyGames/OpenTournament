@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-OPENTOURNAMENT_VERSION=${OPENTOURNAMENT_VERSION:-0.0.3}
+OPENTOURNAMENT_VERSION=${OPENTOURNAMENT_VERSION:-0.0.4}
 NAMESPACE=opentournament
 
 echo "==> Agones"

@@ -52,7 +52,7 @@ Wait for the database and Keycloak, then install the chart:
 ```sh
 kubectl -n opentournament wait cluster.postgresql.cnpg.io/postgres-cluster --for=condition=Ready --timeout=5m
 kubectl -n opentournament rollout status statefulset/keycloak --timeout=5m
-helm install ot oci://ghcr.io/couchpartygames/charts/opentournament --version 0.0.3 \
+helm install ot oci://ghcr.io/couchpartygames/charts/opentournament --version 0.0.4 \
   -n opentournament -f opentournament-values.yaml --wait
 ```
 
