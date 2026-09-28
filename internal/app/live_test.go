@@ -212,8 +212,11 @@ func TestTournamentStatusChangesAreAnnouncedLive(t *testing.T) {
 	ws := connect(t, h)
 	ws.subscribe(tt.ID)
 	status := func(ev liveMessage) string {
+		t.Helper()
 		var d struct{ Status string }
-		json.Unmarshal(ev.Data, &d)
+		if err := json.Unmarshal(ev.Data, &d); err != nil {
+			t.Fatalf("%s data %s: %v", ev.Event, ev.Data, err)
+		}
 		return d.Status
 	}
 
