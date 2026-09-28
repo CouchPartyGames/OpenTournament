@@ -1,0 +1,21 @@
+replicaCount: 1
+config:
+  oidcIssuer: http://keycloak-http.opentournament/realms/games
+  docs: true
+database:
+  existingSecret: postgres-cluster-app
+  existingSecretKey: uri
+catalog:
+  games:
+    - id: arena
+      name: Arena
+      identityKinds: [keycloak]
+      maximumMatchSize: 2
+      fleet:
+        name: arena
+        namespace: default
+      trustedClients: [arena-backend]
+env:
+  # No OpenTelemetry collector here: log JSON to stdout only.
+  - name: OTEL_SDK_DISABLED
+    value: "true"

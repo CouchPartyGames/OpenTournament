@@ -60,7 +60,9 @@ helm install ot oci://ghcr.io/couchpartygames/charts/opentournament --version <v
   -n opentournament --create-namespace -f my-values.yaml
 ```
 
-See the [chart README](deploy/helm/opentournament/README.md) for its values. Creating Fleets and sizing them for the start-of-Tournament burst is an
+See the [chart README](deploy/helm/opentournament/README.md) for its values, and
+[`examples/kubernetes`](examples/kubernetes) for a minimal setup of everything it
+needs. Creating Fleets and sizing them for the start-of-Tournament burst is an
 operations concern: every first-Round Match wants a Game Server at the same moment.
 
 ## How it fits together

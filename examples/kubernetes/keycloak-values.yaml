@@ -1,0 +1,26 @@
+# Keycloak in development mode: in-memory-ish file storage, plain HTTP, and the
+# games realm imported from the games-realm ConfigMap. Not for production.
+fullnameOverride: keycloak
+args: [start-dev, --import-realm]
+http:
+  relativePath: /
+extraEnv: |
+  # Tokens carry this issuer however Keycloak is reached, so the service and a
+  # port-forwarded curl agree on it.
+  - name: KC_HOSTNAME
+    value: http://keycloak-http.opentournament
+  # The admin console, through the port-forward in the README.
+  - name: KC_HOSTNAME_ADMIN
+    value: http://localhost:8081
+  - name: KC_BOOTSTRAP_ADMIN_USERNAME
+    value: admin
+  - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+    value: admin
+extraVolumes: |
+  - name: realm
+    configMap:
+      name: games-realm
+extraVolumeMounts: |
+  - name: realm
+    mountPath: /opt/keycloak/data/import
+    readOnly: true

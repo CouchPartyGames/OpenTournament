@@ -1,0 +1,14 @@
+{
+  "realm": "games",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "arena-backend",
+      "secret": "arena-backend-secret",
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ]
+}

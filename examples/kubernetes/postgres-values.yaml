@@ -1,0 +1,6 @@
+# One PostgreSQL instance managed by CloudNativePG. The operator puts the
+# connection string in the Secret postgres-cluster-app, key uri.
+cluster:
+  instances: 1
+  storage:
+    size: 1Gi

@@ -1,0 +1,25 @@
+# Two warm Game Servers from the Agones example image.
+apiVersion: agones.dev/v1
+kind: Fleet
+metadata:
+  name: arena
+  namespace: default
+spec:
+  replicas: 2
+  template:
+    spec:
+      ports:
+        - name: default
+          containerPort: 7654
+      template:
+        spec:
+          containers:
+            - name: simple-game-server
+              image: us-docker.pkg.dev/agones-images/examples/simple-game-server:0.43
+              resources:
+                requests:
+                  memory: 64Mi
+                  cpu: 20m
+                limits:
+                  memory: 64Mi
+                  cpu: 20m
