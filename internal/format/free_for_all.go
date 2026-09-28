@@ -40,7 +40,7 @@ func completeBouts(participants []ParticipantID, played []Bout, dropped map[Part
 }
 
 func planFreeForAll(g Group) Plan {
-	ids := entrantIDs(g)
+	ids := participantIDs(g)
 	dropped := droppedSet(g)
 	bouts := persisted(g)[FreeForAllKey].Bouts
 	pm := PlannedMatch{Key: FreeForAllKey, Round: 1, Participants: ids, State: Playable}

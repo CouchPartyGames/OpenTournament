@@ -25,11 +25,11 @@ func Register(api huma.API, svc *tournament.Service) {
 		Summary: "Create a Tournament", Tags: []string{"Tournaments"}, DefaultStatus: http.StatusCreated,
 		Description: "Any authenticated user can create a Tournament and becomes its Organizer. A Game backend " +
 			"can create Tournaments for the Games that trust its client.",
-		Security: keycloak,
+		Security: auth.Security(),
 	}, h.create)
 	problem.Register(api, huma.Operation{
 		OperationID: "edit-tournament", Method: http.MethodPut, Path: "/api/v1/tournaments/{tournamentId}",
-		Summary: "Edit a draft Tournament", Tags: []string{"Tournaments"}, Security: keycloak,
+		Summary: "Edit a draft Tournament", Tags: []string{"Tournaments"}, Security: auth.Security(),
 		Description: "TournamentSettings can only change while the Tournament is a Draft; they freeze once registration opens.",
 	}, h.edit)
 	problem.Register(api, huma.Operation{
@@ -42,12 +42,10 @@ func Register(api huma.API, svc *tournament.Service) {
 	}, h.list)
 	problem.Register(api, huma.Operation{
 		OperationID: "cancel-tournament", Method: http.MethodPost, Path: "/api/v1/tournaments/{tournamentId}/cancel",
-		Summary: "Cancel a Tournament", Tags: []string{"Tournaments"}, Security: keycloak,
+		Summary: "Cancel a Tournament", Tags: []string{"Tournaments"}, Security: auth.Security(),
 		Description: "The Organizer can cancel at any point before completion. Pending Matches stop and their Game Servers are released.",
 	}, h.cancel)
 }
-
-var keycloak = []map[string][]string{{"keycloak": {}}}
 
 type handlers struct{ svc *tournament.Service }
 
@@ -100,7 +98,7 @@ func (h handlers) edit(ctx context.Context, in *editInput) (*tournamentOutput, e
 }
 
 func (h handlers) get(ctx context.Context, in *idInput) (*tournamentOutput, error) {
-	v, err := Get(ctx, h.svc.Queries, in.TournamentID)
+	v, err := Find(ctx, h.svc.Queries, in.TournamentID)
 	return &tournamentOutput{v}, err
 }
 
@@ -142,7 +140,7 @@ func Create(ctx context.Context, svc *tournament.Service, p auth.Principal, body
 	if err := svc.Create(ctx, row, body.TournamentSettings.apply); err != nil {
 		return TournamentView{}, err
 	}
-	return Get(ctx, svc.Queries, id)
+	return Find(ctx, svc.Queries, id)
 }
 
 // Edit replaces the settings of a draft Tournament.
@@ -154,7 +152,10 @@ func Edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids
 		if tx.T.Status != tournament.Draft {
 			return problem.New(problem.Conflict, "settings-frozen", "settings are frozen once registration opens")
 		}
-		game, _ := svc.Games.Get(tx.T.GameID)
+		game, err := tx.Game()
+		if err != nil {
+			return err
+		}
 		if err := s.validate(game, tx.Now()); err != nil {
 			return err
 		}
@@ -171,7 +172,7 @@ func Edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids
 	if err != nil {
 		return TournamentView{}, err
 	}
-	return Get(ctx, svc.Queries, id)
+	return Find(ctx, svc.Queries, id)
 }
 
 // apply replaces the Stages and schedules registration to open.
@@ -205,11 +206,11 @@ func Cancel(ctx context.Context, svc *tournament.Service, p auth.Principal, id i
 	if err != nil {
 		return TournamentView{}, err
 	}
-	return Get(ctx, svc.Queries, id)
+	return Find(ctx, svc.Queries, id)
 }
 
-// Get reads one Tournament.
-func Get(ctx context.Context, q *db.Queries, id ids.TournamentID) (TournamentView, error) {
+// Find reads one Tournament.
+func Find(ctx context.Context, q *db.Queries, id ids.TournamentID) (TournamentView, error) {
 	t, err := q.GetTournament(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return TournamentView{}, tournament.ErrTournamentNotFound

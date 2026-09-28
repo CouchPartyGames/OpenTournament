@@ -81,6 +81,8 @@ func New(ctx context.Context, cfg *rest.Config, namespaces []string) (*Port, err
 	return p, nil
 }
 
+// Allocate creates a GameServerAllocation against the Fleet, labelling the
+// server with the Match and allocation and handing it the Match token.
 func (p *Port) Allocate(ctx context.Context, req gameserver.AllocationRequest) (gameserver.Server, error) {
 	gsa := &allocationv1.GameServerAllocation{
 		Spec: allocationv1.GameServerAllocationSpec{
@@ -117,6 +119,7 @@ func (p *Port) Allocate(ctx context.Context, req gameserver.AllocationRequest) (
 	return s, nil
 }
 
+// Servers lists allocated GameServers from the informer cache.
 func (p *Port) Servers(context.Context) ([]gameserver.Server, error) {
 	var out []gameserver.Server
 	for ns, l := range p.listers {
@@ -126,27 +129,53 @@ func (p *Port) Servers(context.Context) ([]gameserver.Server, error) {
 			return nil, err
 		}
 		for _, gs := range list {
-			match, err := ids.Parse[ids.MatchID](gs.Labels[LabelMatch])
-			if err != nil {
-				continue
+			if s, ok := server(gs); ok {
+				out = append(out, s)
 			}
-			allocation, _ := ids.Parse[ids.AllocationID](gs.Labels[LabelAllocation])
-			s := gameserver.Server{
-				Name: qualified(ns, gs.Name), Address: gs.Status.Address,
-				MatchID: match, AllocationID: allocation, State: gameserver.Healthy,
-			}
-			if len(gs.Status.Ports) > 0 {
-				s.Port = int(gs.Status.Ports[0].Port)
-			}
-			if gs.IsBeingDeleted() || agonesv1.TerminalGameServerStates[gs.Status.State] {
-				s.State = gameserver.Failed
-			}
-			out = append(out, s)
 		}
 	}
 	return out, nil
 }
 
+// Lookup reads a GameServer from the API server rather than the informer
+// cache, which may not have seen a fresh allocation yet.
+func (p *Port) Lookup(ctx context.Context, name string) (gameserver.Server, bool, error) {
+	ns, n := split(name)
+	gs, err := p.client.AgonesV1().GameServers(ns).Get(ctx, n, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return gameserver.Server{}, false, nil
+	} else if err != nil {
+		return gameserver.Server{}, false, err
+	}
+	s, ok := server(gs)
+	return s, ok, nil
+}
+
+// server describes a GameServer the service allocated; it reports false for
+// any other GameServer.
+func server(gs *agonesv1.GameServer) (gameserver.Server, bool) {
+	match, err := ids.Parse[ids.MatchID](gs.Labels[LabelMatch])
+	if err != nil {
+		return gameserver.Server{}, false
+	}
+	allocation, err := ids.Parse[ids.AllocationID](gs.Labels[LabelAllocation])
+	if err != nil {
+		return gameserver.Server{}, false
+	}
+	s := gameserver.Server{
+		Name: qualified(gs.Namespace, gs.Name), Address: gs.Status.Address,
+		MatchID: match, AllocationID: allocation, State: gameserver.Healthy,
+	}
+	if len(gs.Status.Ports) > 0 {
+		s.Port = int(gs.Status.Ports[0].Port)
+	}
+	if gs.IsBeingDeleted() || agonesv1.TerminalGameServerStates[gs.Status.State] {
+		s.State = gameserver.Failed
+	}
+	return s, true
+}
+
+// Watch calls onChange on every GameServer event until ctx ends.
 func (p *Port) Watch(ctx context.Context, onChange func()) error {
 	handler := cache.ResourceEventHandlerFuncs{
 		AddFunc:    func(any) { onChange() },
@@ -164,6 +193,8 @@ func (p *Port) Watch(ctx context.Context, onChange func()) error {
 	return nil
 }
 
+// NotifyForfeits sets the forfeited annotation, which the Game Server
+// watches through the Agones SDK.
 func (p *Port) NotifyForfeits(ctx context.Context, server string, participants []ids.ParticipantID) error {
 	ns, name := split(server)
 	list := make([]string, len(participants))
@@ -180,6 +211,7 @@ func (p *Port) NotifyForfeits(ctx context.Context, server string, participants [
 	return err
 }
 
+// Release deletes the GameServer, returning its capacity to the Fleet.
 func (p *Port) Release(ctx context.Context, server string) error {
 	ns, name := split(server)
 	err := p.client.AgonesV1().GameServers(ns).Delete(ctx, name, metav1.DeleteOptions{})

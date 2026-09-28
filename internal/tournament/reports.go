@@ -2,7 +2,9 @@ package tournament
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"time"
 
 	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/ids"
@@ -22,7 +24,7 @@ func (s *Service) AsGameServer(ctx context.Context, raw string, fn func(tx *Tx, 
 		return errTokenInvalid
 	}
 	err = s.InMatch(ctx, claims.MatchID, func(tx *Tx, m db.Match) error {
-		if !servedBy(m, claims) {
+		if !servedBy(m, claims, tx.now) {
 			return errTokenInvalid
 		}
 		return fn(tx, m)
@@ -33,8 +35,20 @@ func (s *Service) AsGameServer(ctx context.Context, raw string, fn func(tx *Tx, 
 	return err
 }
 
-func servedBy(m db.Match, c matchtoken.Claims) bool {
-	return m.AllocationID == c.AllocationID && (m.Status == MatchAllocating || m.Status == MatchInProgress)
+// servedBy reports whether a token belongs to the Game Server a Match is
+// played on. A Stalled Match still hears from its server until the token
+// expires, so a result sent just before the Result Deadline isn't lost.
+func servedBy(m db.Match, c matchtoken.Claims, now time.Time) bool {
+	if m.AllocationID != c.AllocationID {
+		return false
+	}
+	switch m.Status {
+	case MatchAllocating, MatchInProgress:
+		return true
+	case MatchStalled:
+		return m.ResultDeadline != nil && !now.After(m.ResultDeadline.Add(matchtoken.Grace))
+	}
+	return false
 }
 
 // ServerMatchView is what a Game Server needs to set up its session.
@@ -89,7 +103,7 @@ func (tx *Tx) ServerMatch(m db.Match) (ServerMatchView, error) {
 
 // ReportStarted marks the Match In Progress.
 func (tx *Tx) ReportStarted(m db.Match) error {
-	if m.Status == MatchInProgress {
+	if m.Status == MatchInProgress || m.Status == MatchStalled {
 		return nil
 	}
 	if _, err := tx.Q.MarkMatchStarted(tx.ctx, db.MarkMatchStartedParams{ID: m.ID, AllocationID: m.AllocationID, StartedAt: &tx.now}); err != nil {
@@ -195,12 +209,12 @@ func (tx *Tx) checkPlacements(gs *groupState, m db.Match, r BoutReport, have map
 	for i, pl := range r.Placements {
 		switch {
 		case !slices.Contains(slots, pl.ParticipantID):
-			fields.Add(locf("body.placements[%d].participantId", i), "not a participant of the match", pl.ParticipantID)
+			fields.Add(fmt.Sprintf("body.placements[%d].participantId", i), "not a participant of the match", pl.ParticipantID)
 		case seen[pl.ParticipantID]:
-			fields.Add(locf("body.placements[%d].participantId", i), "reported twice", pl.ParticipantID)
+			fields.Add(fmt.Sprintf("body.placements[%d].participantId", i), "reported twice", pl.ParticipantID)
 		}
 		if places[pl.Placement] || pl.Placement < 1 || int(pl.Placement) > len(slots) {
-			fields.Add(locf("body.placements[%d].placement", i), "placements must be distinct, from 1 to the number of participants", pl.Placement)
+			fields.Add(fmt.Sprintf("body.placements[%d].placement", i), "placements must be distinct, from 1 to the number of participants", pl.Placement)
 		}
 		seen[pl.ParticipantID], places[pl.Placement] = true, true
 	}
@@ -263,7 +277,7 @@ func (tx *Tx) ReportNoShows(m db.Match, bout int32, who []ids.ParticipantID) err
 	var fields problem.Fields
 	for i, p := range who {
 		if !slices.Contains(slots, p) {
-			fields.Add(locf("body.participantIds[%d]", i), "not a participant of the match", p)
+			fields.Add(fmt.Sprintf("body.participantIds[%d]", i), "not a participant of the match", p)
 		}
 	}
 	if !gs.headToHead() && bout > gs.stage.Bouts {
@@ -287,7 +301,7 @@ func (tx *Tx) ReportNoShows(m db.Match, bout int32, who []ids.ParticipantID) err
 		if bout != next {
 			return errOutOfOrder(next)
 		}
-		both := len(who) == 2 || (slices.Contains(who, slots[0]) && slices.Contains(who, slots[1]))
+		both := slices.Contains(who, slots[0]) && slices.Contains(who, slots[1])
 		for _, p := range slots {
 			noShow := slices.Contains(who, p)
 			if err := tx.insertResult(gs, db.BoutResult{MatchID: m.ID, Bout: bout, ParticipantID: p, Forfeited: noShow, Won: !noShow && !both}); err != nil {

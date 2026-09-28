@@ -58,7 +58,7 @@ func (gs *groupState) decided(m db.Match) bool {
 		return ok
 	}
 	dropped := map[format.ParticipantID]bool{}
-	for _, e := range gs.entrants {
+	for _, e := range gs.participants {
 		if hasLeft(e.Status) {
 			dropped[pid(e.ParticipantID)] = true
 		}
@@ -99,7 +99,7 @@ func (gs *groupState) boutComplete(m db.Match, rs map[ids.ParticipantID]db.BoutR
 }
 
 func (gs *groupState) isDropped(p ids.ParticipantID) bool {
-	for _, e := range gs.entrants {
+	for _, e := range gs.participants {
 		if e.ParticipantID == p {
 			return hasLeft(e.Status)
 		}
@@ -116,6 +116,7 @@ func (tx *Tx) insertResult(gs *groupState, r db.BoutResult) error {
 		return err
 	}
 	gs.bouts[r.MatchID] = append(gs.bouts[r.MatchID], r)
+	tx.boutsRecorded = true
 	slices.SortStableFunc(gs.bouts[r.MatchID], func(a, b db.BoutResult) int { return int(a.Bout - b.Bout) })
 	return nil
 }

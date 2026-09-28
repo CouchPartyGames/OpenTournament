@@ -11,7 +11,7 @@ import (
 )
 
 func TestHealthChecksFollowStartupAndDraining(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	h.Do(http.MethodGet, "/livez", "", nil).Expect(http.StatusOK)
 	h.Do(http.MethodGet, "/startupz", "", nil).Expect(http.StatusServiceUnavailable)
 
@@ -36,7 +36,7 @@ func TestHealthChecksFollowStartupAndDraining(t *testing.T) {
 }
 
 func TestOpenAPIDocumentDescribesTheVersionedAPI(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 
 	var doc struct {
 		OpenAPI string                     `json:"openapi"`

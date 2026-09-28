@@ -28,9 +28,9 @@ func locations(r *apptest.Response) []string {
 }
 
 func TestOrganizerCreatesADraftTournament(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 
-	tt := create(t, h, settings(h))
+	tt := mustCreate(t, h, settings(h))
 
 	tv := tt.get()
 	if tv.Status != "draft" || tv.Organizer != "user:organizer" {
@@ -39,7 +39,7 @@ func TestOrganizerCreatesADraftTournament(t *testing.T) {
 }
 
 func TestCreatingRequiresAToken(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 
 	r := h.Do(http.MethodPost, "/api/v1/tournaments", "", settings(h)).Expect(http.StatusUnauthorized)
 
@@ -49,7 +49,7 @@ func TestCreatingRequiresAToken(t *testing.T) {
 }
 
 func TestTrustedGameBackendCreatesTournamentsForItsGameOnly(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	backend := h.Client("arena-backend")
 
 	var tv tournamentView
@@ -67,7 +67,7 @@ func TestTrustedGameBackendCreatesTournamentsForItsGameOnly(t *testing.T) {
 }
 
 func TestImpossibleConfigurationsAreRejectedAllAtOnce(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h,
 		stage("swiss", map[string]any{"groups": 4, "advancement": 2}),
 		stage("free-for-all", map[string]any{"bouts": 3, "bestOf": 3}),
@@ -94,7 +94,7 @@ func TestImpossibleConfigurationsAreRejectedAllAtOnce(t *testing.T) {
 }
 
 func TestFreeForAllGroupMustFitTheGamesMaximumMatchSize(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h, stage("free-for-all", map[string]any{"bouts": 2}))
 	body["gameId"] = "royale"
 	body["capacity"] = 9 // royale holds 8 per Match
@@ -110,7 +110,7 @@ func TestFreeForAllGroupMustFitTheGamesMaximumMatchSize(t *testing.T) {
 }
 
 func TestAdvancementMustLeaveSomeoneBehindInEveryGroup(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h,
 		stage("round-robin", map[string]any{"advancement": 4}),
 		stage("single-elimination", nil),
@@ -125,7 +125,7 @@ func TestAdvancementMustLeaveSomeoneBehindInEveryGroup(t *testing.T) {
 }
 
 func TestUnknownGameIsRejected(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h)
 	body["gameId"] = "chess"
 
@@ -137,8 +137,8 @@ func TestUnknownGameIsRejected(t *testing.T) {
 }
 
 func TestOrganizerEditsADraftUntilRegistrationOpens(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	edit := settings(h)
 	delete(edit, "gameId")
 	edit["capacity"] = 4
@@ -159,11 +159,11 @@ func TestOrganizerEditsADraftUntilRegistrationOpens(t *testing.T) {
 }
 
 func TestEditingMovesTheRegistrationWindow(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	edit := settings(h)
 	delete(edit, "gameId")
-	edit["registrationOpensAt"] = h.Clock.Now().Add(45 * 60e9)
+	edit["registrationOpensAt"] = h.FakeClock.Now().Add(45 * 60e9)
 	h.Do(http.MethodPut, tt.path(), tt.Organizer, edit).Expect(http.StatusOK)
 
 	tt.openRegistration() // 30 minutes in
@@ -178,11 +178,11 @@ func TestEditingMovesTheRegistrationWindow(t *testing.T) {
 }
 
 func TestListsTournamentsByStatus(t *testing.T) {
-	h := apptest.Start(t)
-	a := create(t, h, settings(h))
-	create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	a := mustCreate(t, h, settings(h))
+	mustCreate(t, h, settings(h))
 	a.openRegistration()
-	b := create(t, h, settings(h)) // created after, still a draft
+	b := mustCreate(t, h, settings(h)) // created after, still a draft
 
 	var body struct {
 		Tournaments []tournamentView `json:"tournaments"`

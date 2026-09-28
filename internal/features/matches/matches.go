@@ -18,8 +18,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-var keycloak = []map[string][]string{{"keycloak": {}}}
-
 // Register registers the slice's operations.
 func Register(api huma.API, svc *tournament.Service) {
 	h := handlers{svc}
@@ -30,7 +28,7 @@ func Register(api huma.API, svc *tournament.Service) {
 	}, h.get)
 	problem.Register(api, huma.Operation{
 		OperationID: "resolve-stalled-match", Method: http.MethodPost, Path: "/api/v1/matches/{matchId}/resolve",
-		Summary: "Resolve a Stalled Match", Tags: []string{"Matches"}, Security: keycloak,
+		Summary: "Resolve a Stalled Match", Tags: []string{"Matches"}, Security: auth.Security(),
 		Description: "The Organizer awards a win, or a double Forfeit. This is the only manual way to set a result.",
 	}, h.resolve)
 }
@@ -56,7 +54,7 @@ func (h handlers) get(ctx context.Context, in *matchInput) (*matchOutput, error)
 	if err != nil {
 		return nil, err
 	}
-	v, err := Get(ctx, h.svc.Queries, p, in.MatchID)
+	v, err := Find(ctx, h.svc.Queries, p, in.MatchID)
 	return &matchOutput{v}, err
 }
 
@@ -72,7 +70,7 @@ func (h handlers) resolve(ctx context.Context, in *resolveInput) (*matchOutput, 
 	if err := Resolve(ctx, h.svc, p, in.MatchID, r); err != nil {
 		return nil, err
 	}
-	v, err := Get(ctx, h.svc.Queries, &p, in.MatchID)
+	v, err := Find(ctx, h.svc.Queries, &p, in.MatchID)
 	return &matchOutput{v}, err
 }
 
@@ -96,8 +94,8 @@ type MatchDetailView struct {
 	ServerPort    *int32  `json:"serverPort,omitempty" doc:"Only for the Match's Participants and the Organizer"`
 }
 
-// Get reads a Match.
-func Get(ctx context.Context, q *db.Queries, p *auth.Principal, id ids.MatchID) (MatchDetailView, error) {
+// Find reads a Match.
+func Find(ctx context.Context, q *db.Queries, p *auth.Principal, id ids.MatchID) (MatchDetailView, error) {
 	m, err := q.GetMatch(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return MatchDetailView{}, tournament.ErrMatchNotFound

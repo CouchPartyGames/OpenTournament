@@ -7,10 +7,10 @@ import (
 )
 
 func TestSingleEliminationTournamentRunsFromRegistrationToFinalPlacements(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	tt.openRegistration()
-	tt.register("anna", "bert", "cleo", "dave")
+	tt.mustRegister("anna", "bert", "cleo", "dave")
 
 	tt.start()
 
@@ -44,7 +44,7 @@ func TestSingleEliminationTournamentRunsFromRegistrationToFinalPlacements(t *tes
 	if losers != 2 {
 		t.Fatalf("want both semifinal losers to share 3rd–4th, placements %+v", tt.placements())
 	}
-	if running := h.Servers.Running(); running != 0 {
+	if running := h.FakeServers.Running(); running != 0 {
 		t.Fatalf("%d game servers still allocated after the tournament", running)
 	}
 }

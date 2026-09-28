@@ -49,12 +49,12 @@ type structureOutput struct{ Body StructureView }
 type placementsOutput struct{ Body PlacementsView }
 
 func (h handlers) structure(ctx context.Context, in *input) (*structureOutput, error) {
-	v, err := Get(ctx, h.q, in.TournamentID)
+	v, err := Find(ctx, h.q, in.TournamentID)
 	return &structureOutput{v}, err
 }
 
 func (h handlers) placements(ctx context.Context, in *input) (*placementsOutput, error) {
-	v, err := GetPlacements(ctx, h.q, in.TournamentID)
+	v, err := FinalPlacements(ctx, h.q, in.TournamentID)
 	return &placementsOutput{v}, err
 }
 
@@ -76,16 +76,16 @@ type StageView struct {
 
 // GroupView is a Group with its Standings and Rounds.
 type GroupView struct {
-	ID        ids.GroupID               `json:"id"`
-	Position  int32                     `json:"position"`
-	Status    string                    `json:"status" enum:"running,completed"`
-	Entrants  []EntrantView             `json:"entrants"`
-	Standings []tournament.StandingView `json:"standings"`
-	Rounds    []RoundView               `json:"rounds"`
+	ID           ids.GroupID               `json:"id"`
+	Position     int32                     `json:"position"`
+	Status       string                    `json:"status" enum:"running,completed"`
+	Participants []GroupParticipantView    `json:"participants"`
+	Standings    []tournament.StandingView `json:"standings"`
+	Rounds       []RoundView               `json:"rounds"`
 }
 
-// EntrantView is a Participant's Seeding in a Group.
-type EntrantView struct {
+// GroupParticipantView is a Participant's Seeding in a Group.
+type GroupParticipantView struct {
 	ParticipantID ids.ParticipantID `json:"participantId"`
 	Seed          int32             `json:"seed"`
 	Advanced      bool              `json:"advanced,omitempty"`
@@ -137,8 +137,8 @@ func MatchViewOf(m db.Match, slots []ids.ParticipantID, bouts []db.BoutResult) M
 	return v
 }
 
-// Get reads a Tournament's structure.
-func Get(ctx context.Context, q *db.Queries, tid ids.TournamentID) (StructureView, error) {
+// Find reads a Tournament's structure.
+func Find(ctx context.Context, q *db.Queries, tid ids.TournamentID) (StructureView, error) {
 	t, err := q.GetTournament(ctx, tid)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return StructureView{}, tournament.ErrTournamentNotFound
@@ -153,7 +153,7 @@ func Get(ctx context.Context, q *db.Queries, tid ids.TournamentID) (StructureVie
 	if err != nil {
 		return StructureView{}, err
 	}
-	entrants, err := q.ListEntrantsOfTournament(ctx, tid)
+	participants, err := q.ListGroupParticipantsOfTournament(ctx, tid)
 	if err != nil {
 		return StructureView{}, err
 	}
@@ -185,15 +185,15 @@ func Get(ctx context.Context, q *db.Queries, tid ids.TournamentID) (StructureVie
 			if g.StageID != st.ID {
 				continue
 			}
-			gv := GroupView{ID: g.ID, Position: g.Position, Status: g.Status, Entrants: []EntrantView{}, Rounds: []RoundView{}}
+			gv := GroupView{ID: g.ID, Position: g.Position, Status: g.Status, Participants: []GroupParticipantView{}, Rounds: []RoundView{}}
 			eg := format.Group{Stage: tournament.StageRules(st)}
-			for _, e := range entrants {
+			for _, e := range participants {
 				if e.GroupID != g.ID {
 					continue
 				}
-				gv.Entrants = append(gv.Entrants, EntrantView{ParticipantID: e.ParticipantID, Seed: e.Seed, Advanced: e.Advanced})
+				gv.Participants = append(gv.Participants, GroupParticipantView{ParticipantID: e.ParticipantID, Seed: e.Seed, Advanced: e.Advanced})
 				fid := format.ParticipantID(e.ParticipantID.String())
-				eg.Entrants = append(eg.Entrants, format.Entrant{ID: fid, Lot: int(e.Lot)})
+				eg.Participants = append(eg.Participants, format.Participant{ID: fid, Lot: int(e.Lot)})
 				if e.Status == tournament.Withdrawn || e.Status == tournament.Disqualified {
 					eg.Dropped = append(eg.Dropped, fid)
 				}
@@ -264,8 +264,8 @@ type PlacementView struct {
 	To            int32             `json:"to" doc:"Worst place of the shared range"`
 }
 
-// GetPlacements reads a Tournament's Final Placements.
-func GetPlacements(ctx context.Context, q *db.Queries, tid ids.TournamentID) (PlacementsView, error) {
+// FinalPlacements reads a Tournament's Final Placements.
+func FinalPlacements(ctx context.Context, q *db.Queries, tid ids.TournamentID) (PlacementsView, error) {
 	t, err := q.GetTournament(ctx, tid)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return PlacementsView{}, tournament.ErrTournamentNotFound

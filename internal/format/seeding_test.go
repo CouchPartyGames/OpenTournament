@@ -58,10 +58,10 @@ func TestSnakeDistributionBalancesGroups(t *testing.T) {
 }
 
 func TestAdvancementSeedsGroupWinnersAboveRunnersUpAndSkipsDropped(t *testing.T) {
-	a := []format.Standing{{Participant: "a1", Rank: 1}, {Participant: "a2", Rank: 2, Dropped: true}, {Participant: "a3", Rank: 3}}
-	b := []format.Standing{{Participant: "b1", Rank: 1}, {Participant: "b2", Rank: 2}, {Participant: "b3", Rank: 3}}
+	a := []format.Standing{{Participant: "a1", Position: 1}, {Participant: "a2", Position: 2, Dropped: true}, {Participant: "a3", Position: 3}}
+	b := []format.Standing{{Participant: "b1", Position: 1}, {Participant: "b2", Position: 2}, {Participant: "b3", Position: 3}}
 
-	got := format.AdvancementSeeding([][]format.Standing{a, b}, 2)
+	got := format.AdvancementSeeding(singleElim, 1, [][]format.Standing{a, b}, 2)
 
 	// a2 withdrew, so a3 advances in its place.
 	if want := ids("a1", "b1", "a3", "b2"); !reflect.DeepEqual(got, want) {
@@ -70,7 +70,7 @@ func TestAdvancementSeedsGroupWinnersAboveRunnersUpAndSkipsDropped(t *testing.T)
 	// In a single-elimination bracket of four, group mates don't meet in round 1.
 	gr := &group{t: t, g: format.Group{Stage: singleElim}}
 	for i, p := range got {
-		gr.g.Entrants = append(gr.g.Entrants, format.Entrant{ID: p, Lot: i})
+		gr.g.Participants = append(gr.g.Participants, format.Participant{ID: p, Lot: i})
 	}
 	for _, m := range gr.plan().Matches[:2] {
 		if m.Participants[0][0] == m.Participants[1][0] {
@@ -103,5 +103,52 @@ func TestFinalPlacementsRankLaterStagesAboveEarlierOnes(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("placements = %v, want %v", got, want)
+	}
+}
+
+func standingsOf(names ...string) []format.Standing {
+	out := make([]format.Standing, len(names))
+	for i, n := range names {
+		out[i] = format.Standing{Participant: format.ParticipantID(n), Position: i + 1}
+	}
+	return out
+}
+
+func TestAdvancementKeepsGroupMatesApartInTheFirstRoundWherePossible(t *testing.T) {
+	for _, tc := range []struct {
+		groups     [][]format.Standing
+		advance    int
+		nextGroups int
+	}{
+		{[][]format.Standing{standingsOf("a1", "a2", "a3"), standingsOf("b1", "b2", "b3"), standingsOf("c1", "c2", "c3")}, 2, 1},
+		{[][]format.Standing{standingsOf("a1", "a2", "a3"), standingsOf("b1", "b2", "b3")}, 2, 1},
+		{[][]format.Standing{standingsOf("a1", "a2", "a3", "a4"), standingsOf("b1", "b2", "b3", "b4"), standingsOf("c1", "c2", "c3", "c4")}, 4, 2},
+	} {
+		next := format.Stage{Format: format.SingleElimination, BestOf: 1}
+
+		seeds := format.AdvancementSeeding(next, tc.nextGroups, tc.groups, tc.advance)
+
+		for _, members := range format.Snake(seeds, tc.nextGroups) {
+			g := format.Group{Stage: next}
+			for i, p := range members {
+				g.Participants = append(g.Participants, format.Participant{ID: p, Lot: i})
+			}
+			p, err := format.PlanGroup(g)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, m := range p.Matches {
+				if m.Round == 1 && len(m.Participants) == 2 && m.Participants[0][0] == m.Participants[1][0] {
+					t.Errorf("AdvancementSeeding(%d groups → %d) pairs group mates %v in round 1 (seeds %v)",
+						len(tc.groups), tc.nextGroups, m.Participants, seeds)
+				}
+			}
+		}
+		// Every Group winner is still seeded above every runner-up.
+		for i, p := range seeds[:len(tc.groups)] {
+			if p[1] != '1' {
+				t.Errorf("seed %d is %s, want a group winner", i+1, p)
+			}
+		}
 	}
 }

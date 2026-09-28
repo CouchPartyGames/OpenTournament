@@ -8,11 +8,11 @@ import (
 	"github.com/couchpartygames/opentournament/internal/format"
 )
 
-// entrants builds n Entrants named p1..pn in seed order, with lots equal to their seed.
-func entrants(n int) []format.Entrant {
-	es := make([]format.Entrant, n)
+// seeded builds n Participants named p1..pn in Seeding order, with Lots equal to their seed.
+func seeded(n int) []format.Participant {
+	es := make([]format.Participant, n)
 	for i := range es {
-		es[i] = format.Entrant{ID: pid(i + 1), Lot: i}
+		es[i] = format.Participant{ID: pid(i + 1), Lot: i}
 	}
 	return es
 }
@@ -28,7 +28,7 @@ type group struct {
 
 func newGroup(t *testing.T, stage format.Stage, n int) *group {
 	t.Helper()
-	return &group{t: t, g: format.Group{Stage: stage, Entrants: entrants(n)}}
+	return &group{t: t, g: format.Group{Stage: stage, Participants: seeded(n)}}
 }
 
 // plan asks the engine for the current plan and persists any newly created

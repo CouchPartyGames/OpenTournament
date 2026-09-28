@@ -232,7 +232,7 @@ func (c *client) allowed(recipients []string) bool {
 }
 
 func (c *client) enqueue(m ServerMessage) {
-	b, _ := json.Marshal(m)
+	b, _ := json.Marshal(m) // can't fail: m holds only JSON-safe values
 	select {
 	case c.send <- b:
 	default:
@@ -248,7 +248,7 @@ func merge(public, private json.RawMessage) json.RawMessage {
 	for k, v := range b {
 		a[k] = v
 	}
-	out, _ := json.Marshal(a)
+	out, _ := json.Marshal(a) // can't fail: a was just unmarshalled from JSON
 	return out
 }
 

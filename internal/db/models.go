@@ -40,7 +40,7 @@ type Group struct {
 	Status       string
 }
 
-type GroupEntrant struct {
+type GroupParticipant struct {
 	GroupID       ids.GroupID
 	ParticipantID ids.ParticipantID
 	Seed          int32

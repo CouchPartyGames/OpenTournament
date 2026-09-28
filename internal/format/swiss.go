@@ -24,7 +24,7 @@ func (s Stage) SwissRoundsFor(n int) int {
 }
 
 func planSwiss(g Group) Plan {
-	rounds := g.Stage.SwissRoundsFor(len(g.Entrants))
+	rounds := g.Stage.SwissRoundsFor(len(g.Participants))
 	existing := slices.Clone(g.Matches)
 	slices.SortStableFunc(existing, func(a, b Match) int {
 		return cmp.Or(cmp.Compare(a.Round, b.Round), cmp.Compare(a.Key, b.Key))
@@ -78,7 +78,7 @@ func swissOrder(g Group, rec *record) []ParticipantID {
 		}
 	}
 	lot := lots(g)
-	return ordered(entrantIDs(g), rec.beat,
+	return ordered(participantIDs(g), rec.beat,
 		func(a, b ParticipantID) int {
 			sa, sb := rec.stats[a], rec.stats[b]
 			return cmp.Or(sb.Points-sa.Points, sb.Buchholz-sa.Buchholz)
@@ -92,7 +92,7 @@ func swissPairings(g Group, rec *record, order []ParticipantID, round int) []Pla
 	dropped := droppedSet(g)
 	var active []ParticipantID
 	if round == 1 {
-		order = entrantIDs(g)
+		order = participantIDs(g)
 	}
 	for _, p := range order {
 		if !dropped[p] {

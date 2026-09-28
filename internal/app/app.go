@@ -63,16 +63,16 @@ type App struct {
 // APIPrefix is where the versioned API lives.
 const APIPrefix = "/api/v1"
 
-var installProblems sync.Once
-
 // New composes the service.
 func New(cfg Config) (*App, error) {
-	installProblems.Do(problem.Install)
+	problem.Install()
 	tokens, err := matchtoken.NewIssuer(cfg.MatchTokenKey, cfg.Clock)
 	if err != nil {
 		return nil, err
 	}
-	svc := tournament.NewService(cfg.Pool, cfg.Clock, cfg.Games, tokens, cfg.GameServers, cfg.Rand)
+	svc := tournament.NewService(tournament.Deps{
+		Pool: cfg.Pool, Clock: cfg.Clock, Games: cfg.Games, Tokens: tokens, Servers: cfg.GameServers, Rand: cfg.Rand,
+	})
 	sched := scheduler.New(db.New(cfg.Pool), cfg.Clock, map[string]scheduler.Handler{
 		tournament.JobOpenRegistration: func(ctx context.Context, j db.Job) error { return svc.OpenRegistration(ctx, j.TournamentID) },
 		tournament.JobOpenCheckIn:      func(ctx context.Context, j db.Job) error { return svc.OpenCheckIn(ctx, j.TournamentID) },

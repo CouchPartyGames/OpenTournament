@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"net/http"
+
 	"github.com/coder/websocket"
 	"github.com/couchpartygames/opentournament/internal/app/apptest"
 )
@@ -74,15 +76,15 @@ func (s *socket) subscribe(tournament string) liveMessage {
 }
 
 func TestSpectatorFollowsRegistrationsLiveWithSequenceNumbers(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	tt.openRegistration()
 	ws := connect(t, h)
 	sub := ws.subscribe(tt.ID)
 
-	tt.register("anna")
+	tt.mustRegister("anna")
 	first := ws.next(isEvent("registrations.changed"))
-	tt.register("bert")
+	tt.mustRegister("bert")
 	second := ws.next(isEvent("registrations.changed"))
 
 	var counts struct{ Registered int }
@@ -96,12 +98,12 @@ func TestSpectatorFollowsRegistrationsLiveWithSequenceNumbers(t *testing.T) {
 }
 
 func TestOnlyTheMatchesParticipantsLearnTheGameServerAddressLive(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	tt.openRegistration()
-	ps := tt.register("anna", "bert")
+	ps := tt.mustRegister("anna", "bert")
 	anna := connect(t, h)
-	anna.send(map[string]any{"type": "authenticate", "token": tt.Players[ps[0]]})
+	anna.send(map[string]any{"type": "authenticate", "token": tt.Tokens[ps[0]]})
 	anna.next(func(m liveMessage) bool { return m.Type == "authenticated" })
 	anna.subscribe(tt.ID)
 	spectator := connect(t, h)
@@ -134,8 +136,8 @@ func TestOnlyTheMatchesParticipantsLearnTheGameServerAddressLive(t *testing.T) {
 }
 
 func TestAuthenticationMustBeTheFirstMessage(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	ws := connect(t, h)
 	ws.subscribe(tt.ID)
 
@@ -147,10 +149,59 @@ func TestAuthenticationMustBeTheFirstMessage(t *testing.T) {
 }
 
 func TestSubscribingToAnUnknownTournamentFails(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	ws := connect(t, h)
 
 	if m := ws.subscribe("01a0e85d-6bc9-748c-a3e1-a1ab27040c5e"); m.Code != "tournament-not-found" {
 		t.Fatalf("got %+v", m)
+	}
+}
+
+func TestFreeForAllStandingsGoLiveAfterEveryBout(t *testing.T) {
+	h := apptest.MustStart(t)
+	body := settings(h, stage("free-for-all", map[string]any{"bouts": 3}))
+	body["gameId"] = "royale"
+	body["capacity"] = 8
+	tt := mustCreate(t, h, body)
+	tt.openRegistration()
+	ps := tt.mustRegister("anna", "bert")
+	tt.start()
+	ws := connect(t, h)
+	ws.subscribe(tt.ID)
+	m := tt.matches("allocating")[0]
+
+	tt.reportBout(tt.server(m.ID), 1, map[string]any{"placements": []map[string]any{
+		{"participantId": ps[0], "placement": 1, "points": 7},
+		{"participantId": ps[1], "placement": 2, "points": 2},
+	}}).Expect(http.StatusNoContent)
+
+	ev := ws.next(isEvent("standings.changed"))
+	var d struct {
+		Standings []standingView `json:"standings"`
+	}
+	json.Unmarshal(ev.Data, &d)
+	if len(d.Standings) != 2 || d.Standings[0].Points != 7 {
+		t.Fatalf("standings = %s, want anna on 7 points", ev.Data)
+	}
+}
+
+func TestAbortIsAnnouncedLive(t *testing.T) {
+	tt := mustRun(t, 2)
+	final := tt.matches("allocating")[0]
+	ws := connect(t, tt.Harness)
+	ws.subscribe(tt.ID)
+
+	tt.FakeServers.MakeUnhealthy(serverName(tt, final.ID))
+	tt.Settle()
+
+	ev := ws.next(func(m liveMessage) bool {
+		var d struct{ Aborted bool }
+		json.Unmarshal(m.Data, &d)
+		return isEvent("match.changed")(m) && d.Aborted
+	})
+	var d struct{ Aborts int }
+	json.Unmarshal(ev.Data, &d)
+	if d.Aborts != 1 {
+		t.Fatalf("event = %s, want aborts 1", ev.Data)
 	}
 }

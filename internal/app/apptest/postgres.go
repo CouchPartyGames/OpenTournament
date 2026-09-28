@@ -62,7 +62,9 @@ func startServer() {
 		return
 	}
 	defer admin.Close(ctx)
-	admin.Exec(ctx, "DROP DATABASE IF EXISTS "+template)
+	if _, serverErr = admin.Exec(ctx, "DROP DATABASE IF EXISTS "+template); serverErr != nil {
+		return
+	}
 	if _, serverErr = admin.Exec(ctx, "CREATE DATABASE "+template); serverErr != nil {
 		return
 	}

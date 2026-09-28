@@ -63,6 +63,10 @@ func (p Principal) Keys() []string {
 	return keys
 }
 
+// Security is the OpenAPI security requirement of operations that take a
+// Keycloak bearer token.
+func Security() []map[string][]string { return []map[string][]string{{"keycloak": {}}} }
+
 // Verifier turns a bearer token into a Principal.
 type Verifier interface {
 	Verify(ctx context.Context, token string) (Principal, error)
@@ -88,6 +92,8 @@ func NewOIDC(ctx context.Context, issuer string, identityClaims map[string]strin
 	}, nil
 }
 
+// Verify checks a Keycloak access token. Service-account tokens become a
+// Game backend Principal; others a human with their Player Identities.
 func (o *OIDC) Verify(ctx context.Context, raw string) (Principal, error) {
 	tok, err := o.verifier.Verify(ctx, raw)
 	if err != nil {

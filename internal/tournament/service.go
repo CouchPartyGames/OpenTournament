@@ -1,7 +1,10 @@
-// Package tournament is the Tournament aggregate and the Match lifecycle. It
-// owns every state change: registration rules, status transitions, Stage
-// generation through the Format engine, Match readiness and completion,
-// Forfeits and Game Server allocation.
+// Package tournament is the Tournament aggregate and the Match lifecycle.
+// Every change to a Tournament runs in a transaction holding its lock (Tx),
+// which orders its live-update events. The package owns the lifecycle that
+// several features share: status transitions, Stage generation through the
+// Format engine, Match readiness and completion, Forfeits, and Game Server
+// allocation. Feature slices add their own rules on top through Tx, such as
+// registration's Capacity check.
 package tournament
 
 import (
@@ -40,12 +43,23 @@ type Service struct {
 	rng   *rand.Rand
 }
 
-// NewService returns a Service. rng is the source of all randomness (Seeding
-// and Lots); tests pass a seeded one.
-func NewService(pool *pgxpool.Pool, c clock.Clock, catalog *games.Catalog, tokens *matchtoken.Issuer, servers gameserver.Port, rng *rand.Rand) *Service {
+// Deps are what a Service needs.
+type Deps struct {
+	Pool    *pgxpool.Pool
+	Clock   clock.Clock
+	Games   *games.Catalog
+	Tokens  *matchtoken.Issuer
+	Servers gameserver.Port
+	// Rand is the source of all randomness (Seeding and Lots); tests pass a
+	// seeded one.
+	Rand *rand.Rand
+}
+
+// NewService returns a Service.
+func NewService(d Deps) *Service {
 	return &Service{
-		Pool: pool, Queries: db.New(pool), Clock: c, Games: catalog,
-		Tokens: tokens, Servers: servers, Wake: func() {}, rng: rng,
+		Pool: d.Pool, Queries: db.New(d.Pool), Clock: d.Clock, Games: d.Games,
+		Tokens: d.Tokens, Servers: d.Servers, Wake: func() {}, rng: d.Rand,
 	}
 }
 
@@ -66,6 +80,9 @@ type Tx struct {
 	after  []func(context.Context)
 	wake   bool
 	people map[ids.ParticipantID]db.Participant
+	// boutsRecorded makes the next Group progression publish Standings,
+	// which change with every Bout in free-for-all.
+	boutsRecorded bool
 }
 
 // ErrTournamentNotFound is returned for an unknown Tournament.
@@ -116,6 +133,16 @@ func (s *Service) inTx(ctx context.Context, id ids.TournamentID, insert *db.Inse
 		s.Wake()
 	}
 	return nil
+}
+
+// Game returns the Game the Tournament is played in. It fails if the Game
+// was removed from the catalog after the Tournament was created.
+func (tx *Tx) Game() (games.Game, error) {
+	g, ok := tx.s.Games.Get(tx.T.GameID)
+	if !ok {
+		return games.Game{}, fmt.Errorf("game %q is no longer in the catalog", tx.T.GameID)
+	}
+	return g, nil
 }
 
 // RequireOrganizer fails unless the caller is the Tournament's Organizer.

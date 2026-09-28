@@ -50,7 +50,7 @@ sql:
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: StageID}
           - column: groups.id
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: GroupID}
-          - column: group_entrants.group_id
+          - column: group_participants.group_id
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: GroupID}
           - column: matches.group_id
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: GroupID}
@@ -64,7 +64,7 @@ sql:
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: MatchID}
           - column: participants.id
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}
-          - column: group_entrants.participant_id
+          - column: group_participants.participant_id
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}
           - column: match_slots.participant_id
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}

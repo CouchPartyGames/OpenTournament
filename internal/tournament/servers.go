@@ -23,13 +23,13 @@ func (s *Service) Allocate(ctx context.Context, id ids.MatchID) error {
 		if (m.Status != MatchReady && m.Status != MatchAllocating) || m.ServerName != nil {
 			return nil
 		}
-		game, ok := s.Games.Get(tx.T.GameID)
-		if !ok {
-			return fmt.Errorf("game %q is no longer configured", tx.T.GameID)
+		game, err := tx.Game()
+		if err != nil {
+			return err
 		}
 		allocation := ids.New[ids.AllocationID]()
 		wasReady := m.Status == MatchReady
-		m, err := tx.Q.RequestAllocation(tx.ctx, db.RequestAllocationParams{ID: m.ID, AllocationID: allocation})
+		m, err = tx.Q.RequestAllocation(tx.ctx, db.RequestAllocationParams{ID: m.ID, AllocationID: allocation})
 		if err != nil {
 			return err
 		}
@@ -121,6 +121,14 @@ func (s *Service) Reconcile(ctx context.Context) error {
 	var errs []error
 	for _, m := range running {
 		sv, ok := byName[*m.ServerName]
+		if !ok {
+			// The listing can lag behind a fresh allocation: only a server
+			// the source of truth doesn't have is gone.
+			if sv, ok, err = s.Servers.Lookup(ctx, *m.ServerName); err != nil {
+				errs = append(errs, fmt.Errorf("look up %s: %w", *m.ServerName, err))
+				continue
+			}
+		}
 		if ok && sv.State == gameserver.Healthy && sv.AllocationID == m.AllocationID {
 			continue
 		}
@@ -169,6 +177,6 @@ func (s *Service) abort(ctx context.Context, failed db.Match) error {
 		if err != nil {
 			return err
 		}
-		return tx.EmitMatch(m, gs.slots[m.ID])
+		return tx.emitMatch(m, gs.slots[m.ID], true)
 	})
 }

@@ -18,7 +18,7 @@ func newRecord(g Group) *record {
 		byes:      map[ParticipantID]int{},
 	}
 	dropped := droppedSet(g)
-	for _, e := range g.Entrants {
+	for _, e := range g.Participants {
 		r.stats[e.ID] = &Standing{Participant: e.ID, Dropped: dropped[e.ID]}
 	}
 	return r
@@ -92,8 +92,8 @@ func ordered(ps []ParticipantID, beat map[[2]ParticipantID]int, primary, rest fu
 }
 
 func lots(g Group) map[ParticipantID]int {
-	out := make(map[ParticipantID]int, len(g.Entrants))
-	for _, e := range g.Entrants {
+	out := make(map[ParticipantID]int, len(g.Participants))
+	for _, e := range g.Participants {
 		out[e.ID] = e.Lot
 	}
 	return out
@@ -103,7 +103,7 @@ func standingsIn(order []ParticipantID, stats map[ParticipantID]*Standing) []Sta
 	out := make([]Standing, 0, len(order))
 	for i, p := range order {
 		st := *stats[p]
-		st.Rank = i + 1
+		st.Position = i + 1
 		out = append(out, st)
 	}
 	return out
@@ -113,14 +113,14 @@ func standingsIn(order []ParticipantID, stats map[ParticipantID]*Standing) []Sta
 func strictPlacements(standings []Standing) []Placement {
 	out := make([]Placement, 0, len(standings))
 	for _, s := range standings {
-		out = append(out, Placement{Participant: s.Participant, From: s.Rank, To: s.Rank})
+		out = append(out, Placement{Participant: s.Participant, From: s.Position, To: s.Position})
 	}
 	return out
 }
 
-func entrantIDs(g Group) []ParticipantID {
-	out := make([]ParticipantID, 0, len(g.Entrants))
-	for _, e := range g.Entrants {
+func participantIDs(g Group) []ParticipantID {
+	out := make([]ParticipantID, 0, len(g.Participants))
+	for _, e := range g.Participants {
 		out = append(out, e.ID)
 	}
 	return out

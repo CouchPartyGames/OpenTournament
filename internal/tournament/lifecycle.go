@@ -106,13 +106,13 @@ func (tx *Tx) startStage(st db.Stage, seeds []format.ParticipantID) error {
 		if err := tx.Q.InsertGroup(tx.ctx, db.InsertGroupParams{ID: g, TournamentID: tx.T.ID, StageID: st.ID, Position: int32(i)}); err != nil {
 			return fmt.Errorf("insert group: %w", err)
 		}
-		var entrants []format.Entrant
-		tx.s.random(func(r *rand.Rand) { entrants = format.DrawLots(members, r) })
-		for seed, e := range entrants {
-			if err := tx.Q.InsertEntrant(tx.ctx, db.InsertEntrantParams{
+		var participants []format.Participant
+		tx.s.random(func(r *rand.Rand) { participants = format.DrawLots(members, r) })
+		for seed, e := range participants {
+			if err := tx.Q.InsertGroupParticipant(tx.ctx, db.InsertGroupParticipantParams{
 				GroupID: g, ParticipantID: ParticipantOf(e.ID), Seed: int32(seed + 1), Lot: int32(e.Lot),
 			}); err != nil {
-				return fmt.Errorf("insert entrant: %w", err)
+				return fmt.Errorf("insert group participant: %w", err)
 			}
 		}
 	}
@@ -161,7 +161,8 @@ func (tx *Tx) finishStageIfComplete(st db.Stage) error {
 		}
 		standings = append(standings, plan.Standings)
 	}
-	seeds := format.AdvancementSeeding(standings, int(st.Advancement))
+	next := stages[st.Position+1]
+	seeds := format.AdvancementSeeding(StageRules(next), int(next.GroupCount), standings, int(st.Advancement))
 	for gi, g := range groups {
 		for _, s := range standings[gi] {
 			p := ParticipantOf(s.Participant)
@@ -180,7 +181,7 @@ func (tx *Tx) finishStageIfComplete(st db.Stage) error {
 			}
 		}
 	}
-	return tx.startStage(stages[st.Position+1], seeds)
+	return tx.startStage(next, seeds)
 }
 
 // complete ends the Tournament with Final Placements for everyone who played.
@@ -202,7 +203,7 @@ func (tx *Tx) complete(stages []db.Stage) error {
 				return err
 			}
 			r := format.GroupResult{Placements: plan.Placements}
-			for _, e := range gs.entrants {
+			for _, e := range gs.participants {
 				if e.Advanced {
 					r.Advanced = append(r.Advanced, pid(e.ParticipantID))
 				}

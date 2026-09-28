@@ -77,7 +77,7 @@ type noShowInput struct {
 	MatchToken
 	Bout int32 `path:"bout" minimum:"1"`
 	Body struct {
-		ParticipantIDs []ids.ParticipantID `json:"participantIds" minItems:"1"`
+		ParticipantIDs []ids.ParticipantID `json:"participantIds" minItems:"1" uniqueItems:"true"`
 	}
 }
 

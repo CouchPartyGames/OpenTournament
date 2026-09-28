@@ -13,12 +13,12 @@ func RandomSeeding(ps []ParticipantID, r *rand.Rand) []ParticipantID {
 	return out
 }
 
-// DrawLots turns seeded Participants into Entrants with a random Lot each.
-func DrawLots(seeds []ParticipantID, r *rand.Rand) []Entrant {
+// DrawLots turns seeded Participants into Participants with a random Lot each.
+func DrawLots(seeds []ParticipantID, r *rand.Rand) []Participant {
 	perm := r.Perm(len(seeds))
-	out := make([]Entrant, len(seeds))
+	out := make([]Participant, len(seeds))
 	for i, p := range seeds {
-		out[i] = Entrant{ID: p, Lot: perm[i]}
+		out[i] = Participant{ID: p, Lot: perm[i]}
 	}
 	return out
 }
@@ -68,21 +68,72 @@ func Advancing(standings []Standing, n int) []ParticipantID {
 }
 
 // AdvancementSeeding seeds the next Stage from the previous Stage's Groups:
-// every Group winner, then every runner-up, and so on.
-func AdvancementSeeding(groups [][]Standing, n int) []ParticipantID {
-	advancing := make([][]ParticipantID, len(groups))
-	for i, s := range groups {
-		advancing[i] = Advancing(s, n)
+// every Group winner, then every runner-up, and so on. Where possible it
+// keeps Participants from the same Group apart in the next Stage's first
+// Round, by swapping Participants who finished in the same place.
+func AdvancementSeeding(next Stage, groups int, standings [][]Standing, n int) []ParticipantID {
+	origin := map[ParticipantID]int{}
+	place := map[ParticipantID]int{}
+	advancing := make([][]ParticipantID, len(standings))
+	for g, s := range standings {
+		advancing[g] = Advancing(s, n)
+		for i, p := range advancing[g] {
+			origin[p], place[p] = g, i
+		}
 	}
-	var out []ParticipantID
-	for place := range n {
+	var seeds []ParticipantID
+	for i := range n {
 		for _, a := range advancing {
-			if place < len(a) {
-				out = append(out, a[place])
+			if i < len(a) {
+				seeds = append(seeds, a[i])
 			}
 		}
 	}
-	return out
+	if !next.Format.HeadToHead() {
+		return seeds
+	}
+
+	// Each accepted swap removes at least one clash, so this terminates.
+	clashes := groupMateClashes(next, groups, seeds, origin)
+	for improved := true; improved && clashes > 0; {
+		improved = false
+		for i := 0; i < len(seeds) && !improved; i++ {
+			for j := i + 1; j < len(seeds) && !improved; j++ {
+				if place[seeds[i]] != place[seeds[j]] {
+					continue
+				}
+				seeds[i], seeds[j] = seeds[j], seeds[i]
+				if c := groupMateClashes(next, groups, seeds, origin); c < clashes {
+					clashes, improved = c, true
+				} else {
+					seeds[i], seeds[j] = seeds[j], seeds[i]
+				}
+			}
+		}
+	}
+	return seeds
+}
+
+// groupMateClashes counts first-Round Matches between Participants who come
+// from the same Group, if the next Stage were seeded this way.
+func groupMateClashes(next Stage, groups int, seeds []ParticipantID, origin map[ParticipantID]int) int {
+	clashes := 0
+	for _, members := range Snake(seeds, groups) {
+		g := Group{Stage: next}
+		for i, p := range members {
+			g.Participants = append(g.Participants, Participant{ID: p, Lot: i})
+		}
+		plan, err := PlanGroup(g)
+		if err != nil {
+			return 0
+		}
+		for _, m := range plan.Matches {
+			if m.Round == 1 && len(m.Participants) == 2 && origin[m.Participants[0]] == origin[m.Participants[1]] {
+				clashes++
+			}
+		}
+	}
+	return clashes
 }
 
 // GroupResult is how one completed Group ended.

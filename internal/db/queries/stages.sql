@@ -30,22 +30,22 @@ SELECT * FROM groups WHERE stage_id = $1 ORDER BY position;
 -- name: SetGroupStatus :exec
 UPDATE groups SET status = $2 WHERE id = $1;
 
--- name: InsertEntrant :exec
-INSERT INTO group_entrants (group_id, participant_id, seed, lot) VALUES ($1, $2, $3, $4);
+-- name: InsertGroupParticipant :exec
+INSERT INTO group_participants (group_id, participant_id, seed, lot) VALUES ($1, $2, $3, $4);
 
--- name: ListEntrants :many
+-- name: ListGroupParticipants :many
 SELECT e.group_id, e.participant_id, e.seed, e.lot, e.advanced, p.status
-FROM group_entrants e JOIN participants p ON p.id = e.participant_id
+FROM group_participants e JOIN participants p ON p.id = e.participant_id
 WHERE e.group_id = $1
 ORDER BY e.seed;
 
--- name: ListEntrantsOfTournament :many
+-- name: ListGroupParticipantsOfTournament :many
 SELECT e.group_id, e.participant_id, e.seed, e.lot, e.advanced, p.status
-FROM group_entrants e
+FROM group_participants e
 JOIN groups g ON g.id = e.group_id
 JOIN participants p ON p.id = e.participant_id
 WHERE g.tournament_id = $1
 ORDER BY e.group_id, e.seed;
 
 -- name: MarkAdvanced :exec
-UPDATE group_entrants SET advanced = true WHERE group_id = $1 AND participant_id = $2;
+UPDATE group_participants SET advanced = true WHERE group_id = $1 AND participant_id = $2;

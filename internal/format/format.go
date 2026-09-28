@@ -4,7 +4,7 @@
 //
 // It imports nothing that touches the database, network or clock. The same
 // inputs always produce the same outputs: randomness comes in through each
-// Entrant's Lot, drawn by the caller.
+// Participant's Lot, drawn by the caller.
 //
 // The engine is level-triggered: callers pass the Group's persisted Matches
 // and Bouts, and it returns the complete plan for the Group as it stands. A
@@ -51,8 +51,8 @@ type Stage struct {
 	SwissRounds int
 }
 
-// Entrant is a Participant placed in a Group.
-type Entrant struct {
+// Participant is a Participant placed in a Group.
+type Participant struct {
 	ID ParticipantID
 	// Lot is the Participant's random draw, used as the last Tiebreaker. Lower wins.
 	Lot int
@@ -61,8 +61,8 @@ type Entrant struct {
 // Group is the persisted state of one Group.
 type Group struct {
 	Stage Stage
-	// Entrants are in Seeding order: the first is the top seed.
-	Entrants []Entrant
+	// Participants are in Seeding order: the first is the top seed.
+	Participants []Participant
 	// Matches are the Group's persisted Matches with their Bouts so far.
 	Matches []Match
 	// Dropped are the Participants who withdrew or were disqualified. They are
@@ -149,13 +149,13 @@ type Outcome struct {
 // Standing is a Participant's position in a Group.
 type Standing struct {
 	Participant ParticipantID
-	// Rank is 1-based and strict.
-	Rank    int
-	Played  int
-	Wins    int
-	Losses  int
-	Points  int
-	Dropped bool
+	// Position is 1-based and strict.
+	Position int
+	Played   int
+	Wins     int
+	Losses   int
+	Points   int
+	Dropped  bool
 	// Buchholz is set for Swiss.
 	Buchholz int
 	// BoutDifferential is set for round robin.
@@ -212,7 +212,7 @@ func validate(g Group) error {
 		return fmt.Errorf("%w: a free-for-all match needs at least one bout", ErrInvalidGroup)
 	}
 	seen := map[ParticipantID]bool{}
-	for _, e := range g.Entrants {
+	for _, e := range g.Participants {
 		if e.ID == "" || seen[e.ID] {
 			return fmt.Errorf("%w: entrant %q is empty or duplicated", ErrInvalidGroup, e.ID)
 		}

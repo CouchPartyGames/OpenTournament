@@ -46,8 +46,12 @@ type Server struct {
 type Port interface {
 	// Allocate takes a warm Game Server from the Fleet for a Match.
 	Allocate(ctx context.Context, req AllocationRequest) (Server, error)
-	// Servers lists every Game Server allocated by the service.
+	// Servers lists every Game Server allocated by the service. The list may
+	// lag behind: a Game Server allocated moments ago can be missing.
 	Servers(ctx context.Context) ([]Server, error)
+	// Lookup reads one Game Server's current state from the source of truth.
+	// It reports false when the server doesn't exist.
+	Lookup(ctx context.Context, server string) (Server, bool, error)
 	// Watch calls onChange whenever a Game Server changes, until ctx ends.
 	Watch(ctx context.Context, onChange func()) error
 	// NotifyForfeits tells a running Game Server which Participants forfeited.

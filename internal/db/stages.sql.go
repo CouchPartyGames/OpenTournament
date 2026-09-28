@@ -38,27 +38,6 @@ func (q *Queries) GetGroup(ctx context.Context, id ids.GroupID) (Group, error) {
 	return i, err
 }
 
-const insertEntrant = `-- name: InsertEntrant :exec
-INSERT INTO group_entrants (group_id, participant_id, seed, lot) VALUES ($1, $2, $3, $4)
-`
-
-type InsertEntrantParams struct {
-	GroupID       ids.GroupID
-	ParticipantID ids.ParticipantID
-	Seed          int32
-	Lot           int32
-}
-
-func (q *Queries) InsertEntrant(ctx context.Context, arg InsertEntrantParams) error {
-	_, err := q.db.Exec(ctx, insertEntrant,
-		arg.GroupID,
-		arg.ParticipantID,
-		arg.Seed,
-		arg.Lot,
-	)
-	return err
-}
-
 const insertGroup = `-- name: InsertGroup :exec
 INSERT INTO groups (id, tournament_id, stage_id, position, status) VALUES ($1, $2, $3, $4, 'running')
 `
@@ -76,6 +55,27 @@ func (q *Queries) InsertGroup(ctx context.Context, arg InsertGroupParams) error 
 		arg.TournamentID,
 		arg.StageID,
 		arg.Position,
+	)
+	return err
+}
+
+const insertGroupParticipant = `-- name: InsertGroupParticipant :exec
+INSERT INTO group_participants (group_id, participant_id, seed, lot) VALUES ($1, $2, $3, $4)
+`
+
+type InsertGroupParticipantParams struct {
+	GroupID       ids.GroupID
+	ParticipantID ids.ParticipantID
+	Seed          int32
+	Lot           int32
+}
+
+func (q *Queries) InsertGroupParticipant(ctx context.Context, arg InsertGroupParticipantParams) error {
+	_, err := q.db.Exec(ctx, insertGroupParticipant,
+		arg.GroupID,
+		arg.ParticipantID,
+		arg.Seed,
+		arg.Lot,
 	)
 	return err
 }
@@ -115,14 +115,14 @@ func (q *Queries) InsertStage(ctx context.Context, arg InsertStageParams) error 
 	return err
 }
 
-const listEntrants = `-- name: ListEntrants :many
+const listGroupParticipants = `-- name: ListGroupParticipants :many
 SELECT e.group_id, e.participant_id, e.seed, e.lot, e.advanced, p.status
-FROM group_entrants e JOIN participants p ON p.id = e.participant_id
+FROM group_participants e JOIN participants p ON p.id = e.participant_id
 WHERE e.group_id = $1
 ORDER BY e.seed
 `
 
-type ListEntrantsRow struct {
+type ListGroupParticipantsRow struct {
 	GroupID       ids.GroupID
 	ParticipantID ids.ParticipantID
 	Seed          int32
@@ -131,15 +131,15 @@ type ListEntrantsRow struct {
 	Status        string
 }
 
-func (q *Queries) ListEntrants(ctx context.Context, groupID ids.GroupID) ([]ListEntrantsRow, error) {
-	rows, err := q.db.Query(ctx, listEntrants, groupID)
+func (q *Queries) ListGroupParticipants(ctx context.Context, groupID ids.GroupID) ([]ListGroupParticipantsRow, error) {
+	rows, err := q.db.Query(ctx, listGroupParticipants, groupID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListEntrantsRow{}
+	items := []ListGroupParticipantsRow{}
 	for rows.Next() {
-		var i ListEntrantsRow
+		var i ListGroupParticipantsRow
 		if err := rows.Scan(
 			&i.GroupID,
 			&i.ParticipantID,
@@ -158,16 +158,16 @@ func (q *Queries) ListEntrants(ctx context.Context, groupID ids.GroupID) ([]List
 	return items, nil
 }
 
-const listEntrantsOfTournament = `-- name: ListEntrantsOfTournament :many
+const listGroupParticipantsOfTournament = `-- name: ListGroupParticipantsOfTournament :many
 SELECT e.group_id, e.participant_id, e.seed, e.lot, e.advanced, p.status
-FROM group_entrants e
+FROM group_participants e
 JOIN groups g ON g.id = e.group_id
 JOIN participants p ON p.id = e.participant_id
 WHERE g.tournament_id = $1
 ORDER BY e.group_id, e.seed
 `
 
-type ListEntrantsOfTournamentRow struct {
+type ListGroupParticipantsOfTournamentRow struct {
 	GroupID       ids.GroupID
 	ParticipantID ids.ParticipantID
 	Seed          int32
@@ -176,15 +176,15 @@ type ListEntrantsOfTournamentRow struct {
 	Status        string
 }
 
-func (q *Queries) ListEntrantsOfTournament(ctx context.Context, tournamentID ids.TournamentID) ([]ListEntrantsOfTournamentRow, error) {
-	rows, err := q.db.Query(ctx, listEntrantsOfTournament, tournamentID)
+func (q *Queries) ListGroupParticipantsOfTournament(ctx context.Context, tournamentID ids.TournamentID) ([]ListGroupParticipantsOfTournamentRow, error) {
+	rows, err := q.db.Query(ctx, listGroupParticipantsOfTournament, tournamentID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListEntrantsOfTournamentRow{}
+	items := []ListGroupParticipantsOfTournamentRow{}
 	for rows.Next() {
-		var i ListEntrantsOfTournamentRow
+		var i ListGroupParticipantsOfTournamentRow
 		if err := rows.Scan(
 			&i.GroupID,
 			&i.ParticipantID,
@@ -336,7 +336,7 @@ func (q *Queries) ListStagesOfTournaments(ctx context.Context, tournamentIds []u
 }
 
 const markAdvanced = `-- name: MarkAdvanced :exec
-UPDATE group_entrants SET advanced = true WHERE group_id = $1 AND participant_id = $2
+UPDATE group_participants SET advanced = true WHERE group_id = $1 AND participant_id = $2
 `
 
 type MarkAdvancedParams struct {

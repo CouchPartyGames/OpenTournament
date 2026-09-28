@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -142,9 +143,16 @@ var humaCodes = map[int]string{
 	http.StatusUnsupportedMediaType:  "unsupported-media-type",
 }
 
+var installOnce sync.Once
+
 // Install hooks the mapper into Huma, so its own errors are Problem Details
-// with codes too.
-func Install() {
+// with codes too. Huma only offers this hook as the package-level variable
+// huma.NewError. Install sets it once, and always to the same stateless
+// mapper, so the global is logically constant and independent Apps and tests
+// can't affect each other through it.
+func Install() { installOnce.Do(install) }
+
+func install() {
 	huma.NewError = func(status int, msg string, errs ...error) huma.StatusError {
 		var fields []FieldError
 		for _, err := range errs {

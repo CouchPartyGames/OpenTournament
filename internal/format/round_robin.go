@@ -35,7 +35,7 @@ func planRoundRobin(g Group) Plan {
 	var plan Plan
 	open := true // every earlier Round is settled
 	plan.Complete = true
-	for r, pairs := range roundRobinRounds(entrantIDs(g)) {
+	for r, pairs := range roundRobinRounds(participantIDs(g)) {
 		roundSettled := true
 		for i, pair := range pairs {
 			pm := PlannedMatch{
@@ -62,7 +62,7 @@ func planRoundRobin(g Group) Plan {
 		open = open && roundSettled
 	}
 	lot := lots(g)
-	order := ordered(entrantIDs(g), rec.beat,
+	order := ordered(participantIDs(g), rec.beat,
 		func(a, b ParticipantID) int { return rec.stats[b].Points - rec.stats[a].Points },
 		func(a, b ParticipantID) int {
 			if d := rec.stats[b].BoutDifferential - rec.stats[a].BoutDifferential; d != 0 {

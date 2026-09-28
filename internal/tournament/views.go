@@ -8,7 +8,7 @@ import (
 // StandingView is a Standing as the API shows it.
 type StandingView struct {
 	ParticipantID    ids.ParticipantID `json:"participantId"`
-	Rank             int               `json:"rank" doc:"1-based position in the Group"`
+	Position         int               `json:"position" doc:"1-based position in the Group"`
 	Played           int               `json:"played"`
 	Wins             int               `json:"wins"`
 	Losses           int               `json:"losses"`
@@ -25,7 +25,7 @@ func StandingsView(ss []format.Standing) []StandingView {
 	out := make([]StandingView, len(ss))
 	for i, s := range ss {
 		out[i] = StandingView{
-			ParticipantID: ParticipantOf(s.Participant), Rank: s.Rank, Played: s.Played,
+			ParticipantID: ParticipantOf(s.Participant), Position: s.Position, Played: s.Played,
 			Wins: s.Wins, Losses: s.Losses, Points: s.Points, Buchholz: s.Buchholz,
 			BoutDifferential: s.BoutDifferential, BestPlacement: s.BestPlacement,
 			Eliminated: s.Eliminated, Dropped: s.Dropped,

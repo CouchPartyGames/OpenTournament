@@ -91,7 +91,7 @@ func singleEliminationNodes(n int) (nodes []node, winnerLevel int) {
 }
 
 func planElimination(g Group, double bool) Plan {
-	n := len(g.Entrants)
+	n := len(g.Participants)
 	var nodes []node
 	var winnerLevel int
 	if double {
@@ -103,7 +103,7 @@ func planElimination(g Group, double bool) Plan {
 	results := map[string]resolved{}
 	levels := map[ParticipantID]int{}
 	stats := map[ParticipantID]*Standing{}
-	for _, e := range g.Entrants {
+	for _, e := range g.Participants {
 		stats[e.ID] = &Standing{Participant: e.ID}
 	}
 
@@ -111,7 +111,7 @@ func planElimination(g Group, double bool) Plan {
 		switch s.kind {
 		case fromSeed:
 			if s.seed <= n {
-				return g.Entrants[s.seed-1].ID, true
+				return g.Participants[s.seed-1].ID, true
 			}
 			return "", true
 		case fromWinner:
@@ -199,7 +199,7 @@ func planElimination(g Group, double bool) Plan {
 	}
 
 	seedIndex := map[ParticipantID]int{}
-	for i, e := range g.Entrants {
+	for i, e := range g.Participants {
 		seedIndex[e.ID] = i
 	}
 	// Participants still in the bracket rank above everyone eliminated.
@@ -210,7 +210,7 @@ func planElimination(g Group, double bool) Plan {
 		return winnerLevel + 1
 	}
 	order := make([]ParticipantID, 0, n)
-	for _, e := range g.Entrants {
+	for _, e := range g.Participants {
 		order = append(order, e.ID)
 	}
 	slices.SortStableFunc(order, func(x, y ParticipantID) int {
@@ -222,7 +222,7 @@ func planElimination(g Group, double bool) Plan {
 	dropped := droppedSet(g)
 	for i, p := range order {
 		st := stats[p]
-		st.Rank = i + 1
+		st.Position = i + 1
 		st.Dropped = dropped[p]
 		_, st.Eliminated = levels[p]
 		if st.Eliminated && p == champion {

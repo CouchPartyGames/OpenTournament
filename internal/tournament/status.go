@@ -1,7 +1,5 @@
 package tournament
 
-import "fmt"
-
 // Tournament statuses.
 const (
 	Draft            = "draft"
@@ -66,5 +64,3 @@ func hasLeft(status string) bool { return status == Withdrawn || status == Disqu
 func open(status string) bool {
 	return status == MatchReady || status == MatchAllocating || status == MatchInProgress || status == MatchStalled
 }
-
-func locf(format string, args ...any) string { return fmt.Sprintf(format, args...) }

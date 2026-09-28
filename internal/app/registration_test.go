@@ -9,8 +9,8 @@ import (
 )
 
 func TestRegistrationIsRefusedOutsideTheRegistrationWindow(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 
 	r := h.Do(http.MethodPost, tt.path("participants"), h.User("anna"), map[string]any{}).Expect(http.StatusConflict)
 	if r.Code() != "registration-closed" {
@@ -18,7 +18,7 @@ func TestRegistrationIsRefusedOutsideTheRegistrationWindow(t *testing.T) {
 	}
 
 	tt.openRegistration()
-	tt.register("anna", "bert")
+	tt.mustRegister("anna", "bert")
 	tt.start()
 
 	r = h.Do(http.MethodPost, tt.path("participants"), h.User("cleo"), map[string]any{}).Expect(http.StatusConflict)
@@ -28,12 +28,12 @@ func TestRegistrationIsRefusedOutsideTheRegistrationWindow(t *testing.T) {
 }
 
 func TestRegistrationIsFirstComeFirstServedUpToCapacity(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h)
 	body["capacity"] = 2
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
-	tt.register("anna", "bert")
+	tt.mustRegister("anna", "bert")
 
 	r := h.Do(http.MethodPost, tt.path("participants"), h.User("cleo"), map[string]any{}).Expect(http.StatusConflict)
 
@@ -45,11 +45,11 @@ func TestRegistrationIsFirstComeFirstServedUpToCapacity(t *testing.T) {
 	}
 }
 
-func TestAPlayerCannotRegisterTwice(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+func TestAParticipantCannotRegisterTwice(t *testing.T) {
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	tt.openRegistration()
-	tt.register("anna")
+	tt.mustRegister("anna")
 
 	r := h.Do(http.MethodPost, tt.path("participants"), h.User("anna"), map[string]any{}).Expect(http.StatusConflict)
 
@@ -59,22 +59,22 @@ func TestAPlayerCannotRegisterTwice(t *testing.T) {
 }
 
 func TestUnregisteringFreesTheSpot(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h)
 	body["capacity"] = 2
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
-	ps := tt.register("anna", "bert")
+	ps := tt.mustRegister("anna", "bert")
 
 	h.Do(http.MethodDelete, tt.path("participants", ps[0]), h.User("bert"), nil).Expect(http.StatusForbidden)
 	h.Do(http.MethodDelete, tt.path("participants", ps[0]), h.User("anna"), nil).Expect(http.StatusNoContent)
 
-	tt.register("cleo")
+	tt.mustRegister("cleo")
 }
 
 func TestGameBackendRegistersAnyAcceptedPlayerIdentity(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	tt.openRegistration()
 	backend := h.Client("arena-backend")
 	steam := map[string]any{"identity": map[string]any{"kind": "steam", "value": "76561198000000001"}}
@@ -85,7 +85,7 @@ func TestGameBackendRegistersAnyAcceptedPlayerIdentity(t *testing.T) {
 		t.Fatalf("participant = %+v", p)
 	}
 
-	// An untrusted backend can't, and neither can a player for someone else.
+	// An untrusted backend can't, and nor can anyone register someone else.
 	h.Do(http.MethodPost, tt.path("participants"), h.Client("royale-backend"), steam).Expect(http.StatusForbidden)
 	other := map[string]any{"identity": map[string]any{"kind": "steam", "value": "76561198000000002"}}
 	r := h.Do(http.MethodPost, tt.path("participants"), h.User("anna"), other).Expect(http.StatusForbidden)
@@ -94,9 +94,9 @@ func TestGameBackendRegistersAnyAcceptedPlayerIdentity(t *testing.T) {
 	}
 }
 
-func TestPlayerRegistersTheirLinkedIdentityFromAClaim(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, settings(h))
+func TestPersonRegistersTheirLinkedIdentityFromAClaim(t *testing.T) {
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
 	tt.openRegistration()
 	anna := h.User("anna", map[string]any{"steam_id": "76561198000000009"})
 
@@ -111,11 +111,11 @@ func TestPlayerRegistersTheirLinkedIdentityFromAClaim(t *testing.T) {
 }
 
 func TestIdentityKindsTheGameDoesNotAcceptAreRefused(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h, stage("free-for-all", map[string]any{"bouts": 1}))
 	body["gameId"] = "royale"
 	body["capacity"] = 8
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
 
 	r := h.Do(http.MethodPost, tt.path("participants"), h.Client("royale-backend"),
@@ -133,10 +133,10 @@ func checkInSettings(h *apptest.Harness) map[string]any {
 }
 
 func TestCheckInWindowOpensBeforeTheStartAndLateRegistrationsCountAsCheckedIn(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, checkInSettings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, checkInSettings(h))
 	tt.openRegistration()
-	ps := tt.register("anna", "bert")
+	ps := tt.mustRegister("anna", "bert")
 
 	r := h.Do(http.MethodPost, tt.path("participants", ps[0], "check-in"), h.User("anna"), nil).Expect(http.StatusConflict)
 	if r.Code() != "check-in-closed" {
@@ -152,7 +152,7 @@ func TestCheckInWindowOpensBeforeTheStartAndLateRegistrationsCountAsCheckedIn(t 
 	if p.Status != "checked-in" {
 		t.Fatalf("anna = %+v", p)
 	}
-	late := tt.register("cleo")
+	late := tt.mustRegister("cleo")
 	var mine struct{ Participants []participantView }
 	h.Do(http.MethodGet, tt.path("participants", "me"), h.User("cleo"), nil).Expect(http.StatusOK).Decode(&mine)
 	if mine.Participants[0].ID != late[0] || mine.Participants[0].Status != "checked-in" {
@@ -161,18 +161,18 @@ func TestCheckInWindowOpensBeforeTheStartAndLateRegistrationsCountAsCheckedIn(t 
 }
 
 func TestParticipantsWhoDidNotCheckInAreDroppedAtTheStart(t *testing.T) {
-	h := apptest.Start(t)
-	tt := create(t, h, checkInSettings(h))
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, checkInSettings(h))
 	tt.openRegistration()
-	ps := tt.register("anna", "bert", "cleo")
+	ps := tt.mustRegister("anna", "bert", "cleo")
 	h.AdvanceTo(apptest.Epoch.Add(startsIn - 10*time.Minute))
 	h.Do(http.MethodPost, tt.path("participants", ps[0], "check-in"), h.User("anna"), nil).Expect(http.StatusOK)
-	// A Game backend can check a player in on their behalf.
+	// A Game backend can check a Participant in on their behalf.
 	h.Do(http.MethodPost, tt.path("participants", ps[1], "check-in"), h.Client("arena-backend"), nil).Expect(http.StatusOK)
 
 	tt.start()
 
-	entrants := tt.structure().Stages[0].Groups[0].Entrants
+	entrants := tt.structure().Stages[0].Groups[0].Participants
 	if len(entrants) != 2 {
 		t.Fatalf("entrants = %+v, want only the two who checked in", entrants)
 	}
@@ -186,12 +186,12 @@ func TestParticipantsWhoDidNotCheckInAreDroppedAtTheStart(t *testing.T) {
 }
 
 func TestTournamentBelowMinimumParticipantsIsCancelledAtTheStart(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h)
 	body["minimumParticipants"] = 3
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
-	tt.register("anna", "bert")
+	tt.mustRegister("anna", "bert")
 
 	tt.start()
 

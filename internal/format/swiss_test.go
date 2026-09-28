@@ -102,7 +102,7 @@ func TestSwissByeGoesToLowestStandingWithoutAByeAndIsWorthAWin(t *testing.T) {
 			bye2 = m.Outcome.Winner
 		}
 	}
-	// p5 already had a Bye, so it goes to the lowest-standing player without one.
+	// p5 already had a Bye, so it goes to the lowest-standing Participant without one.
 	if bye2 == "" || bye2 == "p5" {
 		t.Fatalf("round 2 bye = %q, want someone other than p5", bye2)
 	}

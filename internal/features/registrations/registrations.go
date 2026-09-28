@@ -30,25 +30,23 @@ const (
 	CodeCheckInClosed      = "check-in-closed"
 )
 
-var keycloak = []map[string][]string{{"keycloak": {}}}
-
 // Register registers the slice's operations.
 func Register(api huma.API, svc *tournament.Service) {
 	h := handlers{svc}
 	problem.Register(api, huma.Operation{
 		OperationID: "register", Method: http.MethodPost, Path: "/api/v1/tournaments/{tournamentId}/participants",
-		Summary: "Register a Participant", Tags: []string{"Registrations"}, DefaultStatus: http.StatusCreated, Security: keycloak,
-		Description: "A player registers their own Keycloak identity (the default), or a linked identity exposed as a claim. " +
+		Summary: "Register a Participant", Tags: []string{"Registrations"}, DefaultStatus: http.StatusCreated, Security: auth.Security(),
+		Description: "A person registers their own Keycloak identity (the default), or a linked identity exposed as a claim. " +
 			"A trusted Game backend can register any Player Identity of a kind the Game accepts. First come, first served " +
 			"up to the Capacity, only during the Registration Window. Registering during the Check-in Window checks in too.",
 	}, h.register)
 	problem.Register(api, huma.Operation{
 		OperationID: "unregister", Method: http.MethodDelete, Path: "/api/v1/tournaments/{tournamentId}/participants/{participantId}",
-		Summary: "Unregister before the start", Tags: []string{"Registrations"}, Security: keycloak,
+		Summary: "Unregister before the start", Tags: []string{"Registrations"}, Security: auth.Security(),
 	}, h.unregister)
 	problem.Register(api, huma.Operation{
 		OperationID: "check-in", Method: http.MethodPost, Path: "/api/v1/tournaments/{tournamentId}/participants/{participantId}/check-in",
-		Summary: "Check in during the Check-in Window", Tags: []string{"Registrations"}, Security: keycloak,
+		Summary: "Check in during the Check-in Window", Tags: []string{"Registrations"}, Security: auth.Security(),
 	}, h.checkIn)
 	problem.Register(api, huma.Operation{
 		OperationID: "list-participants", Method: http.MethodGet, Path: "/api/v1/tournaments/{tournamentId}/participants",
@@ -56,7 +54,7 @@ func Register(api huma.API, svc *tournament.Service) {
 	}, h.list)
 	problem.Register(api, huma.Operation{
 		OperationID: "my-registrations", Method: http.MethodGet, Path: "/api/v1/tournaments/{tournamentId}/participants/me",
-		Summary: "See my registration", Tags: []string{"Registrations"}, Security: keycloak,
+		Summary: "See my registration", Tags: []string{"Registrations"}, Security: auth.Security(),
 		Description: "The caller's Participants in the Tournament, one per Player Identity they own: whether they are registered and checked in.",
 	}, h.me)
 }
@@ -159,7 +157,10 @@ func Enter(ctx context.Context, svc *tournament.Service, p auth.Principal, tid i
 	}
 	var v ParticipantView
 	err := svc.InTournament(ctx, tid, func(tx *tournament.Tx) error {
-		game, _ := svc.Games.Get(tx.T.GameID)
+		game, err := tx.Game()
+		if err != nil {
+			return err
+		}
 		if !game.Accepts(id.Kind) {
 			return problem.New(problem.Invalid, CodeKindNotAccepted, "game %q doesn't accept %q identities", game.ID, id.Kind)
 		}
@@ -251,7 +252,10 @@ func own(tx *tournament.Tx, p auth.Principal, pid ids.ParticipantID) (db.Partici
 	if err != nil {
 		return db.Participant{}, err
 	}
-	game, _ := tx.Service().Games.Get(tx.T.GameID)
+	game, err := tx.Game()
+	if err != nil {
+		return db.Participant{}, err
+	}
 	return person, mayActFor(p, game, auth.Identity{Kind: person.IdentityKind, Value: person.IdentityValue})
 }
 

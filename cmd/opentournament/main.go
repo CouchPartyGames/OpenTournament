@@ -24,7 +24,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/gameserver"
 	"github.com/couchpartygames/opentournament/internal/gameserver/agones"
-	"github.com/couchpartygames/opentournament/internal/gameserver/fake"
+	"github.com/couchpartygames/opentournament/internal/gameserver/gameservertest"
 	"github.com/couchpartygames/opentournament/internal/telemetry"
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -58,7 +58,9 @@ func run() error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		shutdownTelemetry(ctx)
+		if err := shutdownTelemetry(ctx); err != nil {
+			slog.Warn("flush telemetry", "error", err)
+		}
 	}()
 
 	catalog, err := games.Load(cfg.GamesFile)
@@ -88,7 +90,7 @@ func run() error {
 	}
 
 	var seed [16]byte
-	rand.Read(seed[:])
+	rand.Read(seed[:]) // crypto/rand.Read never fails
 	a, err := app.New(app.Config{
 		Pool: pool, Clock: clock.Real{}, Games: catalog, Verifier: verifier,
 		Rand:          mrand.New(mrand.NewPCG(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:]))),
@@ -150,7 +152,7 @@ func notProbe(r *http.Request) bool {
 func gameServers(ctx context.Context, cfg config.Config, catalog *games.Catalog) (gameserver.Port, error) {
 	if cfg.GameServers == "fake" {
 		slog.Warn("using the in-memory fake game server port; matches will not get real servers")
-		return fake.New(), nil
+		return gameservertest.NewFake(), nil
 	}
 	var rc *rest.Config
 	var err error

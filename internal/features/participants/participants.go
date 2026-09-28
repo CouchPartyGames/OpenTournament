@@ -13,20 +13,18 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-var keycloak = []map[string][]string{{"keycloak": {}}}
-
 // Register registers the slice's operations.
 func Register(api huma.API, svc *tournament.Service) {
 	h := handlers{svc}
 	problem.Register(api, huma.Operation{
 		OperationID: "withdraw", Method: http.MethodPost, Path: "/api/v1/tournaments/{tournamentId}/participants/{participantId}/withdraw",
-		Summary: "Withdraw from a running Tournament", Tags: []string{"Participants"}, Security: keycloak,
+		Summary: "Withdraw from a running Tournament", Tags: []string{"Participants"}, Security: auth.Security(),
 		DefaultStatus: http.StatusNoContent,
 		Description:   "The Participant forfeits every Bout they haven't completed, including in a Match already In Progress.",
 	}, h.withdraw)
 	problem.Register(api, huma.Operation{
 		OperationID: "disqualify", Method: http.MethodPost, Path: "/api/v1/tournaments/{tournamentId}/participants/{participantId}/disqualify",
-		Summary: "Disqualify a Participant", Tags: []string{"Participants"}, Security: keycloak,
+		Summary: "Disqualify a Participant", Tags: []string{"Participants"}, Security: auth.Security(),
 		DefaultStatus: http.StatusNoContent,
 		Description:   "The Organizer removes a Participant, who forfeits every Bout they haven't completed.",
 	}, h.disqualify)
@@ -55,17 +53,14 @@ func (h handlers) disqualify(ctx context.Context, in *input) (*struct{}, error) 
 	return nil, Disqualify(ctx, h.svc, p, in.TournamentID, in.ParticipantID)
 }
 
-// Withdraw lets a Participant leave of their own accord. A Game backend the
-// Game trusts may withdraw a player on their behalf.
+// Withdraw lets a Participant leave of their own accord.
 func Withdraw(ctx context.Context, svc *tournament.Service, p auth.Principal, tid ids.TournamentID, pid ids.ParticipantID) error {
 	return svc.InTournament(ctx, tid, func(tx *tournament.Tx) error {
 		person, err := tx.Participant(pid)
 		if err != nil {
 			return err
 		}
-		game, _ := svc.Games.Get(tx.T.GameID)
-		own := p.Owns(auth.Identity{Kind: person.IdentityKind, Value: person.IdentityValue})
-		if !own && !(p.IsService() && game.Trusts(p.ClientID)) {
+		if !p.Owns(auth.Identity{Kind: person.IdentityKind, Value: person.IdentityValue}) {
 			return problem.New(problem.Forbidden, "identity-not-owned", "you can only withdraw yourself")
 		}
 		return tx.Leave(pid, tournament.Withdrawn)

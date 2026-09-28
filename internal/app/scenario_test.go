@@ -26,21 +26,21 @@ type stageView struct {
 }
 
 type groupView struct {
-	ID        string         `json:"id"`
-	Status    string         `json:"status"`
-	Entrants  []entrantView  `json:"entrants"`
-	Standings []standingView `json:"standings"`
-	Rounds    []roundView    `json:"rounds"`
+	ID           string                 `json:"id"`
+	Status       string                 `json:"status"`
+	Participants []groupParticipantView `json:"participants"`
+	Standings    []standingView         `json:"standings"`
+	Rounds       []roundView            `json:"rounds"`
 }
 
-type entrantView struct {
+type groupParticipantView struct {
 	ParticipantID string `json:"participantId"`
 	Seed          int    `json:"seed"`
 }
 
 type standingView struct {
 	ParticipantID string `json:"participantId"`
-	Rank          int    `json:"rank"`
+	Position      int    `json:"position"`
 	Points        int    `json:"points"`
 	Wins          int    `json:"wins"`
 	Eliminated    bool   `json:"eliminated"`
@@ -106,15 +106,15 @@ type tournamentView struct {
 	CheckedIn  int    `json:"checkedIn"`
 }
 
-// tournament is a Tournament under test.
-type tournament struct {
+// scenario is a Tournament under test.
+type scenario struct {
 	*apptest.Harness
 	t         *testing.T
 	ID        string
 	Organizer string
-	// Players maps a Participant ID to the token of the player behind it.
-	Players map[string]string
-	// Names maps a Participant ID to the player's name.
+	// Tokens maps a Participant ID to the Keycloak token of the person behind it.
+	Tokens map[string]string
+	// Names maps a Participant ID to the person's name.
 	Names map[string]string
 }
 
@@ -141,7 +141,7 @@ func settings(h *apptest.Harness, stages ...map[string]any) map[string]any {
 	if len(stages) == 0 {
 		stages = []map[string]any{stage("single-elimination", nil)}
 	}
-	now := h.Clock.Now()
+	now := h.FakeClock.Now()
 	return map[string]any{
 		"gameId":              "arena",
 		"name":                "Friday Cup",
@@ -153,54 +153,54 @@ func settings(h *apptest.Harness, stages ...map[string]any) map[string]any {
 	}
 }
 
-func create(t *testing.T, h *apptest.Harness, body map[string]any) *tournament {
+func mustCreate(t *testing.T, h *apptest.Harness, body map[string]any) *scenario {
 	t.Helper()
 	organizer := h.User("organizer")
 	var tv tournamentView
 	h.Do(http.MethodPost, "/api/v1/tournaments", organizer, body).Expect(http.StatusCreated).Decode(&tv)
-	return &tournament{Harness: h, t: t, ID: tv.ID, Organizer: organizer, Players: map[string]string{}, Names: map[string]string{}}
+	return &scenario{Harness: h, t: t, ID: tv.ID, Organizer: organizer, Tokens: map[string]string{}, Names: map[string]string{}}
 }
 
-func (tt *tournament) path(parts ...string) string {
+func (tt *scenario) path(parts ...string) string {
 	return "/api/v1/tournaments/" + tt.ID + apptest.Path(append([]string{""}, parts...)...)
 }
 
-// register signs players up with their own Keycloak identity.
-func (tt *tournament) register(names ...string) []string {
+// mustRegister signs people up as Participants with their own Keycloak identity.
+func (tt *scenario) mustRegister(names ...string) []string {
 	tt.t.Helper()
 	var out []string
 	for _, n := range names {
 		token := tt.User(n)
 		var p participantView
 		tt.Do(http.MethodPost, tt.path("participants"), token, map[string]any{}).Expect(http.StatusCreated).Decode(&p)
-		tt.Players[p.ID] = token
+		tt.Tokens[p.ID] = token
 		tt.Names[p.ID] = n
 		out = append(out, p.ID)
 	}
 	return out
 }
 
-// registerN registers n players named p1..pn.
-func (tt *tournament) registerN(n int) []string {
+// mustRegisterN registers n Participants named p1..pn.
+func (tt *scenario) mustRegisterN(n int) []string {
 	names := make([]string, n)
 	for i := range names {
 		names[i] = fmt.Sprintf("p%d", i+1)
 	}
-	return tt.register(names...)
+	return tt.mustRegister(names...)
 }
 
-func (tt *tournament) openRegistration() { tt.Advance(opensIn) }
+func (tt *scenario) openRegistration() { tt.Advance(opensIn) }
 
-func (tt *tournament) start() { tt.AdvanceTo(apptest.Epoch.Add(startsIn)) }
+func (tt *scenario) start() { tt.AdvanceTo(apptest.Epoch.Add(startsIn)) }
 
-func (tt *tournament) get() tournamentView {
+func (tt *scenario) get() tournamentView {
 	tt.t.Helper()
 	var tv tournamentView
 	tt.Do(http.MethodGet, tt.path(), "", nil).Expect(http.StatusOK).Decode(&tv)
 	return tv
 }
 
-func (tt *tournament) structure() structureView {
+func (tt *scenario) structure() structureView {
 	tt.t.Helper()
 	var s structureView
 	tt.Do(http.MethodGet, tt.path("structure"), "", nil).Expect(http.StatusOK).Decode(&s)
@@ -208,7 +208,7 @@ func (tt *tournament) structure() structureView {
 }
 
 // matches lists every Match of the Tournament in a given status.
-func (tt *tournament) matches(status string) []matchView {
+func (tt *scenario) matches(status string) []matchView {
 	tt.t.Helper()
 	var out []matchView
 	for _, st := range tt.structure().Stages {
@@ -225,7 +225,7 @@ func (tt *tournament) matches(status string) []matchView {
 	return out
 }
 
-func (tt *tournament) placements() []placementView {
+func (tt *scenario) placements() []placementView {
 	tt.t.Helper()
 	var body struct{ Placements []placementView }
 	tt.Do(http.MethodGet, tt.path("placements"), "", nil).Expect(http.StatusOK).Decode(&body)
@@ -233,10 +233,10 @@ func (tt *tournament) placements() []placementView {
 }
 
 // server acts as the Game Server of a Match.
-func (tt *tournament) server(match string) string { return tt.ServerToken(match) }
+func (tt *scenario) server(match string) string { return tt.ServerToken(match) }
 
 // playBout reports a head-to-head Bout won by winner, starting the Match first.
-func (tt *tournament) playBout(match matchView, bout int, winner string) {
+func (tt *scenario) playBout(match matchView, bout int, winner string) {
 	tt.t.Helper()
 	token := tt.server(match.ID)
 	tt.Do(http.MethodPost, "/api/v1/game-server/match/started", token, nil).Expect(http.StatusNoContent)
@@ -247,7 +247,7 @@ func (tt *tournament) playBout(match matchView, bout int, winner string) {
 
 // playAll plays every In Progress or allocated head-to-head Match with pick
 // choosing its winner, until no Match is left to play.
-func (tt *tournament) playAll(pick func(a, b string) string) {
+func (tt *scenario) playAll(pick func(a, b string) string) {
 	tt.t.Helper()
 	for range 1000 {
 		playable := tt.matches("allocating")
@@ -262,15 +262,15 @@ func (tt *tournament) playAll(pick func(a, b string) string) {
 	tt.t.Fatal("tournament never ran out of matches")
 }
 
-// byName makes the player with the alphabetically lower name win.
-func (tt *tournament) byName(a, b string) string {
+// byName makes the Participant with the alphabetically lower name win.
+func (tt *scenario) byName(a, b string) string {
 	if tt.Names[a] < tt.Names[b] {
 		return a
 	}
 	return b
 }
 
-func (tt *tournament) placementOf(name string) [2]int {
+func (tt *scenario) placementOf(name string) [2]int {
 	tt.t.Helper()
 	for _, p := range tt.placements() {
 		if tt.Names[p.ParticipantID] == name {
@@ -281,25 +281,25 @@ func (tt *tournament) placementOf(name string) [2]int {
 	return [2]int{}
 }
 
-// running starts a Tournament of n players with the given Stages.
-func running(t *testing.T, n int, stages ...map[string]any) *tournament {
+// mustRun starts a Tournament of n Participants with the given Stages.
+func mustRun(t *testing.T, n int, stages ...map[string]any) *scenario {
 	t.Helper()
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h, stages...)
 	body["minimumParticipants"] = max(n, 2)
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
-	tt.registerN(n)
+	tt.mustRegisterN(n)
 	tt.start()
 	return tt
 }
 
-func (tt *tournament) reportBout(token string, bout int, body any) *apptest.Response {
+func (tt *scenario) reportBout(token string, bout int, body any) *apptest.Response {
 	tt.t.Helper()
 	return tt.Do(http.MethodPut, fmt.Sprintf("/api/v1/game-server/match/bouts/%d", bout), token, body)
 }
 
-func (tt *tournament) match(id string) matchView {
+func (tt *scenario) match(id string) matchView {
 	tt.t.Helper()
 	var m matchView
 	tt.Do(http.MethodGet, "/api/v1/matches/"+id, tt.Organizer, nil).Expect(http.StatusOK).Decode(&m)

@@ -16,12 +16,12 @@ import (
 
 // groupState is everything persisted about one Group.
 type groupState struct {
-	group    db.Group
-	stage    db.Stage
-	entrants []db.ListEntrantsRow
-	matches  map[string]db.Match
-	slots    map[ids.MatchID][]ids.ParticipantID
-	bouts    map[ids.MatchID][]db.BoutResult
+	group        db.Group
+	stage        db.Stage
+	participants []db.ListGroupParticipantsRow
+	matches      map[string]db.Match
+	slots        map[ids.MatchID][]ids.ParticipantID
+	bouts        map[ids.MatchID][]db.BoutResult
 }
 
 func (tx *Tx) loadGroup(id ids.GroupID) (*groupState, error) {
@@ -44,7 +44,7 @@ func (tx *Tx) loadGroup(id ids.GroupID) (*groupState, error) {
 			gs.stage = st
 		}
 	}
-	if gs.entrants, err = tx.Q.ListEntrants(tx.ctx, id); err != nil {
+	if gs.participants, err = tx.Q.ListGroupParticipants(tx.ctx, id); err != nil {
 		return nil, err
 	}
 	ms, err := tx.Q.ListMatchesOfGroup(tx.ctx, id)
@@ -111,8 +111,8 @@ func EngineBouts(results []db.BoutResult) []format.Bout {
 
 func (gs *groupState) engine() format.Group {
 	g := format.Group{Stage: StageRules(gs.stage)}
-	for _, e := range gs.entrants {
-		g.Entrants = append(g.Entrants, format.Entrant{ID: pid(e.ParticipantID), Lot: int(e.Lot)})
+	for _, e := range gs.participants {
+		g.Participants = append(g.Participants, format.Participant{ID: pid(e.ParticipantID), Lot: int(e.Lot)})
 		if hasLeft(e.Status) {
 			g.Dropped = append(g.Dropped, pid(e.ParticipantID))
 		}
@@ -162,7 +162,8 @@ func (tx *Tx) ProgressGroup(id ids.GroupID) error {
 		if again {
 			continue
 		}
-		if completedAny {
+		if completedAny || tx.boutsRecorded {
+			tx.boutsRecorded = false
 			if err := tx.emitStandings(gs, plan); err != nil {
 				return err
 			}
@@ -330,6 +331,10 @@ type MatchEvent struct {
 	Participants []ids.ParticipantID `json:"participants"`
 	// ServerAllocated says a Game Server is assigned, without saying where.
 	ServerAllocated bool `json:"serverAllocated"`
+	// Aborted is set on the event announcing that the Match's Game Server
+	// failed mid-play; the Match goes back to Allocating.
+	Aborted bool  `json:"aborted,omitempty"`
+	Aborts  int32 `json:"aborts"`
 }
 
 // ServerEvent is the private part of a match.changed event.
@@ -341,10 +346,15 @@ type ServerEvent struct {
 // EmitMatch announces a Match's state. The Game Server address goes only to
 // the Match's Participants and the Organizer.
 func (tx *Tx) EmitMatch(m db.Match, participants []ids.ParticipantID) error {
+	return tx.emitMatch(m, participants, false)
+}
+
+func (tx *Tx) emitMatch(m db.Match, participants []ids.ParticipantID, aborted bool) error {
 	data := MatchEvent{
 		MatchID: m.ID, StageID: m.StageID, GroupID: m.GroupID, Key: m.Key, Round: m.Round,
 		Status: m.Status, Result: m.Result, Participants: participants,
 		ServerAllocated: m.ServerName != nil && open(m.Status),
+		Aborted:         aborted, Aborts: m.Aborts,
 	}
 	if data.Participants == nil {
 		data.Participants = []ids.ParticipantID{}

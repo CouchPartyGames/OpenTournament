@@ -9,12 +9,12 @@ import (
 	"github.com/couchpartygames/opentournament/internal/ids"
 )
 
-func (tt *tournament) withdraw(p string) *apptest.Response {
-	return tt.Do(http.MethodPost, tt.path("participants", p, "withdraw"), tt.Players[p], nil)
+func (tt *scenario) withdraw(p string) *apptest.Response {
+	return tt.Do(http.MethodPost, tt.path("participants", p, "withdraw"), tt.Tokens[p], nil)
 }
 
 func TestWithdrawalMidMatchForfeitsEveryRemainingBout(t *testing.T) {
-	tt := running(t, 2, stage("single-elimination", map[string]any{"bestOf": 3}))
+	tt := mustRun(t, 2, stage("single-elimination", map[string]any{"bestOf": 3}))
 	final := tt.matches("allocating")[0]
 	a, b := final.Participants[0], final.Participants[1]
 	token := tt.server(final.ID)
@@ -27,13 +27,13 @@ func TestWithdrawalMidMatchForfeitsEveryRemainingBout(t *testing.T) {
 	if m.Status != "completed" || m.WinnerID != b || len(m.Bouts) != 3 {
 		t.Fatalf("match = %+v, want %s to win 2–1", m, b)
 	}
-	if tt.Servers.Running() != 0 {
+	if tt.FakeServers.Running() != 0 {
 		t.Fatal("server should be released")
 	}
 }
 
 func TestLateResultForAForfeitedBoutIsRejected(t *testing.T) {
-	tt := running(t, 2, stage("single-elimination", map[string]any{"bestOf": 3}))
+	tt := mustRun(t, 2, stage("single-elimination", map[string]any{"bestOf": 3}))
 	final := tt.matches("allocating")[0]
 	a, b := final.Participants[0], final.Participants[1]
 	token := tt.server(final.ID)
@@ -51,14 +51,14 @@ func TestLateResultForAForfeitedBoutIsRejected(t *testing.T) {
 }
 
 func TestOnlyTheParticipantCanWithdrawAndOnlyTheOrganizerCanDisqualify(t *testing.T) {
-	tt := running(t, 4)
+	tt := mustRun(t, 4)
 	ps := make([]string, 0, 4)
-	for p := range tt.Players {
+	for p := range tt.Tokens {
 		ps = append(ps, p)
 	}
 
-	tt.Do(http.MethodPost, tt.path("participants", ps[0], "withdraw"), tt.Players[ps[1]], nil).Expect(http.StatusForbidden)
-	tt.Do(http.MethodPost, tt.path("participants", ps[0], "disqualify"), tt.Players[ps[1]], nil).Expect(http.StatusForbidden)
+	tt.Do(http.MethodPost, tt.path("participants", ps[0], "withdraw"), tt.Tokens[ps[1]], nil).Expect(http.StatusForbidden)
+	tt.Do(http.MethodPost, tt.path("participants", ps[0], "disqualify"), tt.Tokens[ps[1]], nil).Expect(http.StatusForbidden)
 	tt.Do(http.MethodPost, tt.path("participants", ps[0], "disqualify"), tt.Organizer, nil).Expect(http.StatusNoContent)
 
 	r := tt.Do(http.MethodPost, tt.path("participants", ps[0], "disqualify"), tt.Organizer, nil).Expect(http.StatusConflict)
@@ -68,7 +68,7 @@ func TestOnlyTheParticipantCanWithdrawAndOnlyTheOrganizerCanDisqualify(t *testin
 }
 
 func TestWithdrawnParticipantForfeitsTheirNextMatchWhenItBecomesReady(t *testing.T) {
-	tt := running(t, 4)
+	tt := mustRun(t, 4)
 	semis := tt.matches("allocating")
 	winner := semis[0].Participants[0]
 	tt.playBout(semis[0], 1, winner)
@@ -83,19 +83,19 @@ func TestWithdrawnParticipantForfeitsTheirNextMatchWhenItBecomesReady(t *testing
 		t.Fatalf("withdrawn finalist placed %v, want 2nd", got)
 	}
 	// The final was forfeited the moment it became Ready, so it never needed a server.
-	if n := len(tt.Servers.Allocations()); n != 2 {
+	if n := len(tt.FakeServers.Allocations()); n != 2 {
 		t.Fatalf("%d servers allocated, want 2", n)
 	}
 }
 
 func TestWithdrawalFromAFreeForAllMatchTellsTheGameServer(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h, stage("free-for-all", map[string]any{"bouts": 2}))
 	body["gameId"] = "royale"
 	body["capacity"] = 8
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
-	ps := tt.register("anna", "bert", "cleo")
+	ps := tt.mustRegister("anna", "bert", "cleo")
 	tt.start()
 	m := tt.matches("allocating")[0]
 	token := tt.server(m.ID)
@@ -107,10 +107,12 @@ func TestWithdrawalFromAFreeForAllMatchTellsTheGameServer(t *testing.T) {
 
 	tt.withdraw(ps[0]).Expect(http.StatusNoContent)
 
-	id, _ := ids.Parse[ids.MatchID](m.ID)
-	server, _, _ := tt.Servers.ServerFor(id)
-	pid, _ := ids.Parse[ids.ParticipantID](ps[0])
-	if got := tt.Servers.Forfeits(server.Name); !slices.Contains(got, pid) {
+	server := serverName(tt, m.ID)
+	pid, err := ids.Parse[ids.ParticipantID](ps[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := tt.FakeServers.Forfeits(server); !slices.Contains(got, pid) {
 		t.Fatalf("server told %v, want anna", got)
 	}
 	var sm struct {
@@ -152,25 +154,25 @@ func TestWithdrawalFromAFreeForAllMatchTellsTheGameServer(t *testing.T) {
 }
 
 func TestFreeForAllCompletesAtOnceWhenOnlyOneParticipantIsLeft(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h, stage("free-for-all", map[string]any{"bouts": 3}))
 	body["gameId"] = "royale"
 	body["capacity"] = 8
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
-	ps := tt.register("anna", "bert", "cleo")
+	ps := tt.mustRegister("anna", "bert", "cleo")
 	tt.start()
 
 	tt.withdraw(ps[0]).Expect(http.StatusNoContent)
 	tt.Do(http.MethodPost, tt.path("participants", ps[1], "disqualify"), tt.Organizer, nil).Expect(http.StatusNoContent)
 
-	if tt.get().Status != "completed" || tt.Servers.Running() != 0 {
-		t.Fatalf("tournament = %s with %d servers, want completed and released", tt.get().Status, tt.Servers.Running())
+	if tt.get().Status != "completed" || tt.FakeServers.Running() != 0 {
+		t.Fatalf("tournament = %s with %d servers, want completed and released", tt.get().Status, tt.FakeServers.Running())
 	}
 }
 
 func TestSwissLeavesWithdrawnParticipantsOutOfLaterRounds(t *testing.T) {
-	tt := running(t, 4, stage("swiss", nil))
+	tt := mustRun(t, 4, stage("swiss", nil))
 	round1 := tt.matches("allocating")
 	gone := round1[0].Participants[1]
 	tt.playBout(round1[0], 1, round1[0].Participants[0])
@@ -186,13 +188,13 @@ func TestSwissLeavesWithdrawnParticipantsOutOfLaterRounds(t *testing.T) {
 }
 
 func TestOrganizerCancelsARunningTournament(t *testing.T) {
-	tt := running(t, 4)
+	tt := mustRun(t, 4)
 
-	tt.Do(http.MethodPost, tt.path("cancel"), tt.Players[tt.matches("allocating")[0].Participants[0]], nil).Expect(http.StatusForbidden)
+	tt.Do(http.MethodPost, tt.path("cancel"), tt.Tokens[tt.matches("allocating")[0].Participants[0]], nil).Expect(http.StatusForbidden)
 	tt.Do(http.MethodPost, tt.path("cancel"), tt.Organizer, nil).Expect(http.StatusOK)
 
-	if tt.get().Status != "cancelled" || tt.Servers.Running() != 0 {
-		t.Fatalf("status %s with %d servers", tt.get().Status, tt.Servers.Running())
+	if tt.get().Status != "cancelled" || tt.FakeServers.Running() != 0 {
+		t.Fatalf("status %s with %d servers", tt.get().Status, tt.FakeServers.Running())
 	}
 	for _, m := range tt.matches("") {
 		if m.Status != "cancelled" {

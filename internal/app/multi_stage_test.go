@@ -10,12 +10,12 @@ import (
 )
 
 func TestSwissGroupsIntoSingleEliminationRunToFinalPlacements(t *testing.T) {
-	tt := running(t, 8,
+	tt := mustRun(t, 8,
 		stage("swiss", map[string]any{"groups": 2, "advancement": 2}),
 		stage("single-elimination", nil),
 	)
 	s := tt.structure()
-	if len(s.Stages[0].Groups) != 2 || len(s.Stages[0].Groups[0].Entrants) != 4 {
+	if len(s.Stages[0].Groups) != 2 || len(s.Stages[0].Groups[0].Participants) != 4 {
 		t.Fatalf("want two Swiss groups of four, got %+v", s.Stages[0].Groups)
 	}
 
@@ -30,7 +30,7 @@ func TestSwissGroupsIntoSingleEliminationRunToFinalPlacements(t *testing.T) {
 	groupOf := map[string]int{}
 	var advanced []string
 	for gi, g := range s.Stages[0].Groups {
-		for _, e := range g.Entrants {
+		for _, e := range g.Participants {
 			groupOf[e.ParticipantID] = gi
 			if slices.ContainsFunc(g.Standings[:2], func(st standingView) bool { return st.ParticipantID == e.ParticipantID }) {
 				advanced = append(advanced, e.ParticipantID)
@@ -76,13 +76,13 @@ func TestSwissGroupsIntoSingleEliminationRunToFinalPlacements(t *testing.T) {
 }
 
 func TestRoundRobinIntoDoubleEliminationWithBracketReset(t *testing.T) {
-	tt := running(t, 5,
+	tt := mustRun(t, 5,
 		stage("round-robin", map[string]any{"advancement": 4}),
 		stage("double-elimination", nil),
 	)
 	rounds := tt.structure().Stages[0].Groups[0].Rounds
 	if len(rounds) != 5 {
-		t.Fatalf("5 players need 5 round robin rounds, got %d", len(rounds))
+		t.Fatalf("5 Participants need 5 round robin rounds, got %d", len(rounds))
 	}
 	for tt.structure().Stages[0].Status != "completed" {
 		ms := append(tt.matches("allocating"), tt.matches("in-progress")...)
@@ -93,7 +93,7 @@ func TestRoundRobinIntoDoubleEliminationWithBracketReset(t *testing.T) {
 			tt.playBout(m, 1, tt.byName(m.Participants[0], m.Participants[1]))
 		}
 	}
-	// In the double-elimination stage the best player loses only the first grand final.
+	// In the double-elimination stage the best Participant loses only the first grand final.
 	best := ""
 	for id, n := range tt.Names {
 		if n == "p1" {
@@ -138,16 +138,16 @@ func TestRoundRobinIntoDoubleEliminationWithBracketReset(t *testing.T) {
 }
 
 func TestFreeForAllGroupsIntoAFreeForAllFinal(t *testing.T) {
-	h := apptest.Start(t)
+	h := apptest.MustStart(t)
 	body := settings(h,
 		stage("free-for-all", map[string]any{"bouts": 2, "groups": 2, "advancement": 2}),
 		stage("free-for-all", map[string]any{"bouts": 1}),
 	)
 	body["gameId"] = "royale"
 	body["minimumParticipants"] = 6
-	tt := create(t, h, body)
+	tt := mustCreate(t, h, body)
 	tt.openRegistration()
-	tt.registerN(8)
+	tt.mustRegisterN(8)
 	tt.start()
 
 	for range 10 {
@@ -183,7 +183,7 @@ func TestFreeForAllGroupsIntoAFreeForAllFinal(t *testing.T) {
 		t.Fatalf("status = %s", tt.get().Status)
 	}
 	final := tt.structure().Stages[1].Groups[0]
-	if len(final.Entrants) != 4 || final.Standings[0].Points != 10 {
+	if len(final.Participants) != 4 || final.Standings[0].Points != 10 {
 		t.Fatalf("final = %+v", final)
 	}
 	if got := tt.placementOf("p1"); got != [2]int{1, 1} {

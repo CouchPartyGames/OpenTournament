@@ -18,9 +18,9 @@ import (
 	"github.com/couchpartygames/opentournament/internal/app"
 	"github.com/couchpartygames/opentournament/internal/auth"
 	"github.com/couchpartygames/opentournament/internal/auth/authtest"
-	"github.com/couchpartygames/opentournament/internal/clock"
+	"github.com/couchpartygames/opentournament/internal/clock/clocktest"
 	"github.com/couchpartygames/opentournament/internal/games"
-	"github.com/couchpartygames/opentournament/internal/gameserver/fake"
+	"github.com/couchpartygames/opentournament/internal/gameserver/gameservertest"
 	"github.com/couchpartygames/opentournament/internal/ids"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -45,19 +45,19 @@ var Catalog = games.Config{
 
 // Harness is a running app.
 type Harness struct {
-	t       testing.TB
-	URL     string
-	App     *app.App
-	Clock   *clock.Fake
-	Servers *fake.Port
-	Issuer  *authtest.Issuer
-	Pool    *pgxpool.Pool
+	t           testing.TB
+	URL         string
+	App         *app.App
+	FakeClock   *clocktest.Fake
+	FakeServers *gameservertest.Fake
+	Issuer      *authtest.Issuer
+	Pool        *pgxpool.Pool
 }
 
-// Start hosts the app for one test. Background workers other than live
+// MustStart hosts the app for one test. Background workers other than live
 // updates don't run: tests drive time and reconciliation with Advance and
 // Settle, so every scenario is deterministic.
-func Start(t testing.TB) *Harness {
+func MustStart(t testing.TB) *Harness {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	pool, err := pgxpool.New(ctx, newDatabase(t))
@@ -73,10 +73,10 @@ func Start(t testing.TB) *Harness {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := &Harness{t: t, Clock: clock.NewFake(Epoch), Servers: fake.New(), Issuer: issuer, Pool: pool}
+	h := &Harness{t: t, FakeClock: clocktest.NewFake(Epoch), FakeServers: gameservertest.NewFake(), Issuer: issuer, Pool: pool}
 	h.App, err = app.New(app.Config{
-		Pool: pool, Clock: h.Clock, Rand: rand.New(rand.NewPCG(1, 2)), Games: catalog,
-		Verifier: verifier, MatchTokenKey: bytes.Repeat([]byte("k"), 32), GameServers: h.Servers,
+		Pool: pool, Clock: h.FakeClock, Rand: rand.New(rand.NewPCG(1, 2)), Games: catalog,
+		Verifier: verifier, MatchTokenKey: bytes.Repeat([]byte("k"), 32), GameServers: h.FakeServers,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -130,14 +130,14 @@ func (h *Harness) Settle() {
 // Advance moves the clock forward and settles.
 func (h *Harness) Advance(d time.Duration) {
 	h.t.Helper()
-	h.Clock.Advance(d)
+	h.FakeClock.Advance(d)
 	h.Settle()
 }
 
 // AdvanceTo moves the clock to t and settles.
 func (h *Harness) AdvanceTo(t time.Time) {
 	h.t.Helper()
-	h.Clock.Set(t)
+	h.FakeClock.Set(t)
 	h.Settle()
 }
 
@@ -159,12 +159,20 @@ func (r *Response) Decode(v any) {
 
 // Code is the Problem Details error code of a failed response.
 func (r *Response) Code() string {
+	r.t.Helper()
 	var p struct{ Code string }
-	json.Unmarshal(r.Body, &p)
+	if err := json.Unmarshal(r.Body, &p); err != nil {
+		r.t.Fatalf("response %s is not Problem Details: %v", r.Body, err)
+	}
 	return p.Code
 }
 
 // Expect fails the test unless the response has the given status.
+//
+// It deviates from the coding standards' advice against assertion helpers
+// (§11.1) on purpose: in these scenarios the status is a precondition of each
+// step, like a setup helper's, and the message names the call's status and
+// body. The behaviour under test is still checked in the Test functions.
 func (r *Response) Expect(status int) *Response {
 	r.t.Helper()
 	if r.Status != status {
@@ -199,7 +207,10 @@ func (h *Harness) Do(method, path, token string, body any) *Response {
 		h.t.Fatal(err)
 	}
 	defer res.Body.Close()
-	b, _ := io.ReadAll(res.Body)
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		h.t.Fatalf("read %s %s: %v", method, path, err)
+	}
 	return &Response{t: h.t, Status: res.StatusCode, Body: b, Header: res.Header}
 }
 
@@ -218,7 +229,7 @@ func (h *Harness) ServerToken(match string) string {
 	if err != nil {
 		h.t.Fatal(err)
 	}
-	_, token, ok := h.Servers.ServerFor(id)
+	_, token, ok := h.FakeServers.ServerFor(id)
 	if !ok {
 		h.t.Fatalf("match %s has no game server", match)
 	}

@@ -56,7 +56,7 @@ CREATE TABLE groups (
     UNIQUE (stage_id, position)
 );
 
-CREATE TABLE group_entrants (
+CREATE TABLE group_participants (
     group_id       uuid    NOT NULL REFERENCES groups ON DELETE CASCADE,
     participant_id uuid    NOT NULL REFERENCES participants ON DELETE CASCADE,
     seed           integer NOT NULL,
@@ -137,4 +137,4 @@ CREATE TABLE events (
 CREATE INDEX events_created ON events (created_at);
 
 -- +goose Down
-DROP TABLE events, jobs, bout_results, match_slots, matches, group_entrants, groups, participants, stages, tournaments;
+DROP TABLE events, jobs, bout_results, match_slots, matches, group_participants, groups, participants, stages, tournaments;
