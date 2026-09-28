@@ -6,7 +6,8 @@ Keycloak, and Open Tournament itself. It is for trying the service, not for
 production: one replica of everything, Keycloak in dev mode with fixed
 credentials, and no TLS.
 
-Run the commands from this directory.
+Run the commands from this directory, or run [`./install.sh`](install.sh) to do
+steps 1 to 4 in one go (`OPENTOURNAMENT_VERSION` picks the chart version).
 
 ## 1. Agones and a Fleet
 
