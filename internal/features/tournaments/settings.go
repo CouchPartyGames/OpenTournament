@@ -2,6 +2,7 @@ package tournaments
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/format"
@@ -41,6 +42,26 @@ type StageSettings struct {
 	Bouts                 int32       `json:"bouts,omitempty" minimum:"1" maximum:"100" doc:"Free-for-all: Bouts per Match"`
 	SwissRounds           int32       `json:"swissRounds,omitempty" minimum:"0" maximum:"100" doc:"Swiss: overrides the default ⌈log₂ N⌉ Rounds"`
 	ResultDeadlineSeconds int32       `json:"resultDeadlineSeconds" minimum:"60" maximum:"604800" doc:"Time a Match has to complete, from when it is Ready"`
+}
+
+// settings are the TournamentSettings the Tournament is configured with.
+func (v TournamentView) settings() TournamentSettings {
+	s := TournamentSettings{
+		Name: v.Name, StartsAt: v.StartsAt, RegistrationOpensAt: v.RegistrationOpensAt, Capacity: v.Capacity,
+		MinimumParticipants: v.MinimumParticipants, CheckIn: v.CheckIn, Stages: make([]StageSettings, len(v.Stages)),
+	}
+	for i, st := range v.Stages {
+		s.Stages[i] = st.StageSettings
+	}
+	return s
+}
+
+// equal reports whether s and o configure a Tournament the same way. It
+// compares every field, and instants rather than their time zones.
+func (s TournamentSettings) equal(o TournamentSettings) bool {
+	return s.Name == o.Name && s.StartsAt.Equal(o.StartsAt) && s.RegistrationOpensAt.Equal(o.RegistrationOpensAt) &&
+		s.Capacity == o.Capacity && s.MinimumParticipants == o.MinimumParticipants && s.CheckIn == o.CheckIn &&
+		slices.Equal(s.Stages, o.Stages)
 }
 
 // validate checks the rules that span several fields, and reports every

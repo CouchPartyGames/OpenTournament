@@ -2,7 +2,8 @@
 // Manifests: Kubernetes resources, synced from git, that hold a Tournament's
 // configuration and its Organizer (ADR-0005). It watches the Manifests of the
 // configured namespaces through a rate-limited workqueue, creates the
-// Tournament each one declares, and reports it in the Manifest's status.
+// Tournament each one declares and keeps its settings matching, since git is
+// their source of truth, and reports it in the Manifest's status.
 //
 // Every replica runs the controller, without leader election: a Manifest
 // declares at most one Tournament, and its status is a function of that
@@ -15,14 +16,17 @@ package manifests
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/auth"
 	"github.com/couchpartygames/opentournament/internal/features/tournaments"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
+	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/couchpartygames/opentournament/internal/tournament"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,20 +52,45 @@ type Spec struct {
 
 // Status reports the declared Tournament of a Tournament Manifest.
 type Status struct {
-	// ObservedGeneration is the Manifest generation the Tournament matches.
-	// Edits aren't applied yet, so it stays the generation that declared it.
+	// ObservedGeneration is the latest Manifest generation the Tournament
+	// matches. While the Manifest isn't Synced, it stays the last one that was.
 	ObservedGeneration int64                      `json:"observedGeneration,omitempty"`
 	TournamentID       string                     `json:"tournamentId,omitempty"`
 	TournamentStatus   lifecycle.TournamentStatus `json:"tournamentStatus,omitempty"`
 	Conditions         []metav1.Condition         `json:"conditions,omitempty"`
 }
 
-// ConditionSynced is true when the Tournament matches its Manifest's
-// observed generation.
+// ConditionSynced is true when the Tournament matches its Manifest's current
+// generation, and false when that generation can't be applied.
 const ConditionSynced = "Synced"
 
-// ReasonCreated says the Tournament of a Synced Manifest was created from it.
-const ReasonCreated = "Created"
+// Reasons of the Synced condition. While true, it keeps the reason of the
+// last change that synced it.
+const (
+	ReasonCreated   = "Created"
+	ReasonUpdated   = "Updated"
+	ReasonUnchanged = "Unchanged"
+
+	ReasonValidationFailed    = "ValidationFailed"
+	ReasonSettingsFrozen      = "SettingsFrozen"
+	ReasonOrganizerNotTrusted = "OrganizerNotTrusted"
+)
+
+// synced are the reason and message of a Synced Manifest, by what declaring
+// its Tournament changed.
+var synced = map[tournaments.Change]struct{ reason, message string }{
+	tournaments.Created:   {ReasonCreated, "The Tournament is created"},
+	tournaments.Updated:   {ReasonUpdated, "The Tournament's settings are updated"},
+	tournaments.Unchanged: {ReasonUnchanged, "The Tournament matches the Manifest"},
+}
+
+// notSynced are the reasons a Manifest can't be applied, by the code of the
+// problem the API would return for the same request.
+var notSynced = map[string]string{
+	problem.CodeValidationFailed:      ReasonValidationFailed,
+	tournaments.CodeSettingsFrozen:    ReasonSettingsFrozen,
+	tournaments.CodeNotTrustedForGame: ReasonOrganizerNotTrusted,
+}
 
 // Controller declares the Tournaments of the Manifests in its namespaces.
 type Controller struct {
@@ -134,8 +163,10 @@ func (c *Controller) Run(ctx context.Context) {
 	}
 }
 
-// Reconcile declares the Tournament of one Manifest. Manifests outside the
-// watched namespaces are ignored.
+// Reconcile makes the Tournament of one Manifest match it, and reports in
+// the Manifest's status whether it does. A Manifest that can't be applied is
+// reported rather than retried. Manifests outside the watched namespaces are
+// ignored.
 func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error {
 	if !slices.Contains(c.namespaces, name.Namespace) {
 		return nil
@@ -150,13 +181,22 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 	if err := convert(u.Object["spec"], &spec); err != nil {
 		return fmt.Errorf("read manifest %v: %w", name, err)
 	}
-	organizer, err := auth.ParsePrincipal(spec.Organizer)
-	if err != nil {
-		return fmt.Errorf("manifest %v: %w", name, err)
+	manifest := "tournament/" + name.String()
+	tv, change, err := c.declare(ctx, manifest, spec)
+	var p *problem.Error
+	reason, refused := "", false
+	if errors.As(err, &p) {
+		reason, refused = notSynced[p.Code]
 	}
-	tv, err := tournaments.Declare(ctx, c.svc, "tournament/"+name.String(), organizer, spec.NewTournament)
-	if err != nil {
+	if err != nil && !refused {
 		return fmt.Errorf("declare the tournament of manifest %v: %w", name, err)
+	}
+	if refused {
+		// The status still points to the Tournament, if the Manifest declared one.
+		tv, err = tournaments.FindDeclared(ctx, c.svc.Queries, manifest)
+		if err != nil && !errors.Is(err, tournament.ErrTournamentNotFound) {
+			return fmt.Errorf("find the tournament of manifest %v: %w", name, err)
+		}
 	}
 
 	var status, want Status
@@ -166,18 +206,24 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 	if err := convert(status, &want); err != nil {
 		return err
 	}
-	// Edits aren't applied yet, so a later generation isn't observed: the
-	// Tournament still matches the generation that declared it.
-	if want.TournamentID != tv.ID.String() {
+	want.TournamentID, want.TournamentStatus = "", ""
+	if !tv.ID.IsZero() {
+		want.TournamentID, want.TournamentStatus = tv.ID.String(), tv.Status
+	}
+	cond := metav1.Condition{Type: ConditionSynced, ObservedGeneration: u.GetGeneration(), LastTransitionTime: metav1.NewTime(c.svc.Clock.Now())}
+	prev := meta.FindStatusCondition(want.Conditions, ConditionSynced)
+	switch {
+	case refused:
+		cond.Status, cond.Reason, cond.Message = metav1.ConditionFalse, reason, describe(p)
+	case change == tournaments.Unchanged && prev != nil && prev.Status == metav1.ConditionTrue:
+		cond.Status, cond.Reason, cond.Message = metav1.ConditionTrue, prev.Reason, prev.Message
+	default:
+		cond.Status, cond.Reason, cond.Message = metav1.ConditionTrue, synced[change].reason, synced[change].message
+	}
+	if cond.Status == metav1.ConditionTrue {
 		want.ObservedGeneration = u.GetGeneration()
 	}
-	want.TournamentID = tv.ID.String()
-	want.TournamentStatus = tv.Status
-	meta.SetStatusCondition(&want.Conditions, metav1.Condition{
-		Type: ConditionSynced, Status: metav1.ConditionTrue, Reason: ReasonCreated,
-		Message: "The Tournament is created", ObservedGeneration: want.ObservedGeneration,
-		LastTransitionTime: metav1.NewTime(c.svc.Clock.Now()),
-	})
+	meta.SetStatusCondition(&want.Conditions, cond)
 	// Writing only on change keeps the status update's own watch event from
 	// triggering another write.
 	if equality.Semantic.DeepEqual(status, want) {
@@ -192,6 +238,33 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 		return fmt.Errorf("update status of manifest %v: %w", name, err)
 	}
 	return nil
+}
+
+// declare makes the Tournament of a Manifest match its spec.
+func (c *Controller) declare(ctx context.Context, manifest string, spec Spec) (tournaments.TournamentView, tournaments.Change, error) {
+	organizer, err := auth.ParsePrincipal(spec.Organizer)
+	if err != nil {
+		return tournaments.TournamentView{}, tournaments.Unchanged,
+			problem.Fields{{Location: "spec.organizer", Message: "must be user:<subject> or client:<client id>", Value: spec.Organizer}}.Err()
+	}
+	return tournaments.Declare(ctx, c.svc, manifest, organizer, spec.NewTournament)
+}
+
+// describe says why a Manifest can't be applied. It lists every field
+// message, located in the Manifest's spec rather than the API's request body.
+func describe(p *problem.Error) string {
+	if len(p.Fields) == 0 {
+		return p.Message
+	}
+	msgs := make([]string, len(p.Fields))
+	for i, f := range p.Fields {
+		location := f.Location
+		if field, ok := strings.CutPrefix(location, "body."); ok {
+			location = "spec." + field
+		}
+		msgs[i] = location + ": " + f.Message
+	}
+	return "The Manifest is invalid: " + strings.Join(msgs, "; ")
 }
 
 // convert copies a value between its unstructured and typed forms, through

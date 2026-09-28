@@ -33,7 +33,8 @@ func Register(api huma.API, svc *tournament.Service) {
 	problem.Register(api, huma.Operation{
 		OperationID: "edit-tournament", Method: http.MethodPut, Path: "/api/v1/tournaments/{tournamentId}",
 		Summary: "Edit a draft Tournament", Tags: []string{"Tournaments"}, Security: auth.Security(),
-		Description: "TournamentSettings can only change while the Tournament is a Draft; they freeze once registration opens.",
+		Description: "TournamentSettings can only change while the Tournament is a Draft; they freeze once registration opens. " +
+			"A Tournament declared by a Tournament Manifest is edited in git instead, and refused here with declared-in-git.",
 	}, h.edit)
 	problem.Register(api, huma.Operation{
 		OperationID: "get-tournament", Method: http.MethodGet, Path: "/api/v1/tournaments/{tournamentId}",
@@ -49,6 +50,13 @@ func Register(api huma.API, svc *tournament.Service) {
 		Description: "The Organizer can cancel at any point before completion. Pending Matches stop and their Game Servers are released.",
 	}, h.cancel)
 }
+
+// Error codes of the slice that the Tournament Manifest controller reports too.
+const (
+	CodeNotTrustedForGame = "not-trusted-for-game"
+	CodeSettingsFrozen    = "settings-frozen"
+	CodeDeclaredInGit     = "declared-in-git"
+)
 
 type handlers struct{ svc *tournament.Service }
 
@@ -126,15 +134,29 @@ func Create(ctx context.Context, svc *tournament.Service, p auth.Principal, body
 	return create(ctx, svc, p, body, nil)
 }
 
-// Declare creates the Tournament a Tournament Manifest declares, unless it
-// exists already. manifest names the Manifest uniquely across the service,
-// e.g. tournament/<namespace>/<name>. Several replicas can declare the same
+// Change is what declaring a Tournament did to it.
+type Change int
+
+const (
+	// Unchanged means the Tournament already matched its Manifest.
+	Unchanged Change = iota
+	// Created means the Tournament was created from its Manifest.
+	Created
+	// Updated means the Draft's settings were edited to match its Manifest.
+	Updated
+)
+
+// Declare makes the Tournament a Tournament Manifest declares match it, since
+// git is its source of truth. It creates the Tournament unless it exists, and
+// otherwise edits its settings through the API's edit path and validation.
+// manifest names the Manifest uniquely across the service, e.g.
+// tournament/<namespace>/<name>. Several replicas can declare the same
 // Manifest at once: one creates the Tournament, the others return it.
-func Declare(ctx context.Context, svc *tournament.Service, manifest string, p auth.Principal, body NewTournament) (TournamentView, error) {
-	v, err := findDeclared(ctx, svc.Queries, manifest)
-	if !errors.Is(err, tournament.ErrTournamentNotFound) {
-		return v, err
-	}
+//
+// When the Manifest can't be applied, Declare fails with the API's problem:
+// validation-failed, not-trusted-for-game, or settings-frozen once
+// registration has opened. A Manifest can't change its Game or Organizer.
+func Declare(ctx context.Context, svc *tournament.Service, manifest string, p auth.Principal, body NewTournament) (TournamentView, Change, error) {
 	// A Manifest doesn't pass through the API's schema, whose only default is
 	// a Stage's single Group.
 	body.Stages = slices.Clone(body.Stages)
@@ -143,15 +165,38 @@ func Declare(ctx context.Context, svc *tournament.Service, manifest string, p au
 			body.Stages[i].Groups = 1
 		}
 	}
-	v, err = create(ctx, svc, p, body, &manifest)
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "tournaments_manifest_key" {
-		return findDeclared(ctx, svc.Queries, manifest)
+	v, err := FindDeclared(ctx, svc.Queries, manifest)
+	if errors.Is(err, tournament.ErrTournamentNotFound) {
+		v, err = create(ctx, svc, p, body, &manifest)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "tournaments_manifest_key" {
+			// Another replica created it from the same Manifest.
+			v, err = FindDeclared(ctx, svc.Queries, manifest)
+		}
+		return v, Created, err
+	} else if err != nil {
+		return TournamentView{}, Unchanged, err
 	}
-	return v, err
+
+	var f problem.Fields
+	if v.GameID != body.GameID {
+		f.Add("body.gameId", "can't change once the Tournament is declared", body.GameID)
+	}
+	if v.Organizer != p.ID() {
+		f.Add("body.organizer", "can't change once the Tournament is declared", p.ID())
+	}
+	if err := f.Err(); err != nil {
+		return TournamentView{}, Unchanged, err
+	}
+	if v.settings().equal(body.TournamentSettings) {
+		return v, Unchanged, nil
+	}
+	v, err = edit(ctx, svc, p, v.ID, body.TournamentSettings, true)
+	return v, Updated, err
 }
 
-func findDeclared(ctx context.Context, q *db.Queries, manifest string) (TournamentView, error) {
+// FindDeclared reads the Tournament a Tournament Manifest declared.
+func FindDeclared(ctx context.Context, q *db.Queries, manifest string) (TournamentView, error) {
 	t, err := q.GetDeclaredTournament(ctx, manifest)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return TournamentView{}, tournament.ErrTournamentNotFound
@@ -167,7 +212,7 @@ func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body
 		return TournamentView{}, problem.Fields{{Location: "body.gameId", Message: "no such game", Value: body.GameID}}.Err()
 	}
 	if p.IsService() && !game.Trusts(p.ClientID) {
-		return TournamentView{}, problem.New(problem.Forbidden, "not-trusted-for-game", "client %q is not trusted to act for game %q", p.ClientID, game.ID)
+		return TournamentView{}, problem.New(problem.Forbidden, CodeNotTrustedForGame, "client %q is not trusted to act for game %q", p.ClientID, game.ID)
 	}
 	if err := body.TournamentSettings.validate(game, svc.Clock.Now()); err != nil {
 		return TournamentView{}, err
@@ -186,14 +231,25 @@ func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body
 	return Find(ctx, svc.Queries, id)
 }
 
-// Edit replaces the settings of a draft Tournament.
+// Edit replaces the settings of a draft Tournament. A declared Tournament is
+// refused with declared-in-git: its Manifest is its source of truth.
 func Edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids.TournamentID, s TournamentSettings) (TournamentView, error) {
+	return edit(ctx, svc, p, id, s, false)
+}
+
+// edit replaces the settings of a draft Tournament, from its Tournament
+// Manifest when fromManifest is true.
+func edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids.TournamentID, s TournamentSettings, fromManifest bool) (TournamentView, error) {
 	err := svc.InTournament(ctx, id, func(tx *tournament.Tx) error {
 		if err := tx.RequireOrganizer(p); err != nil {
 			return err
 		}
+		if tx.T.Manifest != nil && !fromManifest {
+			return problem.New(problem.Conflict, CodeDeclaredInGit,
+				"the tournament is declared by the manifest %s in git; edit the manifest instead", *tx.T.Manifest)
+		}
 		if tx.T.Status != lifecycle.Draft {
-			return problem.New(problem.Conflict, "settings-frozen", "settings are frozen once registration opens")
+			return problem.New(problem.Conflict, CodeSettingsFrozen, "settings are frozen once registration opens")
 		}
 		game, err := tx.Game()
 		if err != nil {

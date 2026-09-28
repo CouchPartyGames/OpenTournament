@@ -34,6 +34,10 @@ spec:
           type: string
           jsonPath: .status.conditions[?(@.type=="Synced")].status
           priority: 1
+        - name: Reason
+          type: string
+          jsonPath: .status.conditions[?(@.type=="Synced")].reason
+          priority: 1
         - name: Age
           type: date
           jsonPath: .metadata.creationTimestamp

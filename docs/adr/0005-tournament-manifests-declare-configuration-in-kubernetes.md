@@ -20,4 +20,5 @@ Every replica watches the Manifests, without leader election, as it already does
 - The service needs RBAC to get, list and watch `tournaments.opentournament.io`, and to update `tournaments/status`, in every watched namespace.
 - A Manifest's spec is validated twice: structurally by the CRD's OpenAPI schema, which mirrors the API's, and then by the same cross-field rules as the API when the Tournament is created.
 - The Manifest's status follows the Tournament only as often as the controller resyncs, not in real time. Live updates remain the way to follow a Tournament.
-- Editing, reporting invalid Manifests, removal and recurring schedules come later, and each must keep runtime state out of etcd.
+- Git is the source of truth for a declared Tournament's settings. The service applies an edited Manifest to a Draft through the API's own edit path, and reports a Manifest it can't apply (frozen settings, a failed validation, an untrusted Organizer) in its `Synced` condition rather than retrying it. The API refuses to edit a declared Tournament (`409 declared-in-git`), but can still cancel it as an emergency lever; the Manifest then keeps pointing to the cancelled Tournament.
+- Removal and recurring schedules come later, and each must keep runtime state out of etcd.
