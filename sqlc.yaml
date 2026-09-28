@@ -1,0 +1,76 @@
+version: "2"
+sql:
+  - engine: postgresql
+    schema: internal/db/migrations
+    queries: internal/db/queries
+    gen:
+      go:
+        package: db
+        out: internal/db
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+        emit_empty_slices: true
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: timestamptz
+            go_type: time.Time
+          - db_type: timestamptz
+            nullable: true
+            go_type: {type: time.Time, pointer: true}
+          - db_type: pg_catalog.timestamptz
+            go_type: time.Time
+          - db_type: pg_catalog.timestamptz
+            nullable: true
+            go_type: {type: time.Time, pointer: true}
+          - db_type: jsonb
+            go_type: encoding/json.RawMessage
+          - db_type: jsonb
+            nullable: true
+            go_type: encoding/json.RawMessage
+          - column: tournaments.id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: TournamentID}
+          - column: stages.tournament_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: TournamentID}
+          - column: participants.tournament_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: TournamentID}
+          - column: groups.tournament_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: TournamentID}
+          - column: matches.tournament_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: TournamentID}
+          - column: jobs.tournament_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: TournamentID}
+          - column: events.tournament_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: TournamentID}
+          - column: stages.id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: StageID}
+          - column: groups.stage_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: StageID}
+          - column: matches.stage_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: StageID}
+          - column: groups.id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: GroupID}
+          - column: group_entrants.group_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: GroupID}
+          - column: matches.group_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: GroupID}
+          - column: matches.id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: MatchID}
+          - column: match_slots.match_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: MatchID}
+          - column: bout_results.match_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: MatchID}
+          - column: jobs.match_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: MatchID}
+          - column: participants.id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}
+          - column: group_entrants.participant_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}
+          - column: match_slots.participant_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}
+          - column: bout_results.participant_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}
+          - column: matches.winner_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: ParticipantID}
+          - column: matches.allocation_id
+            go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: AllocationID}

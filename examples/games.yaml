@@ -1,0 +1,29 @@
+# The Game catalog: which Games Tournaments can be played in.
+games:
+  - id: arena
+    name: Arena
+    # Player Identity kinds that may register. "keycloak" is a Keycloak user.
+    identityKinds: [keycloak, steam]
+    # The most Participants one Match holds; a free-for-all Group never exceeds it.
+    maximumMatchSize: 2
+    # The warm Agones Fleet Matches get their Game Servers from.
+    fleet:
+      name: arena
+      namespace: games
+    # Keycloak service clients trusted to create Tournaments for this Game and
+    # to register or check in any Player Identity.
+    trustedClients: [arena-backend]
+
+  - id: royale
+    name: Royale
+    identityKinds: [keycloak]
+    maximumMatchSize: 100
+    fleet:
+      name: royale
+      namespace: games
+    trustedClients: [royale-backend]
+
+# Keycloak token claims carrying a user's linked identities, by kind. A player
+# may register a linked identity only if their token carries it.
+identityClaims:
+  steam: steam_id
