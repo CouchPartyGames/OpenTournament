@@ -63,7 +63,7 @@ func Withdraw(ctx context.Context, svc *tournament.Service, p auth.Principal, ti
 		if !p.Owns(auth.Identity{Kind: person.IdentityKind, Value: person.IdentityValue}) {
 			return problem.New(problem.Forbidden, "identity-not-owned", "you can only withdraw yourself")
 		}
-		return tx.Leave(pid, tournament.Withdrawn)
+		return tx.Leave(pid, tournament.Withdrawal)
 	})
 }
 
@@ -73,6 +73,6 @@ func Disqualify(ctx context.Context, svc *tournament.Service, p auth.Principal, 
 		if err := tx.RequireOrganizer(p); err != nil {
 			return err
 		}
-		return tx.Leave(pid, tournament.Disqualified)
+		return tx.Leave(pid, tournament.Disqualification)
 	})
 }

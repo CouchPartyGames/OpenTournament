@@ -216,7 +216,7 @@ func (tx *Tx) loadPeople() error {
 }
 
 // setParticipantStatus changes a Participant's status and announces it.
-func (tx *Tx) setParticipantStatus(id ids.ParticipantID, status string) error {
+func (tx *Tx) setParticipantStatus(id ids.ParticipantID, status lifecycle.ParticipantStatus) error {
 	if err := tx.loadPeople(); err != nil {
 		return err
 	}

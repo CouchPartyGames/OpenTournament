@@ -180,12 +180,12 @@ func Enter(ctx context.Context, svc *tournament.Service, p auth.Principal, tid i
 		}
 		row := db.Participant{
 			ID: ids.New[ids.ParticipantID](), TournamentID: tid, IdentityKind: id.Kind, IdentityValue: id.Value,
-			RegisteredBy: p.ID(), Status: tournament.Registered, RegisteredAt: tx.Now(),
+			RegisteredBy: p.ID(), Status: lifecycle.Registered, RegisteredAt: tx.Now(),
 		}
 		// Registering inside the Check-in Window counts as checking in.
 		if tx.T.Status == lifecycle.CheckIn {
 			now := tx.Now()
-			row.Status, row.CheckedInAt = tournament.CheckedIn, &now
+			row.Status, row.CheckedInAt = lifecycle.CheckedIn, &now
 		}
 		err = tx.Q.InsertParticipant(tx.Ctx(), db.InsertParticipantParams{
 			ID: row.ID, TournamentID: tid, IdentityKind: row.IdentityKind, IdentityValue: row.IdentityValue,
@@ -236,7 +236,7 @@ func CheckIn(ctx context.Context, svc *tournament.Service, p auth.Principal, tid
 			if err := tx.Q.CheckInParticipant(tx.Ctx(), db.CheckInParticipantParams{ID: pid, CheckedInAt: &now}); err != nil {
 				return err
 			}
-			person.Status, person.CheckedInAt = tournament.CheckedIn, &now
+			person.Status, person.CheckedInAt = lifecycle.CheckedIn, &now
 			if err := emitCounts(tx); err != nil {
 				return err
 			}
@@ -295,11 +295,11 @@ func List(ctx context.Context, q *db.Queries, tid ids.TournamentID, mine *auth.P
 
 // ParticipantView is a Participant as the API shows it.
 type ParticipantView struct {
-	ID           ids.ParticipantID `json:"id"`
-	Identity     auth.Identity     `json:"identity"`
-	Status       string            `json:"status" enum:"registered,checked-in,not-checked-in,active,withdrawn,disqualified,eliminated"`
-	RegisteredAt time.Time         `json:"registeredAt"`
-	CheckedInAt  *time.Time        `json:"checkedInAt,omitempty"`
+	ID           ids.ParticipantID           `json:"id"`
+	Identity     auth.Identity               `json:"identity"`
+	Status       lifecycle.ParticipantStatus `json:"status"`
+	RegisteredAt time.Time                   `json:"registeredAt"`
+	CheckedInAt  *time.Time                  `json:"checkedInAt,omitempty"`
 }
 
 func view(p db.Participant) ParticipantView {

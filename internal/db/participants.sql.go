@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/google/uuid"
 )
 
@@ -121,7 +122,7 @@ type InsertParticipantParams struct {
 	IdentityKind  string
 	IdentityValue string
 	RegisteredBy  string
-	Status        string
+	Status        lifecycle.ParticipantStatus
 	RegisteredAt  time.Time
 	CheckedInAt   *time.Time
 }
@@ -268,7 +269,7 @@ UPDATE participants SET status = $2 WHERE id = $1
 
 type SetParticipantStatusParams struct {
 	ID     ids.ParticipantID
-	Status string
+	Status lifecycle.ParticipantStatus
 }
 
 func (q *Queries) SetParticipantStatus(ctx context.Context, arg SetParticipantStatusParams) error {

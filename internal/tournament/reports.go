@@ -95,7 +95,7 @@ func (tx *Tx) ServerMatch(m db.Match) (ServerMatchView, error) {
 		}
 		v.Participants = append(v.Participants, ServerParticipantView{
 			ParticipantID: p, IdentityKind: person.IdentityKind, IdentityValue: person.IdentityValue,
-			Forfeited: hasLeft(person.Status),
+			Forfeited: person.Status.HasLeft(),
 		})
 	}
 	return v, nil

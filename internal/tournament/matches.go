@@ -60,7 +60,7 @@ func (gs *groupState) decided(m db.Match) bool {
 	}
 	dropped := map[format.ParticipantID]bool{}
 	for _, e := range gs.participants {
-		if hasLeft(e.Status) {
+		if e.Status.HasLeft() {
 			dropped[pid(e.ParticipantID)] = true
 		}
 	}
@@ -102,7 +102,7 @@ func (gs *groupState) boutComplete(m db.Match, rs map[ids.ParticipantID]db.BoutR
 func (gs *groupState) isDropped(p ids.ParticipantID) bool {
 	for _, e := range gs.participants {
 		if e.ParticipantID == p {
-			return hasLeft(e.Status)
+			return e.Status.HasLeft()
 		}
 	}
 	return false
@@ -198,18 +198,28 @@ func (tx *Tx) forfeitRemaining(gs *groupState, m db.Match, p ids.ParticipantID) 
 	return nil
 }
 
+// Departure is one of the two ways out of a running Tournament: a Withdrawal
+// or a Disqualification. Other packages can't make any other.
+type Departure struct{ status lifecycle.ParticipantStatus }
+
+// The ways out of a running Tournament.
+var (
+	Withdrawal       = Departure{lifecycle.Withdrawn}
+	Disqualification = Departure{lifecycle.Disqualified}
+)
+
 // Leave takes a Participant out of a running Tournament through a Withdrawal
 // or Disqualification: they forfeit every Bout they haven't completed,
 // including in a Match already In Progress, whose Game Server is told.
-func (tx *Tx) Leave(p ids.ParticipantID, status string) error {
+func (tx *Tx) Leave(p ids.ParticipantID, how Departure) error {
 	person, err := tx.Participant(p)
 	if err != nil {
 		return err
 	}
-	if tx.T.Status != lifecycle.Running || person.Status != Active {
+	if tx.T.Status != lifecycle.Running || person.Status != lifecycle.Active {
 		return problem.New(problem.Conflict, CodeParticipantNotActive, "only an active participant of a running tournament can leave it")
 	}
-	if err := tx.setParticipantStatus(p, status); err != nil {
+	if err := tx.setParticipantStatus(p, how.status); err != nil {
 		return err
 	}
 	matches, err := tx.Q.ListOpenMatchesOfParticipant(tx.ctx, p)

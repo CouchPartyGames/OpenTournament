@@ -175,8 +175,8 @@ func (tx *Tx) finishStageIfComplete(st db.Stage) error {
 			}
 			if person, err := tx.Participant(p); err != nil {
 				return err
-			} else if person.Status == Active {
-				if err := tx.setParticipantStatus(p, Eliminated); err != nil {
+			} else if person.Status == lifecycle.Active {
+				if err := tx.setParticipantStatus(p, lifecycle.Eliminated); err != nil {
 					return err
 				}
 			}
