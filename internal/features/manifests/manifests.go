@@ -225,8 +225,10 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 	}
 	meta.SetStatusCondition(&want.Conditions, cond)
 	// Writing only on change keeps the status update's own watch event from
-	// triggering another write.
-	if equality.Semantic.DeepEqual(status, want) {
+	// triggering another write. But a Tournament that was just changed always
+	// writes: if another replica applied a later generation meanwhile, the
+	// write conflicts on resourceVersion, and the retry reapplies the latest.
+	if equality.Semantic.DeepEqual(status, want) && change == tournaments.Unchanged {
 		return nil
 	}
 	var object map[string]any
@@ -245,7 +247,7 @@ func (c *Controller) declare(ctx context.Context, manifest string, spec Spec) (t
 	organizer, err := auth.ParsePrincipal(spec.Organizer)
 	if err != nil {
 		return tournaments.TournamentView{}, tournaments.Unchanged,
-			problem.Fields{{Location: "spec.organizer", Message: "must be user:<subject> or client:<client id>", Value: spec.Organizer}}.Err()
+			problem.Fields{{Location: "body.organizer", Message: "must be user:<subject> or client:<client id>", Value: spec.Organizer}}.Err()
 	}
 	return tournaments.Declare(ctx, c.svc, manifest, organizer, spec.NewTournament)
 }

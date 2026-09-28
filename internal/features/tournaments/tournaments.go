@@ -51,7 +51,8 @@ func Register(api huma.API, svc *tournament.Service) {
 	}, h.cancel)
 }
 
-// Error codes of the slice that the Tournament Manifest controller reports too.
+// Error codes of the slice. The Tournament Manifest controller reports the
+// ones Declare returns in the Manifest's status.
 const (
 	CodeNotTrustedForGame = "not-trusted-for-game"
 	CodeSettingsFrozen    = "settings-frozen"
@@ -153,10 +154,16 @@ const (
 // tournament/<namespace>/<name>. Several replicas can declare the same
 // Manifest at once: one creates the Tournament, the others return it.
 //
-// When the Manifest can't be applied, Declare fails with the API's problem:
-// validation-failed, not-trusted-for-game, or settings-frozen once
-// registration has opened. A Manifest can't change its Game or Organizer.
+// When the Manifest can't be applied, the error is the *problem.Error the API
+// would return: validation-failed, not-trusted-for-game, or settings-frozen
+// once registration has opened. A Manifest can't change its Game or
+// Organizer; that fails validation too. A failed Declare changes nothing, and
+// reports Unchanged.
 func Declare(ctx context.Context, svc *tournament.Service, manifest string, p auth.Principal, body NewTournament) (TournamentView, Change, error) {
+	// PostgreSQL keeps instants to the microsecond. Finer ones would never
+	// match the Tournament, and be edited again on every reconcile.
+	body.StartsAt = body.StartsAt.Truncate(time.Microsecond)
+	body.RegistrationOpensAt = body.RegistrationOpensAt.Truncate(time.Microsecond)
 	// A Manifest doesn't pass through the API's schema, whose only default is
 	// a Stage's single Group.
 	body.Stages = slices.Clone(body.Stages)
@@ -173,7 +180,10 @@ func Declare(ctx context.Context, svc *tournament.Service, manifest string, p au
 			// Another replica created it from the same Manifest.
 			v, err = FindDeclared(ctx, svc.Queries, manifest)
 		}
-		return v, Created, err
+		if err != nil {
+			return TournamentView{}, Unchanged, err
+		}
+		return v, Created, nil
 	} else if err != nil {
 		return TournamentView{}, Unchanged, err
 	}
@@ -191,11 +201,15 @@ func Declare(ctx context.Context, svc *tournament.Service, manifest string, p au
 	if v.settings().equal(body.TournamentSettings) {
 		return v, Unchanged, nil
 	}
-	v, err = edit(ctx, svc, p, v.ID, body.TournamentSettings, true)
-	return v, Updated, err
+	v, err = edit(ctx, svc, p, v.ID, body.TournamentSettings, &manifest)
+	if err != nil {
+		return TournamentView{}, Unchanged, err
+	}
+	return v, Updated, nil
 }
 
-// FindDeclared reads the Tournament a Tournament Manifest declared.
+// FindDeclared reads the Tournament a Tournament Manifest declared. It fails
+// with tournament.ErrTournamentNotFound when the Manifest declared none.
 func FindDeclared(ctx context.Context, q *db.Queries, manifest string) (TournamentView, error) {
 	t, err := q.GetDeclaredTournament(ctx, manifest)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -234,22 +248,22 @@ func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body
 // Edit replaces the settings of a draft Tournament. A declared Tournament is
 // refused with declared-in-git: its Manifest is its source of truth.
 func Edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids.TournamentID, s TournamentSettings) (TournamentView, error) {
-	return edit(ctx, svc, p, id, s, false)
+	return edit(ctx, svc, p, id, s, nil)
 }
 
-// edit replaces the settings of a draft Tournament, from its Tournament
-// Manifest when fromManifest is true.
-func edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids.TournamentID, s TournamentSettings, fromManifest bool) (TournamentView, error) {
+// edit replaces the settings of a draft Tournament. manifest is the
+// Tournament Manifest they come from, or nil when they come from the API.
+func edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids.TournamentID, s TournamentSettings, manifest *string) (TournamentView, error) {
 	err := svc.InTournament(ctx, id, func(tx *tournament.Tx) error {
 		if err := tx.RequireOrganizer(p); err != nil {
 			return err
 		}
-		if tx.T.Manifest != nil && !fromManifest {
+		if tx.T.Manifest != nil && (manifest == nil || *manifest != *tx.T.Manifest) {
 			return problem.New(problem.Conflict, CodeDeclaredInGit,
 				"the tournament is declared by the manifest %s in git; edit the manifest instead", *tx.T.Manifest)
 		}
 		if tx.T.Status != lifecycle.Draft {
-			return problem.New(problem.Conflict, CodeSettingsFrozen, "settings are frozen once registration opens")
+			return problem.New(problem.Conflict, CodeSettingsFrozen, "settings are frozen once registration opens; the tournament is %s", tx.T.Status)
 		}
 		game, err := tx.Game()
 		if err != nil {

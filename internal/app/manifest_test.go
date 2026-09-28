@@ -101,6 +101,16 @@ func (s manifestStatus) synced() string {
 	return ""
 }
 
+// syncedMessage is the message of a Manifest status's Synced condition.
+func (s manifestStatus) syncedMessage() string {
+	for _, c := range s.Conditions {
+		if c.Type == "Synced" {
+			return c.Message
+		}
+	}
+	return ""
+}
+
 // mustReadStatus reads a Manifest's status, as kubectl would show it.
 func mustReadStatus(t *testing.T, h *apptest.Harness, namespace, name string) manifestStatus {
 	t.Helper()
@@ -204,20 +214,20 @@ func TestManifestGetsTheAPIsDefaults(t *testing.T) {
 	}
 }
 
-type declaredSettings struct {
+type declaredTournament struct {
 	Name     string
 	Capacity int
 	Status   string
 }
 
-// mustGetDeclared reads the Tournament a Manifest's status names.
-func mustGetDeclared(t *testing.T, h *apptest.Harness, namespace, name string) declaredSettings {
+// mustFindDeclared reads the Tournament a Manifest's status names.
+func mustFindDeclared(t *testing.T, h *apptest.Harness, namespace, name string) declaredTournament {
 	t.Helper()
 	id := mustReadStatus(t, h, namespace, name).TournamentID
 	if id == "" {
 		t.Fatalf("manifest %s/%s names no Tournament", namespace, name)
 	}
-	var tv declaredSettings
+	var tv declaredTournament
 	h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil).Expect(http.StatusOK).Decode(&tv)
 	return tv
 }
@@ -233,7 +243,7 @@ func TestEditingTheManifestOfADraftUpdatesTheTournament(t *testing.T) {
 	})
 	h.Settle()
 
-	if tv := mustGetDeclared(t, h, "games", "friday-cup"); tv.Name != "Friday Night Cup" || tv.Capacity != 4 {
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Name != "Friday Night Cup" || tv.Capacity != 4 {
 		t.Errorf("the declared Tournament is %+v, want Friday Night Cup with capacity 4", tv)
 	}
 	s := mustReadStatus(t, h, "games", "friday-cup")
@@ -256,7 +266,7 @@ func TestEditingTheManifestAfterRegistrationOpensChangesNothing(t *testing.T) {
 	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) { spec["capacity"] = 4 })
 	h.Settle()
 
-	if tv := mustGetDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
 		t.Errorf("the declared Tournament has capacity %d, want 16, its frozen setting", tv.Capacity)
 	}
 	s := mustReadStatus(t, h, "games", "friday-cup")
@@ -323,8 +333,8 @@ func TestAnInvalidManifestReportsEveryFieldMessageAndCreatesNothing(t *testing.T
 		t.Errorf("the API refuses the settings with %q, want both of the issue's examples", want)
 	}
 	for _, m := range want {
-		if !strings.Contains(s.Conditions[0].Message, m) {
-			t.Errorf("Synced condition message = %q, want it to contain %q", s.Conditions[0].Message, m)
+		if !strings.Contains(s.syncedMessage(), m) {
+			t.Errorf("Synced condition message = %q, want it to contain %q", s.syncedMessage(), m)
 		}
 	}
 }
@@ -340,7 +350,7 @@ func TestAnInvalidEditChangesNothing(t *testing.T) {
 	})
 	h.Settle()
 
-	if tv := mustGetDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
 		t.Errorf("the declared Tournament has capacity %d, want 16, as declared", tv.Capacity)
 	}
 	if s := mustReadStatus(t, h, "games", "friday-cup"); s.ObservedGeneration != 3 || s.synced() != "False/ValidationFailed" {
@@ -357,7 +367,7 @@ func TestAManifestWithAMalformedOrganizerFailsValidation(t *testing.T) {
 	h.Settle()
 
 	s := mustReadStatus(t, h, "games", "friday-cup")
-	if s.synced() != "False/ValidationFailed" || !strings.Contains(s.Conditions[0].Message, "spec.organizer") {
+	if s.synced() != "False/ValidationFailed" || !strings.Contains(s.syncedMessage(), "spec.organizer") {
 		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Synced=False because ValidationFailed at spec.organizer", s)
 	}
 }
@@ -382,8 +392,8 @@ func TestAManifestCantChangeItsGameOrOrganizer(t *testing.T) {
 		t.Fatalf("mustReadStatus(games/friday-cup) = %+v, want Synced=False because ValidationFailed", s)
 	}
 	for _, field := range []string{"spec.gameId", "spec.organizer"} {
-		if !strings.Contains(s.Conditions[0].Message, field) {
-			t.Errorf("Synced condition message = %q, want it to name %s", s.Conditions[0].Message, field)
+		if !strings.Contains(s.syncedMessage(), field) {
+			t.Errorf("Synced condition message = %q, want it to name %s", s.syncedMessage(), field)
 		}
 	}
 }
@@ -418,7 +428,7 @@ func TestTheAPIRefusesToEditADeclaredTournament(t *testing.T) {
 	if r.Code() != "declared-in-git" || r.Header.Get("Content-Type") != "application/problem+json" {
 		t.Errorf("PUT /api/v1/tournaments/%s = %s %s, want declared-in-git Problem Details", id, r.Header.Get("Content-Type"), r.Body)
 	}
-	if tv := mustGetDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
 		t.Errorf("the declared Tournament has capacity %d, want 16, as declared", tv.Capacity)
 	}
 
@@ -443,8 +453,26 @@ func TestADeclaredTournamentCancelledThroughTheAPIStaysCancelled(t *testing.T) {
 	if len(ts) != 1 || ts[0].ID != id || ts[0].Status != "cancelled" {
 		t.Errorf("GET /api/v1/tournaments lists %+v, want only Tournament %s, cancelled", ts, id)
 	}
-	if s := mustReadStatus(t, h, "games", "friday-cup"); s.TournamentID != id || s.TournamentStatus != "cancelled" {
-		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Tournament %s, cancelled", s, id)
+	s := mustReadStatus(t, h, "games", "friday-cup")
+	if s.TournamentID != id || s.TournamentStatus != "cancelled" || s.synced() != "False/SettingsFrozen" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Tournament %s, cancelled, Synced=False because SettingsFrozen", s, id)
+	}
+	if !strings.Contains(s.syncedMessage(), "cancelled") {
+		t.Errorf("Synced condition message = %q, want it to say the Tournament is cancelled", s.syncedMessage())
+	}
+}
+
+func TestInstantsFinerThanTheDatabaseKeepsAreApplied(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	spec := manifestSpec(h)
+	spec["startsAt"] = h.FakeClock.Now().Add(startsIn + time.Nanosecond)
+	mustApply(t, h, "games", "friday-cup", spec)
+	h.Settle()
+
+	h.Settle()
+
+	if s := mustReadStatus(t, h, "games", "friday-cup"); s.synced() != "True/Created" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Synced=True because Created, not edited again", s)
 	}
 }
 
