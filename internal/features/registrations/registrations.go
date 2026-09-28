@@ -13,6 +13,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/events"
 	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/couchpartygames/opentournament/internal/tournament"
 	"github.com/danielgtaylor/huma/v2"
@@ -167,7 +168,7 @@ func Enter(ctx context.Context, svc *tournament.Service, p auth.Principal, tid i
 		if err := mayActFor(p, game, id); err != nil {
 			return err
 		}
-		if tx.T.Status != tournament.RegistrationOpen && tx.T.Status != tournament.CheckIn {
+		if tx.T.Status != lifecycle.RegistrationOpen && tx.T.Status != lifecycle.CheckIn {
 			return problem.New(problem.Conflict, CodeRegistrationClosed, "registration is not open")
 		}
 		count, err := tx.Q.CountRegistered(tx.Ctx(), tid)
@@ -182,7 +183,7 @@ func Enter(ctx context.Context, svc *tournament.Service, p auth.Principal, tid i
 			RegisteredBy: p.ID(), Status: tournament.Registered, RegisteredAt: tx.Now(),
 		}
 		// Registering inside the Check-in Window counts as checking in.
-		if tx.T.Status == tournament.CheckIn {
+		if tx.T.Status == lifecycle.CheckIn {
 			now := tx.Now()
 			row.Status, row.CheckedInAt = tournament.CheckedIn, &now
 		}
@@ -209,7 +210,7 @@ func Unregister(ctx context.Context, svc *tournament.Service, p auth.Principal, 
 		if err != nil {
 			return err
 		}
-		if tx.T.Status != tournament.RegistrationOpen && tx.T.Status != tournament.CheckIn {
+		if tx.T.Status != lifecycle.RegistrationOpen && tx.T.Status != lifecycle.CheckIn {
 			return problem.New(problem.Conflict, CodeRegistrationClosed, "participants can only unregister before the start")
 		}
 		if err := tx.Q.DeleteParticipant(tx.Ctx(), person.ID); err != nil {
@@ -227,7 +228,7 @@ func CheckIn(ctx context.Context, svc *tournament.Service, p auth.Principal, tid
 		if err != nil {
 			return err
 		}
-		if tx.T.Status != tournament.CheckIn {
+		if tx.T.Status != lifecycle.CheckIn {
 			return problem.New(problem.Conflict, CodeCheckInClosed, "check-in is not open")
 		}
 		if person.CheckedInAt == nil {

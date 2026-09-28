@@ -11,6 +11,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/auth"
 	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/couchpartygames/opentournament/internal/tournament"
 	"github.com/danielgtaylor/huma/v2"
@@ -63,10 +64,10 @@ type idInput struct {
 }
 
 type listInput struct {
-	Status string `query:"status" enum:"draft,registration-open,check-in,running,completed,cancelled" doc:"Only Tournaments in this status"`
-	GameID string `query:"gameId" doc:"Only Tournaments of this Game"`
-	Limit  int32  `query:"limit" minimum:"1" maximum:"200" default:"50"`
-	Offset int32  `query:"offset" minimum:"0" default:"0"`
+	Status lifecycle.TournamentStatus `query:"status" doc:"Only Tournaments in this status"`
+	GameID string                     `query:"gameId" doc:"Only Tournaments of this Game"`
+	Limit  int32                      `query:"limit" minimum:"1" maximum:"200" default:"50"`
+	Offset int32                      `query:"offset" minimum:"0" default:"0"`
 }
 
 type tournamentOutput struct {
@@ -132,7 +133,7 @@ func Create(ctx context.Context, svc *tournament.Service, p auth.Principal, body
 	}
 	id := ids.New[ids.TournamentID]()
 	row := db.InsertTournamentParams{
-		ID: id, GameID: game.ID, Name: body.Name, Organizer: p.ID(), Status: tournament.Draft,
+		ID: id, GameID: game.ID, Name: body.Name, Organizer: p.ID(), Status: lifecycle.Draft,
 		StartsAt: body.StartsAt.UTC(), RegistrationOpensAt: body.RegistrationOpensAt.UTC(),
 		Capacity: body.Capacity, MinimumParticipants: body.MinimumParticipants,
 		CheckInEnabled: body.CheckIn.Enabled, CheckInSeconds: body.CheckIn.WindowSeconds, CreatedAt: svc.Clock.Now(),
@@ -149,7 +150,7 @@ func Edit(ctx context.Context, svc *tournament.Service, p auth.Principal, id ids
 		if err := tx.RequireOrganizer(p); err != nil {
 			return err
 		}
-		if tx.T.Status != tournament.Draft {
+		if tx.T.Status != lifecycle.Draft {
 			return problem.New(problem.Conflict, "settings-frozen", "settings are frozen once registration opens")
 		}
 		game, err := tx.Game()
@@ -198,7 +199,7 @@ func Cancel(ctx context.Context, svc *tournament.Service, p auth.Principal, id i
 		if err := tx.RequireOrganizer(p); err != nil {
 			return err
 		}
-		if tx.T.Status == tournament.Completed || tx.T.Status == tournament.Cancelled {
+		if tx.T.Status == lifecycle.Completed || tx.T.Status == lifecycle.Cancelled {
 			return problem.New(problem.Conflict, problem.CodeWrongStatus, "a %s tournament can't be cancelled", tx.T.Status)
 		}
 		return tx.Cancel()
@@ -226,10 +227,7 @@ func Find(ctx context.Context, q *db.Queries, id ids.TournamentID) (TournamentVi
 
 // List reads Tournaments, latest start first.
 func List(ctx context.Context, q *db.Queries, in listInput) ([]TournamentView, error) {
-	params := db.ListTournamentsParams{MaxResults: in.Limit, Skip: in.Offset}
-	if in.Status != "" {
-		params.Status = &in.Status
-	}
+	params := db.ListTournamentsParams{Status: in.Status, MaxResults: in.Limit, Skip: in.Offset}
 	if in.GameID != "" {
 		params.GameID = &in.GameID
 	}
@@ -290,23 +288,23 @@ func views(ctx context.Context, q *db.Queries, ts []db.Tournament) ([]Tournament
 
 // TournamentView is a Tournament as the API shows it.
 type TournamentView struct {
-	ID                  ids.TournamentID      `json:"id"`
-	GameID              string                `json:"gameId"`
-	Name                string                `json:"name"`
-	Organizer           string                `json:"organizer" doc:"The Organizer: user:<keycloak subject> or client:<keycloak client id>"`
-	Status              string                `json:"status" enum:"draft,registration-open,check-in,running,completed,cancelled"`
-	StartsAt            time.Time             `json:"startsAt"`
-	RegistrationOpensAt time.Time             `json:"registrationOpensAt"`
-	CheckInOpensAt      *time.Time            `json:"checkInOpensAt,omitempty"`
-	Capacity            int32                 `json:"capacity"`
-	MinimumParticipants int32                 `json:"minimumParticipants"`
-	CheckIn             CheckInSettings       `json:"checkIn"`
-	Stages              []ConfiguredStageView `json:"stages"`
-	Registered          int32                 `json:"registered" doc:"Participants registered, checked in or playing"`
-	CheckedIn           int32                 `json:"checkedIn"`
-	CreatedAt           time.Time             `json:"createdAt"`
-	UpdatedAt           time.Time             `json:"updatedAt"`
-	CompletedAt         *time.Time            `json:"completedAt,omitempty"`
+	ID                  ids.TournamentID           `json:"id"`
+	GameID              string                     `json:"gameId"`
+	Name                string                     `json:"name"`
+	Organizer           string                     `json:"organizer" doc:"The Organizer: user:<keycloak subject> or client:<keycloak client id>"`
+	Status              lifecycle.TournamentStatus `json:"status"`
+	StartsAt            time.Time                  `json:"startsAt"`
+	RegistrationOpensAt time.Time                  `json:"registrationOpensAt"`
+	CheckInOpensAt      *time.Time                 `json:"checkInOpensAt,omitempty"`
+	Capacity            int32                      `json:"capacity"`
+	MinimumParticipants int32                      `json:"minimumParticipants"`
+	CheckIn             CheckInSettings            `json:"checkIn"`
+	Stages              []ConfiguredStageView      `json:"stages"`
+	Registered          int32                      `json:"registered" doc:"Participants registered, checked in or playing"`
+	CheckedIn           int32                      `json:"checkedIn"`
+	CreatedAt           time.Time                  `json:"createdAt"`
+	UpdatedAt           time.Time                  `json:"updatedAt"`
+	CompletedAt         *time.Time                 `json:"completedAt,omitempty"`
 }
 
 // ConfiguredStageView is a configured Stage.

@@ -17,8 +17,10 @@ SELECT * FROM tournaments WHERE id = $1 FOR UPDATE;
 SELECT * FROM tournaments WHERE id = $1;
 
 -- name: ListTournaments :many
+-- An empty status lists Tournaments in every status. Comparing with the
+-- status column first types the parameter as a TournamentStatus.
 SELECT * FROM tournaments
-WHERE (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status))
+WHERE (status = sqlc.arg(status) OR sqlc.arg(status) = '')
   AND (sqlc.narg(game_id)::text IS NULL OR game_id = sqlc.narg(game_id))
 ORDER BY starts_at DESC, id
 LIMIT sqlc.arg(max_results) OFFSET sqlc.arg(skip);

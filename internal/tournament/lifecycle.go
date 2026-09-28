@@ -11,6 +11,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/events"
 	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 )
 
 // CheckInOpensAt is when the Check-in Window of a Tournament opens.
@@ -22,10 +23,10 @@ func CheckInOpensAt(t db.Tournament) time.Time {
 // too if it is already due.
 func (s *Service) OpenRegistration(ctx context.Context, id ids.TournamentID) error {
 	return s.InTournament(ctx, id, func(tx *Tx) error {
-		if tx.T.Status != Draft {
+		if tx.T.Status != lifecycle.Draft {
 			return nil
 		}
-		if err := tx.SetStatus(RegistrationOpen); err != nil {
+		if err := tx.SetStatus(lifecycle.RegistrationOpen); err != nil {
 			return err
 		}
 		if err := tx.Schedule(JobStart, ids.MatchID{}, tx.T.StartsAt); err != nil {
@@ -37,17 +38,17 @@ func (s *Service) OpenRegistration(ctx context.Context, id ids.TournamentID) err
 		if opens := CheckInOpensAt(tx.T); opens.After(tx.now) {
 			return tx.Schedule(JobOpenCheckIn, ids.MatchID{}, opens)
 		}
-		return tx.SetStatus(CheckIn)
+		return tx.SetStatus(lifecycle.CheckIn)
 	})
 }
 
 // OpenCheckIn opens the Check-in Window.
 func (s *Service) OpenCheckIn(ctx context.Context, id ids.TournamentID) error {
 	return s.InTournament(ctx, id, func(tx *Tx) error {
-		if tx.T.Status != RegistrationOpen {
+		if tx.T.Status != lifecycle.RegistrationOpen {
 			return nil
 		}
-		return tx.SetStatus(CheckIn)
+		return tx.SetStatus(lifecycle.CheckIn)
 	})
 }
 
@@ -55,7 +56,7 @@ func (s *Service) OpenCheckIn(ctx context.Context, id ids.TournamentID) error {
 // in are dropped, and a Tournament below Minimum Participants is cancelled.
 func (s *Service) Start(ctx context.Context, id ids.TournamentID) error {
 	return s.InTournament(ctx, id, func(tx *Tx) error {
-		if tx.T.Status != RegistrationOpen && tx.T.Status != CheckIn {
+		if tx.T.Status != lifecycle.RegistrationOpen && tx.T.Status != lifecycle.CheckIn {
 			return nil
 		}
 		if tx.T.CheckInEnabled {
@@ -74,7 +75,7 @@ func (s *Service) Start(ctx context.Context, id ids.TournamentID) error {
 		if err != nil {
 			return err
 		}
-		if err := tx.SetStatus(Running); err != nil {
+		if err := tx.SetStatus(lifecycle.Running); err != nil {
 			return err
 		}
 		stages, err := tx.Q.ListStages(tx.ctx, tx.T.ID)
@@ -223,12 +224,12 @@ func (tx *Tx) complete(stages []db.Stage) error {
 	if err := tx.Q.CompleteTournament(tx.ctx, db.CompleteTournamentParams{ID: tx.T.ID, UpdatedAt: tx.now}); err != nil {
 		return err
 	}
-	tx.T.Status = Completed
+	tx.T.Status = lifecycle.Completed
 	view := make([]PlacementView, len(placements))
 	for i, pl := range placements {
 		view[i] = PlacementView{ParticipantID: ParticipantOf(pl.Participant), From: pl.From, To: pl.To}
 	}
-	return tx.Emit(events.TournamentCompleted, map[string]any{"status": Completed, "placements": view})
+	return tx.Emit(events.TournamentCompleted, map[string]any{"status": lifecycle.Completed, "placements": view})
 }
 
 // Cancel stops a Tournament before it completes: pending Matches stop and
@@ -246,7 +247,7 @@ func (tx *Tx) cancel() error {
 	if err := tx.Q.UnscheduleTournamentJobs(tx.ctx, tx.T.ID); err != nil {
 		return err
 	}
-	return tx.SetStatus(Cancelled)
+	return tx.SetStatus(lifecycle.Cancelled)
 }
 
 func ptr[T any](v T) *T { return &v }

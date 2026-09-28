@@ -22,6 +22,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/gameserver"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/matchtoken"
 	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/jackc/pgx/v5"
@@ -229,7 +230,7 @@ func (tx *Tx) setParticipantStatus(id ids.ParticipantID, status string) error {
 }
 
 // SetStatus moves the Tournament to a new status and announces it.
-func (tx *Tx) SetStatus(status string) error {
+func (tx *Tx) SetStatus(status lifecycle.TournamentStatus) error {
 	if err := tx.Q.SetTournamentStatus(tx.ctx, db.SetTournamentStatusParams{ID: tx.T.ID, Status: status, UpdatedAt: tx.now}); err != nil {
 		return err
 	}

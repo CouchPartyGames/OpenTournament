@@ -1,15 +1,5 @@
 package tournament
 
-// Tournament statuses.
-const (
-	Draft            = "draft"
-	RegistrationOpen = "registration-open"
-	CheckIn          = "check-in"
-	Running          = "running"
-	Completed        = "completed"
-	Cancelled        = "cancelled"
-)
-
 // Participant statuses.
 const (
 	Registered   = "registered"

@@ -205,3 +205,38 @@ func TestAbortIsAnnouncedLive(t *testing.T) {
 		t.Fatalf("event = %s, want aborts 1", ev.Data)
 	}
 }
+
+func TestTournamentStatusChangesAreAnnouncedLive(t *testing.T) {
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
+	ws := connect(t, h)
+	ws.subscribe(tt.ID)
+	status := func(ev liveMessage) string {
+		t.Helper()
+		var d struct{ Status string }
+		if err := json.Unmarshal(ev.Data, &d); err != nil {
+			t.Fatalf("%s data %s: %v", ev.Event, ev.Data, err)
+		}
+		return d.Status
+	}
+
+	tt.openRegistration()
+	if got := status(ws.next(isEvent("tournament.status-changed"))); got != "registration-open" {
+		t.Errorf("status-changed to %q, want registration-open", got)
+	}
+	tt.mustRegister("anna", "bert")
+	tt.start()
+	if got := status(ws.next(isEvent("tournament.status-changed"))); got != "running" {
+		t.Errorf("status-changed to %q, want running", got)
+	}
+	tt.playAll(tt.byName)
+	if got := status(ws.next(isEvent("tournament.completed"))); got != "completed" {
+		t.Errorf("completed with status %q, want completed", got)
+	}
+
+	var placements struct{ Status string }
+	h.Do(http.MethodGet, tt.path("placements"), "", nil).Expect(http.StatusOK).Decode(&placements)
+	if placements.Status != "completed" {
+		t.Errorf("Final Placements status = %q, want completed", placements.Status)
+	}
+}

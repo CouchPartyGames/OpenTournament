@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 )
 
 type BoutResult struct {
@@ -117,7 +118,7 @@ type Tournament struct {
 	GameID              string
 	Name                string
 	Organizer           string
-	Status              string
+	Status              lifecycle.TournamentStatus
 	StartsAt            time.Time
 	RegistrationOpensAt time.Time
 	Capacity            int32

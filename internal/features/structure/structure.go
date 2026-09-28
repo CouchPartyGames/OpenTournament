@@ -16,6 +16,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/couchpartygames/opentournament/internal/tournament"
 	"github.com/danielgtaylor/huma/v2"
@@ -60,9 +61,9 @@ func (h handlers) placements(ctx context.Context, in *input) (*placementsOutput,
 
 // StructureView is a Tournament's structure.
 type StructureView struct {
-	TournamentID ids.TournamentID `json:"tournamentId"`
-	Status       string           `json:"status"`
-	Stages       []StageView      `json:"stages"`
+	TournamentID ids.TournamentID           `json:"tournamentId"`
+	Status       lifecycle.TournamentStatus `json:"status"`
+	Stages       []StageView                `json:"stages"`
 }
 
 // StageView is a Stage with its Groups.
@@ -251,9 +252,9 @@ func bracketOrder(b string) int {
 
 // PlacementsView are a Tournament's Final Placements.
 type PlacementsView struct {
-	TournamentID ids.TournamentID `json:"tournamentId"`
-	Status       string           `json:"status"`
-	Placements   []PlacementView  `json:"placements"`
+	TournamentID ids.TournamentID           `json:"tournamentId"`
+	Status       lifecycle.TournamentStatus `json:"status"`
+	Placements   []PlacementView            `json:"placements"`
 }
 
 // PlacementView is one Participant's Final Placement.

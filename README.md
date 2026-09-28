@@ -71,6 +71,7 @@ operations concern: every first-Round Match wants a Game Server at the same mome
 cmd/opentournament         wiring, configuration, graceful shutdown
 internal/format            the Format engine: pure, no I/O (Seam 2)
 internal/tournament        the Tournament aggregate and Match lifecycle
+internal/lifecycle         the typed statuses shared by the aggregate and the queries
 internal/features/*        vertical slices, one per feature, each registering its Huma operations
 internal/scheduler         persisted due times: registration, check-in, start, allocation, Result Deadlines
 internal/reconciler        level-triggered reconcile loop between Matches and GameServers

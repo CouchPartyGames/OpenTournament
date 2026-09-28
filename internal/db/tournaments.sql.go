@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/google/uuid"
 )
 
@@ -66,7 +67,7 @@ type InsertTournamentParams struct {
 	GameID              string
 	Name                string
 	Organizer           string
-	Status              string
+	Status              lifecycle.TournamentStatus
 	StartsAt            time.Time
 	RegistrationOpensAt time.Time
 	Capacity            int32
@@ -96,19 +97,21 @@ func (q *Queries) InsertTournament(ctx context.Context, arg InsertTournamentPara
 
 const listTournaments = `-- name: ListTournaments :many
 SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at FROM tournaments
-WHERE ($1::text IS NULL OR status = $1)
+WHERE (status = $1 OR $1 = '')
   AND ($2::text IS NULL OR game_id = $2)
 ORDER BY starts_at DESC, id
 LIMIT $4 OFFSET $3
 `
 
 type ListTournamentsParams struct {
-	Status     *string
+	Status     lifecycle.TournamentStatus
 	GameID     *string
 	Skip       int32
 	MaxResults int32
 }
 
+// An empty status lists Tournaments in every status. Comparing with the
+// status column first types the parameter as a TournamentStatus.
 func (q *Queries) ListTournaments(ctx context.Context, arg ListTournamentsParams) ([]Tournament, error) {
 	rows, err := q.db.Query(ctx, listTournaments,
 		arg.Status,
@@ -229,7 +232,7 @@ UPDATE tournaments SET status = $2, updated_at = $3 WHERE id = $1
 
 type SetTournamentStatusParams struct {
 	ID        ids.TournamentID
-	Status    string
+	Status    lifecycle.TournamentStatus
 	UpdatedAt time.Time
 }
 
