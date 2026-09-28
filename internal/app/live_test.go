@@ -241,7 +241,7 @@ func TestTournamentStatusChangesAreAnnouncedLive(t *testing.T) {
 	}
 }
 
-func TestParticipantDeparturesAreAnnouncedLive(t *testing.T) {
+func TestWithdrawalsAndDisqualificationsAreAnnouncedLive(t *testing.T) {
 	tt := mustRun(t, 4)
 	ws := connect(t, tt.Harness)
 	ws.subscribe(tt.ID)

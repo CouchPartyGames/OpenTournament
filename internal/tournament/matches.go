@@ -198,20 +198,18 @@ func (tx *Tx) forfeitRemaining(gs *groupState, m db.Match, p ids.ParticipantID) 
 	return nil
 }
 
-// Departure is one of the two ways out of a running Tournament: a Withdrawal
-// or a Disqualification. Other packages can't make any other.
-type Departure struct{ status lifecycle.ParticipantStatus }
+// Withdraw takes a Participant out of a running Tournament of their own
+// accord: they forfeit every Bout they haven't completed.
+func (tx *Tx) Withdraw(p ids.ParticipantID) error { return tx.leave(p, lifecycle.Withdrawn) }
 
-// The ways out of a running Tournament.
-var (
-	Withdrawal       = Departure{lifecycle.Withdrawn}
-	Disqualification = Departure{lifecycle.Disqualified}
-)
+// Disqualify has the Organizer remove a Participant from a running
+// Tournament: they forfeit every Bout they haven't completed.
+func (tx *Tx) Disqualify(p ids.ParticipantID) error { return tx.leave(p, lifecycle.Disqualified) }
 
-// Leave takes a Participant out of a running Tournament through a Withdrawal
-// or Disqualification: they forfeit every Bout they haven't completed,
-// including in a Match already In Progress, whose Game Server is told.
-func (tx *Tx) Leave(p ids.ParticipantID, how Departure) error {
+// leave takes a Participant out of a running Tournament with a status that
+// HasLeft: they forfeit every Bout they haven't completed, including in a
+// Match already In Progress, whose Game Server is told.
+func (tx *Tx) leave(p ids.ParticipantID, status lifecycle.ParticipantStatus) error {
 	person, err := tx.Participant(p)
 	if err != nil {
 		return err
@@ -219,7 +217,7 @@ func (tx *Tx) Leave(p ids.ParticipantID, how Departure) error {
 	if tx.T.Status != lifecycle.Running || person.Status != lifecycle.Active {
 		return problem.New(problem.Conflict, CodeParticipantNotActive, "only an active participant of a running tournament can leave it")
 	}
-	if err := tx.setParticipantStatus(p, how.status); err != nil {
+	if err := tx.setParticipantStatus(p, status); err != nil {
 		return err
 	}
 	matches, err := tx.Q.ListOpenMatchesOfParticipant(tx.ctx, p)
