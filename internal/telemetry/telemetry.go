@@ -33,7 +33,9 @@ func Setup(ctx context.Context, version string) (func(context.Context) error, er
 		slog.SetDefault(slog.New(stdout))
 		return func(context.Context) error { return nil }, nil
 	}
-	res, err := resource.Merge(resource.Default(), resource.NewWithAttributes(semconv.SchemaURL,
+	// Schemaless, because Merge fails when the SDK's default resource uses a
+	// different semconv schema version than ours, which changes with upgrades.
+	res, err := resource.Merge(resource.Default(), resource.NewSchemaless(
 		semconv.ServiceName(Name), semconv.ServiceVersion(version)))
 	if err != nil {
 		return nil, err
