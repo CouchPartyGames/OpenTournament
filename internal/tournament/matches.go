@@ -258,7 +258,7 @@ func (tx *Tx) leave(p ids.ParticipantID, status lifecycle.ParticipantStatus) err
 // notifyForfeits tells a Match's running Game Server which Participants left.
 func (tx *Tx) notifyForfeits(id ids.MatchID) error {
 	m, err := tx.Q.GetMatch(tx.ctx, id)
-	if err != nil || m.ServerName == nil || !open(m.Status) {
+	if err != nil || m.ServerName == nil || !m.Status.Open() {
 		return err
 	}
 	gs, err := tx.loadGroup(m.GroupID)
@@ -290,7 +290,7 @@ type Resolution struct {
 
 // ResolveStalled is the only manual way to set a result.
 func (tx *Tx) ResolveStalled(m db.Match, r Resolution) error {
-	if m.Status != MatchStalled {
+	if m.Status != lifecycle.MatchStalled {
 		return problem.New(problem.Conflict, CodeMatchNotStalled, "only a stalled match can be resolved, this one is %s", m.Status)
 	}
 	gs, err := tx.loadGroup(m.GroupID)
@@ -349,13 +349,13 @@ func (tx *Tx) ResolveStalled(m db.Match, r Resolution) error {
 // Stalled, and releases its Game Server.
 func (s *Service) ExpireMatch(ctx context.Context, id ids.MatchID) error {
 	return s.InMatch(ctx, id, func(tx *Tx, m db.Match) error {
-		if m.Status != MatchReady && m.Status != MatchAllocating && m.Status != MatchInProgress {
+		if !m.Status.Open() || m.Status == lifecycle.MatchStalled {
 			return nil
 		}
 		if m.ResultDeadline != nil && m.ResultDeadline.After(tx.now) {
 			return nil
 		}
-		if err := tx.Q.SetMatchStatus(tx.ctx, db.SetMatchStatusParams{ID: m.ID, Status: MatchStalled}); err != nil {
+		if err := tx.Q.SetMatchStatus(tx.ctx, db.SetMatchStatusParams{ID: m.ID, Status: lifecycle.MatchStalled}); err != nil {
 			return err
 		}
 		if err := tx.Unschedule(JobAllocate, m.ID); err != nil {
@@ -366,7 +366,7 @@ func (s *Service) ExpireMatch(ctx context.Context, id ids.MatchID) error {
 		if err != nil {
 			return err
 		}
-		m.Status = MatchStalled
+		m.Status = lifecycle.MatchStalled
 		return tx.EmitMatch(m, gs.slots[m.ID])
 	})
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/events"
 	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 )
 
 // groupState is everything persisted about one Group.
@@ -189,7 +190,7 @@ func (tx *Tx) applyPlan(gs *groupState, plan format.Plan) (again, completed bool
 		if !exists {
 			m = db.Match{
 				ID: ids.New[ids.MatchID](), TournamentID: tx.T.ID, StageID: gs.stage.ID, GroupID: gs.group.ID,
-				Key: pm.Key, Round: int32(pm.Round), Bracket: string(pm.Bracket), Status: MatchPending,
+				Key: pm.Key, Round: int32(pm.Round), Bracket: string(pm.Bracket), Status: lifecycle.MatchPending,
 			}
 			if err := tx.Q.InsertMatch(tx.ctx, db.InsertMatchParams{
 				ID: m.ID, TournamentID: m.TournamentID, StageID: m.StageID, GroupID: m.GroupID,
@@ -198,7 +199,7 @@ func (tx *Tx) applyPlan(gs *groupState, plan format.Plan) (again, completed bool
 				return false, false, fmt.Errorf("insert match: %w", err)
 			}
 		}
-		if m.Status == MatchPending && !slices.Equal(gs.slots[m.ID], participants) {
+		if m.Status == lifecycle.MatchPending && !slices.Equal(gs.slots[m.ID], participants) {
 			if err := tx.setSlots(m.ID, participants); err != nil {
 				return false, false, err
 			}
@@ -206,7 +207,7 @@ func (tx *Tx) applyPlan(gs *groupState, plan format.Plan) (again, completed bool
 		}
 		switch pm.State {
 		case format.Playable:
-			if m.Status != MatchPending {
+			if m.Status != lifecycle.MatchPending {
 				continue
 			}
 			if err := tx.makeReady(gs, m); err != nil {
@@ -218,7 +219,7 @@ func (tx *Tx) applyPlan(gs *groupState, plan format.Plan) (again, completed bool
 					return false, false, err
 				}
 				if person.Status.HasLeft() {
-					m.Status = MatchReady
+					m.Status = lifecycle.MatchReady
 					if err := tx.forfeitRemaining(gs, m, p); err != nil {
 						return false, false, err
 					}
@@ -226,27 +227,27 @@ func (tx *Tx) applyPlan(gs *groupState, plan format.Plan) (again, completed bool
 				}
 			}
 		case format.Decided:
-			if !open(m.Status) && m.Status != MatchPending {
+			if !m.Status.Open() && m.Status != lifecycle.MatchPending {
 				continue
 			}
-			result, winner := ResultWin, ParticipantOf(pm.Outcome.Winner)
+			result, winner := lifecycle.ResultWin, ParticipantOf(pm.Outcome.Winner)
 			switch {
 			case pm.Outcome.DoubleForfeit:
-				result = ResultDoubleForfeit
+				result = lifecycle.ResultDoubleForfeit
 			case gs.stage.Format == string(format.FreeForAll):
-				result = ResultFreeForAll
+				result = lifecycle.ResultFreeForAll
 			}
 			if err := tx.completeMatch(gs, m, result, winner); err != nil {
 				return false, false, err
 			}
 			completed = true
 		case format.Bye, format.Empty:
-			if m.Status != MatchPending {
+			if m.Status != lifecycle.MatchPending {
 				continue
 			}
-			result, winner := ResultEmpty, ids.ParticipantID{}
+			result, winner := lifecycle.ResultEmpty, ids.ParticipantID{}
 			if pm.State == format.Bye {
-				result, winner = ResultBye, ParticipantOf(pm.Outcome.Winner)
+				result, winner = lifecycle.ResultBye, ParticipantOf(pm.Outcome.Winner)
 			}
 			if err := tx.completeMatch(gs, m, result, winner); err != nil {
 				return false, false, err
@@ -282,12 +283,12 @@ func (tx *Tx) makeReady(gs *groupState, m db.Match) error {
 	if err := tx.Schedule(JobResultDeadline, m.ID, deadline); err != nil {
 		return err
 	}
-	m.Status, m.ReadyAt, m.ResultDeadline = MatchReady, &tx.now, &deadline
+	m.Status, m.ReadyAt, m.ResultDeadline = lifecycle.MatchReady, &tx.now, &deadline
 	return tx.EmitMatch(m, gs.slots[m.ID])
 }
 
 // completeMatch records how a Match ended and releases its Game Server.
-func (tx *Tx) completeMatch(gs *groupState, m db.Match, result string, winner ids.ParticipantID) error {
+func (tx *Tx) completeMatch(gs *groupState, m db.Match, result lifecycle.MatchResult, winner ids.ParticipantID) error {
 	if err := tx.Q.CompleteMatch(tx.ctx, db.CompleteMatchParams{
 		ID: m.ID, Result: &result, WinnerID: winner, CompletedAt: &tx.now,
 	}); err != nil {
@@ -300,7 +301,7 @@ func (tx *Tx) completeMatch(gs *groupState, m db.Match, result string, winner id
 		return err
 	}
 	tx.release(m)
-	m.Status, m.Result, m.WinnerID, m.CompletedAt = MatchCompleted, &result, winner, &tx.now
+	m.Status, m.Result, m.WinnerID, m.CompletedAt = lifecycle.MatchCompleted, &result, winner, &tx.now
 	return tx.EmitMatch(m, gs.slots[m.ID])
 }
 
@@ -320,15 +321,15 @@ func (tx *Tx) release(m db.Match) {
 
 // MatchEvent is the public part of a match.changed event.
 type MatchEvent struct {
-	MatchID      ids.MatchID         `json:"matchId"`
-	StageID      ids.StageID         `json:"stageId"`
-	GroupID      ids.GroupID         `json:"groupId"`
-	Key          string              `json:"key"`
-	Round        int32               `json:"round"`
-	Status       string              `json:"status"`
-	Result       *string             `json:"result,omitempty"`
-	WinnerID     *ids.ParticipantID  `json:"winnerId,omitempty"`
-	Participants []ids.ParticipantID `json:"participants"`
+	MatchID      ids.MatchID            `json:"matchId"`
+	StageID      ids.StageID            `json:"stageId"`
+	GroupID      ids.GroupID            `json:"groupId"`
+	Key          string                 `json:"key"`
+	Round        int32                  `json:"round"`
+	Status       lifecycle.MatchStatus  `json:"status"`
+	Result       *lifecycle.MatchResult `json:"result,omitempty"`
+	WinnerID     *ids.ParticipantID     `json:"winnerId,omitempty"`
+	Participants []ids.ParticipantID    `json:"participants"`
 	// ServerAllocated says a Game Server is assigned, without saying where.
 	ServerAllocated bool `json:"serverAllocated"`
 	// Aborted is set on the event announcing that the Match's Game Server
@@ -353,7 +354,7 @@ func (tx *Tx) emitMatch(m db.Match, participants []ids.ParticipantID, aborted bo
 	data := MatchEvent{
 		MatchID: m.ID, StageID: m.StageID, GroupID: m.GroupID, Key: m.Key, Round: m.Round,
 		Status: m.Status, Result: m.Result, Participants: participants,
-		ServerAllocated: m.ServerName != nil && open(m.Status),
+		ServerAllocated: m.ServerName != nil && m.Status.Open(),
 		Aborted:         aborted, Aborts: m.Aborts,
 	}
 	if data.Participants == nil {

@@ -120,3 +120,33 @@ func TestOpenAPIDocumentListsEveryParticipantStatus(t *testing.T) {
 		t.Errorf("ParticipantView.status enum = %v, want %v", got, want)
 	}
 }
+
+func TestOpenAPIDocumentListsEveryMatchStatusAndResult(t *testing.T) {
+	h := apptest.MustStart(t)
+
+	var doc struct {
+		Components struct {
+			Schemas map[string]struct {
+				Properties map[string]struct {
+					Enum []any `json:"enum"`
+				} `json:"properties"`
+			} `json:"schemas"`
+		} `json:"components"`
+	}
+	h.Do(http.MethodGet, "/api/v1/openapi.json", "", nil).Expect(http.StatusOK).Decode(&doc)
+
+	statuses := []any{"pending", "ready", "allocating", "in-progress", "stalled", "completed", "cancelled"}
+	results := []any{"win", "double-forfeit", "bye", "empty", "free-for-all"}
+	for _, c := range []struct {
+		schema, property string
+		want             []any
+	}{
+		{"MatchView", "status", statuses},
+		{"MatchView", "result", results},
+		{"ServerMatchView", "status", statuses},
+	} {
+		if got := doc.Components.Schemas[c.schema].Properties[c.property].Enum; !slices.Equal(got, c.want) {
+			t.Errorf("%s.%s enum = %v, want %v", c.schema, c.property, got, c.want)
+		}
+	}
+}

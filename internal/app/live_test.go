@@ -3,6 +3,7 @@ package app_test
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -263,5 +264,45 @@ func TestWithdrawalsAndDisqualificationsAreAnnouncedLive(t *testing.T) {
 	tt.Do(http.MethodPost, tt.path("participants", ps[1], "disqualify"), tt.Organizer, nil).Expect(http.StatusNoContent)
 	if p, s := change(); p != ps[1] || s != "disqualified" {
 		t.Errorf("participant.changed %s to %q, want %s disqualified", p, s, ps[1])
+	}
+}
+
+func TestMatchStatusChangesAreAnnouncedLive(t *testing.T) {
+	h := apptest.MustStart(t)
+	tt := mustCreate(t, h, settings(h))
+	tt.openRegistration()
+	tt.mustRegister("anna", "bert")
+	ws := connect(t, h)
+	ws.subscribe(tt.ID)
+	type change struct{ Status, Result string }
+	var got []change
+	// next waits for the next match.changed event that changes the status
+	// or result, skipping repeats such as a Game Server address arriving.
+	next := func() {
+		t.Helper()
+		for {
+			ev := ws.next(isEvent("match.changed"))
+			var c change
+			if err := json.Unmarshal(ev.Data, &c); err != nil {
+				t.Fatalf("%s data %s: %v", ev.Event, ev.Data, err)
+			}
+			if len(got) == 0 || got[len(got)-1] != c {
+				got = append(got, c)
+				return
+			}
+		}
+	}
+
+	tt.start()
+	next() // ready
+	next() // allocating
+	final := tt.matches("allocating")[0]
+	tt.playBout(final, 1, final.Participants[0])
+	next() // in-progress
+	next() // completed
+
+	want := []change{{"ready", ""}, {"allocating", ""}, {"in-progress", ""}, {"completed", "win"}}
+	if !slices.Equal(got, want) {
+		t.Errorf("match.changed status and result = %v, want %v", got, want)
 	}
 }

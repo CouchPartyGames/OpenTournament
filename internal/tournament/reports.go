@@ -8,6 +8,7 @@ import (
 
 	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/matchtoken"
 	"github.com/couchpartygames/opentournament/internal/problem"
 )
@@ -42,13 +43,10 @@ func servedBy(m db.Match, c matchtoken.Claims, now time.Time) bool {
 	if m.AllocationID != c.AllocationID {
 		return false
 	}
-	switch m.Status {
-	case MatchAllocating, MatchInProgress:
-		return true
-	case MatchStalled:
+	if m.Status == lifecycle.MatchStalled {
 		return m.ResultDeadline != nil && !now.After(m.ResultDeadline.Add(matchtoken.Grace))
 	}
-	return false
+	return m.Status.Playing()
 }
 
 // ServerMatchView is what a Game Server needs to set up its session.
@@ -56,7 +54,7 @@ type ServerMatchView struct {
 	MatchID      ids.MatchID             `json:"matchId"`
 	TournamentID ids.TournamentID        `json:"tournamentId"`
 	GameID       string                  `json:"gameId"`
-	Status       string                  `json:"status"`
+	Status       lifecycle.MatchStatus   `json:"status"`
 	Format       string                  `json:"format"`
 	BestOf       int32                   `json:"bestOf,omitempty" doc:"Head-to-head only: 1 or 3"`
 	Bouts        int32                   `json:"bouts,omitempty" doc:"Free-for-all only: the number of Bouts"`
@@ -103,7 +101,7 @@ func (tx *Tx) ServerMatch(m db.Match) (ServerMatchView, error) {
 
 // ReportStarted marks the Match In Progress.
 func (tx *Tx) ReportStarted(m db.Match) error {
-	if m.Status == MatchInProgress || m.Status == MatchStalled {
+	if m.Status == lifecycle.MatchInProgress || m.Status == lifecycle.MatchStalled {
 		return nil
 	}
 	if _, err := tx.Q.MarkMatchStarted(tx.ctx, db.MarkMatchStartedParams{ID: m.ID, AllocationID: m.AllocationID, StartedAt: &tx.now}); err != nil {
@@ -113,7 +111,7 @@ func (tx *Tx) ReportStarted(m db.Match) error {
 	if err != nil {
 		return err
 	}
-	m.Status = MatchInProgress
+	m.Status = lifecycle.MatchInProgress
 	return tx.EmitMatch(m, gs.slots[m.ID])
 }
 
