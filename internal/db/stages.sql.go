@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/google/uuid"
 )
 
@@ -128,7 +129,7 @@ type ListGroupParticipantsRow struct {
 	Seed          int32
 	Lot           int32
 	Advanced      bool
-	Status        string
+	Status        lifecycle.ParticipantStatus
 }
 
 func (q *Queries) ListGroupParticipants(ctx context.Context, groupID ids.GroupID) ([]ListGroupParticipantsRow, error) {
@@ -173,7 +174,7 @@ type ListGroupParticipantsOfTournamentRow struct {
 	Seed          int32
 	Lot           int32
 	Advanced      bool
-	Status        string
+	Status        lifecycle.ParticipantStatus
 }
 
 func (q *Queries) ListGroupParticipantsOfTournament(ctx context.Context, tournamentID ids.TournamentID) ([]ListGroupParticipantsOfTournamentRow, error) {

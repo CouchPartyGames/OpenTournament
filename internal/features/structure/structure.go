@@ -195,7 +195,7 @@ func Find(ctx context.Context, q *db.Queries, tid ids.TournamentID) (StructureVi
 				gv.Participants = append(gv.Participants, GroupParticipantView{ParticipantID: e.ParticipantID, Seed: e.Seed, Advanced: e.Advanced})
 				fid := format.ParticipantID(e.ParticipantID.String())
 				eg.Participants = append(eg.Participants, format.Participant{ID: fid, Lot: int(e.Lot)})
-				if e.Status == tournament.Withdrawn || e.Status == tournament.Disqualified {
+				if e.Status.HasLeft() {
 					eg.Dropped = append(eg.Dropped, fid)
 				}
 			}

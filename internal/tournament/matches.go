@@ -60,7 +60,7 @@ func (gs *groupState) decided(m db.Match) bool {
 	}
 	dropped := map[format.ParticipantID]bool{}
 	for _, e := range gs.participants {
-		if hasLeft(e.Status) {
+		if e.Status.HasLeft() {
 			dropped[pid(e.ParticipantID)] = true
 		}
 	}
@@ -102,7 +102,7 @@ func (gs *groupState) boutComplete(m db.Match, rs map[ids.ParticipantID]db.BoutR
 func (gs *groupState) isDropped(p ids.ParticipantID) bool {
 	for _, e := range gs.participants {
 		if e.ParticipantID == p {
-			return hasLeft(e.Status)
+			return e.Status.HasLeft()
 		}
 	}
 	return false
@@ -198,15 +198,23 @@ func (tx *Tx) forfeitRemaining(gs *groupState, m db.Match, p ids.ParticipantID) 
 	return nil
 }
 
-// Leave takes a Participant out of a running Tournament through a Withdrawal
-// or Disqualification: they forfeit every Bout they haven't completed,
-// including in a Match already In Progress, whose Game Server is told.
-func (tx *Tx) Leave(p ids.ParticipantID, status string) error {
+// Withdraw takes a Participant out of a running Tournament of their own
+// accord: they forfeit every Bout they haven't completed.
+func (tx *Tx) Withdraw(p ids.ParticipantID) error { return tx.leave(p, lifecycle.Withdrawn) }
+
+// Disqualify has the Organizer remove a Participant from a running
+// Tournament: they forfeit every Bout they haven't completed.
+func (tx *Tx) Disqualify(p ids.ParticipantID) error { return tx.leave(p, lifecycle.Disqualified) }
+
+// leave takes a Participant out of a running Tournament with a status that
+// HasLeft: they forfeit every Bout they haven't completed, including in a
+// Match already In Progress, whose Game Server is told.
+func (tx *Tx) leave(p ids.ParticipantID, status lifecycle.ParticipantStatus) error {
 	person, err := tx.Participant(p)
 	if err != nil {
 		return err
 	}
-	if tx.T.Status != lifecycle.Running || person.Status != Active {
+	if tx.T.Status != lifecycle.Running || person.Status != lifecycle.Active {
 		return problem.New(problem.Conflict, CodeParticipantNotActive, "only an active participant of a running tournament can leave it")
 	}
 	if err := tx.setParticipantStatus(p, status); err != nil {

@@ -76,3 +76,5 @@ sql:
             go_type: {import: github.com/couchpartygames/opentournament/internal/ids, type: AllocationID}
           - column: tournaments.status
             go_type: {import: github.com/couchpartygames/opentournament/internal/lifecycle, type: TournamentStatus}
+          - column: participants.status
+            go_type: {import: github.com/couchpartygames/opentournament/internal/lifecycle, type: ParticipantStatus}

@@ -113,7 +113,7 @@ func (gs *groupState) engine() format.Group {
 	g := format.Group{Stage: StageRules(gs.stage)}
 	for _, e := range gs.participants {
 		g.Participants = append(g.Participants, format.Participant{ID: pid(e.ParticipantID), Lot: int(e.Lot)})
-		if hasLeft(e.Status) {
+		if e.Status.HasLeft() {
 			g.Dropped = append(g.Dropped, pid(e.ParticipantID))
 		}
 	}
@@ -217,7 +217,7 @@ func (tx *Tx) applyPlan(gs *groupState, plan format.Plan) (again, completed bool
 				if err != nil {
 					return false, false, err
 				}
-				if hasLeft(person.Status) {
+				if person.Status.HasLeft() {
 					m.Status = MatchReady
 					if err := tx.forfeitRemaining(gs, m, p); err != nil {
 						return false, false, err

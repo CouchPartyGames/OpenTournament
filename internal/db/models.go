@@ -92,7 +92,7 @@ type Participant struct {
 	IdentityKind  string
 	IdentityValue string
 	RegisteredBy  string
-	Status        string
+	Status        lifecycle.ParticipantStatus
 	RegisteredAt  time.Time
 	CheckedInAt   *time.Time
 	FinalFrom     *int32

@@ -240,3 +240,28 @@ func TestTournamentStatusChangesAreAnnouncedLive(t *testing.T) {
 		t.Errorf("Final Placements status = %q, want completed", placements.Status)
 	}
 }
+
+func TestWithdrawalsAndDisqualificationsAreAnnouncedLive(t *testing.T) {
+	tt := mustRun(t, 4)
+	ws := connect(t, tt.Harness)
+	ws.subscribe(tt.ID)
+	ps := tt.matches("allocating")[0].Participants
+	change := func() (participant, status string) {
+		t.Helper()
+		ev := ws.next(isEvent("participant.changed"))
+		var d struct{ ParticipantID, Status string }
+		if err := json.Unmarshal(ev.Data, &d); err != nil {
+			t.Fatalf("%s data %s: %v", ev.Event, ev.Data, err)
+		}
+		return d.ParticipantID, d.Status
+	}
+
+	tt.withdraw(ps[0]).Expect(http.StatusNoContent)
+	if p, s := change(); p != ps[0] || s != "withdrawn" {
+		t.Errorf("participant.changed %s to %q, want %s withdrawn", p, s, ps[0])
+	}
+	tt.Do(http.MethodPost, tt.path("participants", ps[1], "disqualify"), tt.Organizer, nil).Expect(http.StatusNoContent)
+	if p, s := change(); p != ps[1] || s != "disqualified" {
+		t.Errorf("participant.changed %s to %q, want %s disqualified", p, s, ps[1])
+	}
+}

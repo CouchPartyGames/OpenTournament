@@ -1,16 +1,5 @@
 package tournament
 
-// Participant statuses.
-const (
-	Registered   = "registered"
-	CheckedIn    = "checked-in"
-	NotCheckedIn = "not-checked-in"
-	Active       = "active"
-	Withdrawn    = "withdrawn"
-	Disqualified = "disqualified"
-	Eliminated   = "eliminated"
-)
-
 // Match statuses.
 const (
 	MatchPending    = "pending"
@@ -46,9 +35,6 @@ const (
 	JobAllocate         = "allocate"
 	JobResultDeadline   = "result-deadline"
 )
-
-// hasLeft reports whether a Participant status means they left the Tournament.
-func hasLeft(status string) bool { return status == Withdrawn || status == Disqualified }
 
 // open reports whether a Match can still receive results.
 func open(status string) bool {

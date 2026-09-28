@@ -99,3 +99,24 @@ func TestOpenAPIDocumentListsEveryTournamentStatus(t *testing.T) {
 		}
 	}
 }
+
+func TestOpenAPIDocumentListsEveryParticipantStatus(t *testing.T) {
+	h := apptest.MustStart(t)
+
+	var doc struct {
+		Components struct {
+			Schemas map[string]struct {
+				Properties map[string]struct {
+					Enum []any `json:"enum"`
+				} `json:"properties"`
+			} `json:"schemas"`
+		} `json:"components"`
+	}
+	h.Do(http.MethodGet, "/api/v1/openapi.json", "", nil).Expect(http.StatusOK).Decode(&doc)
+
+	got := doc.Components.Schemas["ParticipantView"].Properties["status"].Enum
+	want := []any{"registered", "checked-in", "not-checked-in", "active", "withdrawn", "disqualified", "eliminated"}
+	if !slices.Equal(got, want) {
+		t.Errorf("ParticipantView.status enum = %v, want %v", got, want)
+	}
+}
