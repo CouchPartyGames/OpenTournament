@@ -309,8 +309,8 @@ type TournamentView struct {
 
 // ConfiguredStageView is a configured Stage.
 type ConfiguredStageView struct {
-	ID       ids.StageID `json:"id"`
-	Position int32       `json:"position"`
-	Status   string      `json:"status" enum:"pending,running,completed"`
+	ID       ids.StageID           `json:"id"`
+	Position int32                 `json:"position"`
+	Status   lifecycle.StageStatus `json:"status"`
 	StageSettings
 }

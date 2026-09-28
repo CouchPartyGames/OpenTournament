@@ -46,7 +46,7 @@ func (s *Service) InMatch(ctx context.Context, id ids.MatchID, fn func(tx *Tx, m
 	})
 }
 
-func (gs *groupState) headToHead() bool { return format.Kind(gs.stage.Format).HeadToHead() }
+func (gs *groupState) headToHead() bool { return gs.stage.Format.HeadToHead() }
 
 func (gs *groupState) decided(m db.Match) bool {
 	parts := make([]format.ParticipantID, 0, 2)
@@ -246,7 +246,7 @@ func (tx *Tx) leave(p ids.ParticipantID, status lifecycle.ParticipantStatus) err
 		return err
 	}
 	for _, g := range groups {
-		if g.Status == StageRunning {
+		if g.Status == lifecycle.StageRunning {
 			if err := tx.ProgressGroup(g.ID); err != nil {
 				return err
 			}

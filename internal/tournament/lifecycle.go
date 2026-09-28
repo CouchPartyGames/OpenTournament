@@ -94,7 +94,7 @@ func (s *Service) Start(ctx context.Context, id ids.TournamentID) error {
 // startStage splits the seeded Participants into Groups by snake Seeding and
 // opens every Group.
 func (tx *Tx) startStage(st db.Stage, seeds []format.ParticipantID) error {
-	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: StageRunning}); err != nil {
+	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: lifecycle.StageRunning}); err != nil {
 		return err
 	}
 	if err := tx.Emit(events.StageStarted, map[string]any{"stageId": st.ID, "position": st.Position}); err != nil {
@@ -133,10 +133,10 @@ func (tx *Tx) finishStageIfComplete(st db.Stage) error {
 	if err != nil {
 		return err
 	}
-	if slices.ContainsFunc(groups, func(g db.Group) bool { return g.Status != StageCompleted }) {
+	if slices.ContainsFunc(groups, func(g db.Group) bool { return g.Status != lifecycle.StageCompleted }) {
 		return nil
 	}
-	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: StageCompleted}); err != nil {
+	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: lifecycle.StageCompleted}); err != nil {
 		return err
 	}
 	if err := tx.Emit(events.StageCompleted, map[string]any{"stageId": st.ID, "position": st.Position}); err != nil {

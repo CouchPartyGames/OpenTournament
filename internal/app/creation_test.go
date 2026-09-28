@@ -137,6 +137,17 @@ func TestUnknownGameIsRejected(t *testing.T) {
 	}
 }
 
+func TestUnknownFormatFailsValidation(t *testing.T) {
+	h := apptest.MustStart(t)
+	body := settings(h, stage("ladder", nil))
+
+	r := h.Do(http.MethodPost, "/api/v1/tournaments", h.User("organizer"), body).Expect(http.StatusUnprocessableEntity)
+
+	if got := locations(r); r.Code() != "validation-failed" || !slices.Equal(got, []string{"body.stages[0].format"}) {
+		t.Fatalf("code %s at %v, want validation-failed at body.stages[0].format", r.Code(), got)
+	}
+}
+
 func TestOrganizerEditsADraftUntilRegistrationOpens(t *testing.T) {
 	h := apptest.MustStart(t)
 	tt := mustCreate(t, h, settings(h))

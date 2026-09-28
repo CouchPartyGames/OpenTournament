@@ -34,13 +34,13 @@ type CheckInSettings struct {
 
 // StageSettings configures one Stage.
 type StageSettings struct {
-	Format                string `json:"format" enum:"single-elimination,double-elimination,round-robin,swiss,free-for-all"`
-	Groups                int32  `json:"groups,omitempty" minimum:"1" maximum:"1024" default:"1" doc:"Groups the Stage is split into"`
-	Advancement           int32  `json:"advancement,omitempty" minimum:"0" doc:"Participants per Group who advance to the next Stage; 0 on the last Stage"`
-	BestOf                int32  `json:"bestOf,omitempty" enum:"1,3" doc:"Head-to-head Formats: Bouts per Match"`
-	Bouts                 int32  `json:"bouts,omitempty" minimum:"1" maximum:"100" doc:"Free-for-all: Bouts per Match"`
-	SwissRounds           int32  `json:"swissRounds,omitempty" minimum:"0" maximum:"100" doc:"Swiss: overrides the default ⌈log₂ N⌉ Rounds"`
-	ResultDeadlineSeconds int32  `json:"resultDeadlineSeconds" minimum:"60" maximum:"604800" doc:"Time a Match has to complete, from when it is Ready"`
+	Format                format.Kind `json:"format"`
+	Groups                int32       `json:"groups,omitempty" minimum:"1" maximum:"1024" default:"1" doc:"Groups the Stage is split into"`
+	Advancement           int32       `json:"advancement,omitempty" minimum:"0" doc:"Participants per Group who advance to the next Stage; 0 on the last Stage"`
+	BestOf                int32       `json:"bestOf,omitempty" enum:"1,3" doc:"Head-to-head Formats: Bouts per Match"`
+	Bouts                 int32       `json:"bouts,omitempty" minimum:"1" maximum:"100" doc:"Free-for-all: Bouts per Match"`
+	SwissRounds           int32       `json:"swissRounds,omitempty" minimum:"0" maximum:"100" doc:"Swiss: overrides the default ⌈log₂ N⌉ Rounds"`
+	ResultDeadlineSeconds int32       `json:"resultDeadlineSeconds" minimum:"60" maximum:"604800" doc:"Time a Match has to complete, from when it is Ready"`
 }
 
 // validate checks the rules that span several fields, and reports every
@@ -70,22 +70,21 @@ func (s TournamentSettings) validate(game games.Game, now time.Time) error {
 	low, high := int(s.MinimumParticipants), int(s.Capacity)
 	for i, st := range s.Stages {
 		at := func(field string) string { return fmt.Sprintf("body.stages[%d].%s", i, field) }
-		kind := format.Kind(st.Format)
 		last := i == len(s.Stages)-1
 		groups := max(int(st.Groups), 1)
-		if kind.HeadToHead() && st.BestOf != 1 && st.BestOf != 3 {
+		if st.Format.HeadToHead() && st.BestOf != 1 && st.BestOf != 3 {
 			f.Add(at("bestOf"), "head-to-head formats need bestOf 1 or 3", st.BestOf)
 		}
-		if !kind.HeadToHead() && st.BestOf != 0 {
+		if !st.Format.HeadToHead() && st.BestOf != 0 {
 			f.Add(at("bestOf"), "only head-to-head formats have a best-of", st.BestOf)
 		}
-		if kind == format.FreeForAll && st.Bouts < 1 {
+		if st.Format == format.FreeForAll && st.Bouts < 1 {
 			f.Add(at("bouts"), "free-for-all needs at least one bout per match", st.Bouts)
 		}
-		if kind != format.FreeForAll && st.Bouts != 0 {
+		if st.Format != format.FreeForAll && st.Bouts != 0 {
 			f.Add(at("bouts"), "only free-for-all sets bouts", st.Bouts)
 		}
-		if kind != format.Swiss && st.SwissRounds != 0 {
+		if st.Format != format.Swiss && st.SwissRounds != 0 {
 			f.Add(at("swissRounds"), "only swiss sets swissRounds", st.SwissRounds)
 		}
 		if last && st.Advancement != 0 {
@@ -99,7 +98,7 @@ func (s TournamentSettings) validate(game games.Game, now time.Time) error {
 			f.Add(at("groups"), fmt.Sprintf(
 				"with only %d participants, a group could have %d, fewer than the %d it needs", low, smallest, need), st.Groups)
 		}
-		if largest := (high + groups - 1) / groups; kind == format.FreeForAll && largest > game.MaximumMatchSize {
+		if largest := (high + groups - 1) / groups; st.Format == format.FreeForAll && largest > game.MaximumMatchSize {
 			f.Add(at("groups"), fmt.Sprintf(
 				"with %d participants, a free-for-all group could have %d, more than the game's maximum match size of %d",
 				high, largest, game.MaximumMatchSize), st.Groups)

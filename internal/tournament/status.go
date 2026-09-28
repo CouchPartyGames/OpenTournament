@@ -1,12 +1,5 @@
 package tournament
 
-// Stage and Group statuses.
-const (
-	StagePending   = "pending"
-	StageRunning   = "running"
-	StageCompleted = "completed"
-)
-
 // Job kinds.
 const (
 	JobOpenRegistration = "open-registration"

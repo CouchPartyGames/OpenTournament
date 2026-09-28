@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 
+	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/ids"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/google/uuid"
@@ -91,7 +92,7 @@ type InsertStageParams struct {
 	ID                    ids.StageID
 	TournamentID          ids.TournamentID
 	Position              int32
-	Format                string
+	Format                format.Kind
 	GroupCount            int32
 	Advancement           int32
 	BestOf                int32
@@ -356,7 +357,7 @@ UPDATE groups SET status = $2 WHERE id = $1
 
 type SetGroupStatusParams struct {
 	ID     ids.GroupID
-	Status string
+	Status lifecycle.StageStatus
 }
 
 func (q *Queries) SetGroupStatus(ctx context.Context, arg SetGroupStatusParams) error {
@@ -370,7 +371,7 @@ UPDATE stages SET status = $2 WHERE id = $1
 
 type SetStageStatusParams struct {
 	ID     ids.StageID
-	Status string
+	Status lifecycle.StageStatus
 }
 
 func (q *Queries) SetStageStatus(ctx context.Context, arg SetStageStatusParams) error {

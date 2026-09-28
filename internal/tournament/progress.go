@@ -75,7 +75,7 @@ func (tx *Tx) loadGroup(id ids.GroupID) (*groupState, error) {
 // StageRules is the part of a Stage the Format engine needs.
 func StageRules(st db.Stage) format.Stage {
 	return format.Stage{
-		Format:      format.Kind(st.Format),
+		Format:      st.Format,
 		BestOf:      int(st.BestOf),
 		Bouts:       int(st.Bouts),
 		SwissRounds: int(st.SwissRounds),
@@ -169,8 +169,8 @@ func (tx *Tx) ProgressGroup(id ids.GroupID) error {
 				return err
 			}
 		}
-		if plan.Complete && gs.group.Status == StageRunning {
-			if err := tx.Q.SetGroupStatus(tx.ctx, db.SetGroupStatusParams{ID: id, Status: StageCompleted}); err != nil {
+		if plan.Complete && gs.group.Status == lifecycle.StageRunning {
+			if err := tx.Q.SetGroupStatus(tx.ctx, db.SetGroupStatusParams{ID: id, Status: lifecycle.StageCompleted}); err != nil {
 				return err
 			}
 			return tx.finishStageIfComplete(gs.stage)
@@ -234,7 +234,7 @@ func (tx *Tx) applyPlan(gs *groupState, plan format.Plan) (again, completed bool
 			switch {
 			case pm.Outcome.DoubleForfeit:
 				result = lifecycle.ResultDoubleForfeit
-			case gs.stage.Format == string(format.FreeForAll):
+			case gs.stage.Format == format.FreeForAll:
 				result = lifecycle.ResultFreeForAll
 			}
 			if err := tx.completeMatch(gs, m, result, winner); err != nil {

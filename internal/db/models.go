@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/ids"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 )
@@ -38,7 +39,7 @@ type Group struct {
 	TournamentID ids.TournamentID
 	StageID      ids.StageID
 	Position     int32
-	Status       string
+	Status       lifecycle.StageStatus
 }
 
 type GroupParticipant struct {
@@ -103,14 +104,14 @@ type Stage struct {
 	ID                    ids.StageID
 	TournamentID          ids.TournamentID
 	Position              int32
-	Format                string
+	Format                format.Kind
 	GroupCount            int32
 	Advancement           int32
 	BestOf                int32
 	Bouts                 int32
 	SwissRounds           int32
 	ResultDeadlineSeconds int32
-	Status                string
+	Status                lifecycle.StageStatus
 }
 
 type Tournament struct {
