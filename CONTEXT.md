@@ -1,4 +1,4 @@
-# Open Tournament Games
+# Open Tournament
 
 An open-source backend for creating and running real-time tournaments for online games, where players register shortly before the tournament starts.
 
@@ -65,7 +65,7 @@ One step of a Stage in which a set of Matches is played, e.g. Swiss round 3 or t
 _Avoid_: Bout, wave, column
 
 **Bye**:
-An automatic advancement past a Match with no opponent, given when an elimination Stage's Participant count is not a power of two.
+An automatic advancement past a Match that has no opponent, for any reason: an elimination Stage whose Participant count is not a power of two, an odd count in a Swiss Round, or an opponent slot emptied by a double Forfeit.
 _Avoid_: Walkover, free win
 
 ### Progression
@@ -95,15 +95,19 @@ The rule that moves the top N Participants of each Group, by Standing, into the 
 _Avoid_: Qualification, promotion, progression
 
 **Forfeit**:
-A Match outcome in which a Participant loses without playing, either reported as a no-show or imposed by the Organizer.
+A Participant not completing a Bout, through a No-show, Withdrawal, Disqualification, or the Organizer's resolution of a Stalled Match. A forfeited Bout is lost in head-to-head, and scores last placement with no points in free-for-all.
 _Avoid_: Walkover, default loss, DQ
 
+**No-show**:
+A Participant who does not turn up on the Game Server for a Bout, as reported by the Game Server.
+_Avoid_: Absent, AFK, missing
+
 **Withdrawal**:
-A Participant leaving a running Tournament of their own accord. They forfeit every remaining Match.
+A Participant leaving a running Tournament of their own accord. They forfeit every Bout they have not yet completed.
 _Avoid_: Drop, quit, leave
 
 **Disqualification**:
-The Organizer removing a Participant from a running Tournament. They forfeit every remaining Match.
+The Organizer removing a Participant from a running Tournament. They forfeit every Bout they have not yet completed.
 _Avoid_: DQ, ban, kick
 
 **Aborted**:
@@ -111,8 +115,12 @@ A Match whose Game Server failed mid-play. It returns to be played again; Bouts 
 _Avoid_: Crashed, failed, restarted
 
 **Stalled**:
-A Match that has produced no result by its deadline. Only the Organizer can resolve it, by awarding a win or a double Forfeit.
+A Match that has produced no result by its Result Deadline. Only the Organizer can resolve it, by awarding a win or a double Forfeit.
 _Avoid_: Stuck, timed out, expired
+
+**Result Deadline**:
+The time a Match has to complete, counted from the moment it becomes Ready and set per Stage. An Abort does not reset it.
+_Avoid_: Timeout, match timer, expiry
 
 ### Registration
 

@@ -41,8 +41,8 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 12. As an Organizer, I want to choose Best-of 1 or Best-of 3 for head-to-head Stages, so that important Stages are decided more fairly.
 13. As an Organizer, I want to set the number of Bouts in a free-for-all Match, so that battle-royale results sum across several drops.
 14. As an Organizer, I want to override the number of Swiss Rounds, so that I can shorten or lengthen a Swiss Stage.
-15. As an Organizer, I want to set a result deadline per Match, so that stuck Matches are flagged instead of blocking the Tournament forever.
-16. As an Organizer, I want the configuration validated when I create the Tournament (e.g. free-for-all Group larger than the Game's Maximum Match Size, Advancement larger than a Group), so that I never discover an impossible Tournament at start time.
+15. As an Organizer, I want to set a Result Deadline per Stage, counted from when each Match becomes Ready, so that stuck Matches are flagged instead of blocking the Tournament forever.
+16. As an Organizer, I want the configuration validated when I create the Tournament (e.g. free-for-all Group larger than the Game's Maximum Match Size, Advancement larger than a Group, or any Group ending up with fewer than Advancement + 1 Participants when only Minimum Participants show up), so that I never discover an impossible Tournament at start time.
 17. As an Organizer, I want to edit settings while the Tournament is still a draft, so that I can fix mistakes before anyone registers.
 18. As an Organizer, I want settings to be frozen once registration opens, so that Participants can trust the rules they signed up under.
 19. As a Game backend, I want to create Tournaments through a trusted client, so that I can schedule recurring cups (e.g. hourly) automatically.
@@ -84,10 +84,9 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 46. As an Organizer, I want Participants distributed into Groups by snake seeding, so that Group sizes differ by at most one and strength is balanced.
 47. As a top-seeded Participant in an elimination Stage whose count is not a power of two, I want a Bye, so that the bracket works for any count.
 48. As a Participant in a Swiss Stage with an odd count, I want a Bye (worth a win) to go to the lowest-standing Participant who hasn't had one yet, so that Byes are fair.
-
 ### Formats and Match flow
 
-49. As a Participant in an elimination Stage, I want my next Match to become Ready as soon as both of its feeding Matches are done, so that I don't wait for unrelated Matches.
+49. As a Participant in an elimination Stage, I want my next Match to become Ready as soon as both of its feeding Matches are done, so that I don't wait for unrelated Matches. If a feeding Match ends in a double Forfeit, I get a Bye past that Match.
 50. As a Participant in a Swiss or round robin Stage, I want the next Round to begin once every Match of the current Round is done, so that pairings use complete results.
 51. As a Participant in a Swiss Stage, I want to be paired against opponents with similar points whom I haven't played yet, so that Swiss works correctly.
 52. As a Participant in a round robin Group, I want to play every other Participant in my Group exactly once, so that the Standing is complete.
@@ -102,17 +101,17 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 
 59. As a Participant, I want a Game Server allocated for my Match as soon as it becomes Ready, so that I can play immediately.
 60. As an operator, I want Game Servers allocated from a warm Fleet per Game, so that the burst of first-Round Matches at start doesn't wait for servers to boot.
-61. As a Participant, I want the address and port of my Match's Game Server, so that I can connect.
+61. As a Participant, I want the address and port of my Match's Game Server, and I want only that Match's Participants and the Organizer to be able to see it, so that I can connect and nobody else can target the server.
 62. As a Participant, I want only the Match's Participants admitted to the Game Server, so that nobody else can join or interfere.
 63. As a Game Server, I want a per-Match token when I'm allocated, so that I can authenticate to the API for that Match only.
 64. As a Game Server, I want to fetch my Match (Participants, Player Identities, Best-of or Bout count, Bouts already completed) using my token, so that I can set up the right session.
 65. As a Game Server, I want to report that the Match has started, so that the Match shows as In Progress.
 66. As a Game Server, I want to report each Bout's result (winner for head-to-head, or placement and points per Participant for free-for-all), so that Standings update live.
-67. As a Game Server, I want to report a no-show as a Forfeit, so that a missing Participant doesn't block the Match.
+67. As a Game Server, I want to report a No-show for a Bout, which counts as a Forfeit of that Bout, so that a missing Participant doesn't block the Match.
 68. As a Game Server, I want my token rejected for any other Match and after my Match ends, so that a compromised server can't change other results.
 69. As a Participant, I want the Game Server released once the Match completes, so that capacity is recycled for other Matches.
-70. As a Participant, I want allocation retried (with backoff) when no warm server is available, so that my Match still starts once capacity frees up.
-71. As a Participant whose Game Server crashes mid-Match, I want the Match Aborted and a new server allocated, so that the Match can still be finished.
+70. As a Participant, I want allocation retried (with backoff) when no warm server is available, even across a service restart, so that my Match still starts once capacity frees up.
+71. As a Participant whose Game Server crashes mid-Match, I want the Match Aborted and a new server allocated, so that the Match can still be finished. Its Result Deadline keeps running, so a server that keeps crashing ends in Stalled rather than looping forever.
 72. As a Participant in an Aborted Match, I want completed Bouts kept and only missing Bouts replayed, so that a crash doesn't erase my lead.
 
 ### Results, Standings and Placements
@@ -124,17 +123,17 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 77. As a Participant in free-for-all, I want Tiebreakers in the order total points, best single placement, random.
 78. As a Participant, I want the top N per Group to advance automatically once the Group completes, so that the next Stage fills without anyone stepping in.
 79. As a Participant, I want a Final Placement when the Tournament completes, so that I know where I finished.
-80. As a Participant knocked out in the same elimination Round as others, I want a shared placement range (e.g. 5th–8th), so that placements aren't arbitrary.
+80. As a Participant knocked out in the same elimination Round as others, I want a shared placement range (e.g. 5th–8th), so that placements aren't arbitrary. Both Participants of a double Forfeit share the range of the Round they were knocked out in.
 81. As a Participant knocked out in an earlier Stage, I want my Final Placement to come from the Stage I reached, ranked below everyone who advanced further.
 
 ### Deadlines and Organizer intervention
 
-82. As an Organizer, I want a Match with no result by its deadline flagged as Stalled, so that I notice it.
+82. As an Organizer, I want a Match with no result by its Result Deadline flagged as Stalled, so that I notice it.
 83. As an Organizer, I want to resolve a Stalled Match by awarding a win or a double Forfeit, so that the Tournament can continue.
 84. As an Organizer, I want resolving a Stalled Match to be the only manual way to set a result, so that results can't be quietly tampered with.
 85. As an Organizer, I want to disqualify a Participant, so that I can remove cheaters or abusive players.
 86. As a Participant, I want to withdraw from a running Tournament, so that I can leave cleanly.
-87. As an Organizer, I want a withdrawn or disqualified Participant to forfeit every remaining Match, so that the brackets keep moving.
+87. As an Organizer, I want a withdrawn or disqualified Participant to forfeit every Bout they have not yet completed, including those in a Match already In Progress, so that the brackets keep moving.
 88. As a Participant in Swiss, I want withdrawn or disqualified players excluded from future pairings, while their past results still count toward others' Buchholz, so that tiebreaks stay fair.
 
 ### Reading and live updates
@@ -142,7 +141,7 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 89. As anyone, I want to list public Tournaments with their Game, status and start time, so that I can find one to join or watch.
 90. As anyone, I want a Tournament's full structure (Stages, Groups, Rounds, Matches, Bouts), so that a frontend can draw brackets and tables.
 91. As anyone, I want to subscribe to live updates for a Tournament (registrations, status changes, Match state changes, Bout results, Standings), so that frontends don't have to poll.
-92. As a Participant, I want to receive a live update when my Match is Ready and its Game Server address is known, so that I can join immediately.
+92. As a Participant, I want to receive a live update when my Match is Ready and its Game Server address is known, so that I can join immediately. Public updates show only that a Match is allocated or In Progress, never the address.
 93. As a frontend developer, I want error responses as Problem Details (RFC 9457) with specific error codes, so that I can show meaningful messages.
 
 ### Operators and contributors
@@ -178,13 +177,13 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 2. **Tournament aggregate and lifecycle.** Status moves Draft → Registration Open → Check-in (only if enabled) → Running → Completed, and Cancelled is reachable from any status before Completed. It enforces the settings freeze, Capacity, Minimum Participants, accepted Player Identity kinds and uniqueness per Player Identity. It also creates Stages and Groups by calling the Format engine, and advances Stages.
 3. **Match lifecycle.** The states are Pending → Ready → Allocating → In Progress → Completed.
    - Aborted leads back to Allocating, with completed Bouts kept.
-   - Stalled is reached when the result deadline passes, and ends in Completed through the Organizer's resolution.
-   - A Forfeit completes a Match.
+   - Stalled is reached when the Result Deadline passes, and ends in Completed through the Organizer's resolution. The Result Deadline is set per Stage, counted from Ready, and not reset by an Abort.
+   - A Forfeit is recorded per Bout, and the Match result follows from its Bouts (see Result rules).
    - Completing a Match hands its result back to the Format engine to unlock the next Matches or Rounds.
-4. **Game Server coordination (port plus Agones adapter).** The port is a narrow Go interface: allocate for a Match (Game → Fleet), watch server state, and release. The Agones adapter uses the official Agones Go client and `client-go` informers. It creates GameServerAllocations against the Game's Fleet, passes the Match ID as allocation metadata, and watches the allocated GameServer. If the server becomes Unhealthy or is deleted before the Match completes, the Match is Aborted. A failed allocation means retry with backoff. Kubernetes RBAC is limited to GameServerAllocations plus reading and watching GameServers. See ADR-0001.
+4. **Game Server coordination (port plus Agones adapter).** The port is a narrow Go interface: allocate for a Match (Game → Fleet), watch server state, and release. The Agones adapter uses the official Agones Go client and `client-go` informers. It creates GameServerAllocations against the Game's Fleet, passes the Match ID as allocation metadata, and watches the allocated GameServer. If the server becomes Unhealthy or is deleted before the Match completes, the Match is Aborted. Every replica watches GameServers. Each state change is a conditional update of the Match row: for example, move In Progress to Aborted only if the Match still points at that allocation. Exactly one replica's update succeeds, and the others are no-ops, so no leader election is needed. Allocation is a persisted scheduler job ("allocate Match X, due at T"). A failed attempt reschedules the job with backoff, so retries survive a restart. Kubernetes RBAC is limited to GameServerAllocations plus reading and watching GameServers. See ADR-0001.
 5. **Match tokens.** The service issues a signed, short-lived token (a JWT signed with a service-held key) when it allocates a server, scoped to a single Match ID. It is separate from Keycloak-issued tokens and is accepted only on the Game Server endpoints for that Match while the Match isn't yet Completed or Cancelled. It is passed to the Game Server in allocation metadata. See ADR-0002.
-6. **Scheduler.** A background worker goroutine, started with the server and stopped through its context, drives time-based transitions: registration opens, the Check-in Window opens, the Tournament starts (dropping no-shows and cancelling below Minimum Participants), and Stalled deadlines. It works from persisted due times rather than in-memory timers, so a restart loses nothing, and it is safe with more than one replica (claim due work with `SELECT … FOR UPDATE SKIP LOCKED`). It uses an injected clock interface.
-7. **Live updates.** A WebSocket endpoint on which clients subscribe to and unsubscribe from Tournaments. Domain changes are published after the transaction commits: registration counts, status, Match state (with the Game Server address when allocated), Bout results and Standings. Events are fanned out across replicas with PostgreSQL `LISTEN`/`NOTIFY`, so a client receives every update no matter which replica made the change.
+6. **Scheduler.** A background worker goroutine, started with the server and stopped through its context, drives time-based and retried work: registration opens, the Check-in Window opens, the Tournament starts (dropping Participants who didn't check in, and cancelling below Minimum Participants), Game Server allocation attempts, and Result Deadlines. It works from persisted due times rather than in-memory timers, so a restart loses nothing, and it is safe with more than one replica (claim due work with `SELECT … FOR UPDATE SKIP LOCKED`). It uses an injected clock interface.
+7. **Live updates.** A WebSocket endpoint on which clients subscribe to and unsubscribe from Tournaments. Domain changes are published after the transaction commits: registration counts, status, Match state, Bout results and Standings. The Game Server address goes only to that Match's Participants and the Organizer, never in public updates. Events are fanned out across replicas with PostgreSQL `LISTEN`/`NOTIFY`, so a client receives every update no matter which replica made the change.
 8. **Game catalog.** Games come from configuration: Game ID and name, accepted Player Identity kinds, Maximum Match Size, Agones Fleet name and namespace, and the Keycloak client IDs trusted to act for the Game.
 
 ### Authentication and authorization
@@ -202,13 +201,15 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 - Participants: withdraw (self), disqualify (Organizer).
 - Structure: get Stages, Groups, Rounds, Matches and Standings. Get Final Placements.
 - Matches: get one (including the Game Server address for its Participants), resolve Stalled (Organizer).
-- Game Server endpoints (Match token): get my Match, report Match started, report a Bout result, report a no-show Forfeit.
+- Game Server endpoints (Match token): get my Match, report Match started, report a Bout result, report a No-show.
 - Live updates (WebSocket): subscribe to or unsubscribe from a Tournament.
 
 ### Result rules
 
 - **Head-to-head Bout result:** the winning Participant, no draws. The Match completes when one Participant reaches the majority of the Best-of.
 - **Free-for-all Bout result:** a placement and points for every Participant in the Match. Placements are strict, and the Game Server computes the points (the platform only sums them). The Match completes after the configured number of Bouts.
+- **Forfeit:** recorded per Bout. A No-show reported by the Game Server forfeits that Bout. A Withdrawal or Disqualification forfeits every Bout the Participant has not yet completed, including those in a Match already In Progress. In head-to-head, a forfeited Bout is won by the opponent, so a Participant leading 1–0 in a best-of-3 who withdraws loses 1–2, and the Match completes right away. In free-for-all, a forfeited Bout scores last placement and no points, and the Match continues for everyone else. A double Forfeit (Organizer resolving a Stalled Match) means both Participants lose. In elimination, the next Match's opponent gets a Bye.
+- **Validation at creation:** besides the per-field rules, the configuration is rejected if any Group could have fewer than Advancement + 1 Participants when attendance equals Minimum Participants.
 - **Duplicates and conflicts:** reporting a Bout number that is already recorded is idempotent if the data is identical, and a conflict otherwise.
 
 ### Data
