@@ -128,9 +128,9 @@ func (MatchResult) Schema(huma.Registry) *huma.Schema {
 	return enum(ResultWin, ResultDoubleForfeit, ResultBye, ResultEmpty, ResultFreeForAll)
 }
 
-// JobKind is a kind of work the scheduler runs when it falls due: opening
-// registration, opening Check-in, starting the Tournament, allocating a
-// Match's Game Server, and a Match's Result Deadline passing.
+// JobKind is a kind of work the scheduler runs when it falls due: opening the
+// Registration Window, opening Check-in, starting the Tournament, allocating
+// a Match's Game Server, and a Match's Result Deadline passing.
 type JobKind string
 
 // Job kinds. They are stored with each pending job, so changing a value
