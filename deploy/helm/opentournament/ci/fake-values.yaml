@@ -1,0 +1,16 @@
+# Lint/template values: no Game Servers, so no RBAC.
+config:
+  oidcIssuer: https://sso.example.com/realms/games
+  gameServers: fake
+  docs: true
+database:
+  url: postgres://opentournament:secret@postgres:5432/opentournament
+replicaCount: 1
+catalog:
+  games:
+    - id: arena
+      name: Arena
+      identityKinds: [keycloak]
+      maximumMatchSize: 2
+      fleet:
+        name: arena

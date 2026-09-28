@@ -26,6 +26,18 @@ jobs:
       # using the runner's Docker daemon.
       - run: make vet test
 
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Lint and render
+        run: |
+          for values in deploy/helm/opentournament/ci/*.yaml; do
+            helm lint --strict deploy/helm/opentournament -f "$values"
+            helm template ot deploy/helm/opentournament -f "$values" > /dev/null
+          done
+
   image:
     needs: test
     runs-on: ubuntu-latest
@@ -66,3 +78,24 @@ jobs:
           build-args: VERSION=${{ steps.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Released charts install the image of the same version.
+  chart-publish:
+    needs: [chart, image]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Package and push
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          echo "$TOKEN" | helm registry login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          helm package deploy/helm/opentournament --version "$version" --app-version "$version"
+          helm push "opentournament-$version.tgz" "oci://ghcr.io/${OWNER,,}/charts"

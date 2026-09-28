@@ -1,0 +1,11 @@
+apiVersion: v2
+name: opentournament
+description: Real-time tournaments for online games, coordinating Agones Game Servers.
+type: application
+home: https://github.com/CouchPartyGames/OpenTournament
+sources:
+  - https://github.com/CouchPartyGames/OpenTournament
+# CI sets both to the release tag when it publishes the chart. From a checkout,
+# appVersion main installs the image built from the main branch.
+version: 0.1.0
+appVersion: "main"

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "replicaCount": { "type": "integer", "minimum": 0 },
+    "terminationGracePeriodSeconds": { "type": "integer", "minimum": 0 },
+    "config": {
+      "type": "object",
+      "properties": {
+        "oidcIssuer": { "type": "string" },
+        "gameServers": { "enum": ["agones", "fake"] },
+        "docs": { "type": "boolean" },
+        "eventRetention": { "type": "string" },
+        "shutdownTimeout": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "database": {
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "existingSecret": { "type": "string" },
+        "existingSecretKey": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "matchTokenKey": {
+      "type": "object",
+      "properties": {
+        "value": { "type": "string" },
+        "existingSecret": { "type": "string" },
+        "existingSecretKey": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "games": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "identityKinds", "maximumMatchSize", "fleet"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "name": { "type": "string" },
+              "identityKinds": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+              "maximumMatchSize": { "type": "integer", "minimum": 2 },
+              "fleet": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "namespace": { "type": "string" }
+                },
+                "additionalProperties": false
+              },
+              "trustedClients": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          }
+        },
+        "identityClaims": { "type": "object", "additionalProperties": { "type": "string" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}

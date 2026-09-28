@@ -1,0 +1,117 @@
+{{- include "opentournament.validate" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opentournament.fullname" . }}
+  labels:
+    {{- include "opentournament.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "opentournament.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # Roll the pods when their configuration changes.
+        checksum/config: {{ toJson .Values.catalog | sha256sum }}
+        checksum/secret: {{ list .Values.database .Values.matchTokenKey | toJson | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "opentournament.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "opentournament.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: opentournament
+          image: {{ include "opentournament.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: OT_HTTP_ADDR
+              value: ":8080"
+            - name: OT_OIDC_ISSUER
+              value: {{ .Values.config.oidcIssuer | quote }}
+            - name: OT_GAMES_FILE
+              value: /etc/opentournament/games.yaml
+            - name: OT_GAME_SERVERS
+              value: {{ .Values.config.gameServers | quote }}
+            - name: OT_DOCS
+              value: {{ .Values.config.docs | quote }}
+            - name: OT_EVENT_RETENTION
+              value: {{ .Values.config.eventRetention | quote }}
+            - name: OT_SHUTDOWN_TIMEOUT
+              value: {{ .Values.config.shutdownTimeout | quote }}
+            - name: OT_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opentournament.databaseSecretName" . }}
+                  key: {{ include "opentournament.databaseSecretKey" . }}
+            - name: OT_MATCH_TOKEN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opentournament.matchTokenSecretName" . }}
+                  key: {{ include "opentournament.matchTokenSecretKey" . }}
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # The server listens only after migrations, OIDC discovery and the Game
+          # Server cache sync, so startup gets up to two minutes.
+          startupProbe:
+            httpGet:
+              path: /startupz
+              port: http
+            periodSeconds: 2
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          volumeMounts:
+            - name: catalog
+              mountPath: /etc/opentournament
+              readOnly: true
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: catalog
+          configMap:
+            name: {{ include "opentournament.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,111 @@
+# Default values for opentournament.
+
+image:
+  repository: ghcr.io/couchpartygames/opentournament
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+# Replicas coordinate through PostgreSQL, so any number can run side by side.
+replicaCount: 2
+
+config:
+  # Keycloak realm URL, e.g. https://sso.example.com/realms/games. Required.
+  oidcIssuer: ""
+  # agones, or fake for trying the service without Game Servers.
+  gameServers: agones
+  # Serve Scalar API docs at /api/v1/docs.
+  docs: false
+  # How long live-update events are kept.
+  eventRetention: 1h
+  # Graceful shutdown bound; keep it below terminationGracePeriodSeconds.
+  shutdownTimeout: 30s
+
+terminationGracePeriodSeconds: 45
+
+# PostgreSQL connection string. Migrations run at startup. Set url, or name a
+# Secret holding it.
+database:
+  url: ""
+  existingSecret: ""
+  existingSecretKey: OT_DATABASE_URL
+
+# Base64 key (at least 32 bytes) signing Match tokens. Set value, or name a
+# Secret holding it; with neither, the chart generates one and keeps it across
+# upgrades.
+matchTokenKey:
+  value: ""
+  existingSecret: ""
+  existingSecretKey: OT_MATCH_TOKEN_KEY
+
+# The Game catalog, see examples/games.yaml. RBAC is granted in every Fleet
+# namespace named here.
+catalog:
+  games: []
+  identityClaims: {}
+
+# Extra environment, e.g. OTEL_EXPORTER_OTLP_ENDPOINT or OTEL_SDK_DISABLED.
+env: []
+envFrom: []
+
+serviceAccount:
+  create: true
+  # Defaults to the release's full name.
+  name: ""
+  annotations: {}
+
+# Roles in each Fleet namespace to allocate, watch and manage GameServers.
+# Only rendered with config.gameServers agones.
+rbac:
+  create: true
+
+service:
+  type: ClusterIP
+  port: 80
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  #  - host: tournaments.example.com
+  #    paths:
+  #      - path: /
+  #        pathType: Prefix
+  tls: []
+  #  - secretName: tournaments-tls
+  #    hosts: [tournaments.example.com]
+
+# Rendered when replicaCount is above 1.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+resources: {}
+#  requests:
+#    cpu: 100m
+#    memory: 128Mi
+#  limits:
+#    memory: 256Mi
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

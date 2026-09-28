@@ -51,8 +51,16 @@ and live updates fan out through PostgreSQL `LISTEN`/`NOTIFY`.
 
 ### Kubernetes
 
-[`deploy/rbac.yaml`](deploy/rbac.yaml) grants what the service needs in each Fleet
-namespace. Creating Fleets and sizing them for the start-of-Tournament burst is an
+The Helm chart in [`deploy/helm/opentournament`](deploy/helm/opentournament) deploys
+the service, its Game catalog and secrets, and a Role in every Fleet namespace the
+catalog names. PostgreSQL and Keycloak are not part of it.
+
+```sh
+helm install ot oci://ghcr.io/couchpartygames/charts/opentournament --version <version> \
+  -n opentournament --create-namespace -f my-values.yaml
+```
+
+See the [chart README](deploy/helm/opentournament/README.md) for its values. Creating Fleets and sizing them for the start-of-Tournament burst is an
 operations concern: every first-Round Match wants a Game Server at the same moment.
 
 ## How it fits together
@@ -130,11 +138,10 @@ The Agones adapter has no automated tests in v1. To try it on a local cluster:
 2. Create the `games` namespace and a Fleet named `arena` in it, e.g. from the
    Agones [simple-game-server example](https://agones.dev/site/docs/getting-started/create-fleet/)
    with `metadata.name: arena` and a few replicas.
-3. Apply [`deploy/rbac.yaml`](deploy/rbac.yaml) (or run the service with your own
-   kubeconfig via `OT_KUBECONFIG`).
-4. Run the service with `OT_GAME_SERVERS=agones` and a catalog whose `arena` Game
-   points at that Fleet.
-5. Create a Tournament with two Participants that starts in a minute, and wait.
+3. Install the [chart](deploy/helm/opentournament) with a catalog whose `arena` Game
+   points at that Fleet, or run the service locally with `OT_GAME_SERVERS=agones` and
+   your own kubeconfig via `OT_KUBECONFIG`.
+4. Create a Tournament with two Participants that starts in a minute, and wait.
    Check:
    - `kubectl -n games get gs` shows an `Allocated` GameServer labelled
      `opentournament/match-id=<match>`, carrying the `opentournament/match-token` annotation;

@@ -1,0 +1,36 @@
+{{- /* What the service needs from Kubernetes (ADR-0001), in each Fleet namespace. */}}
+{{- if and .Values.rbac.create (eq .Values.config.gameServers "agones") }}
+{{- range $namespace := include "opentournament.fleetNamespaces" $ | fromJsonArray }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "opentournament.fullname" $ }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentournament.labels" $ | nindent 4 }}
+rules:
+  - apiGroups: ["allocation.agones.dev"]
+    resources: ["gameserverallocations"]
+    verbs: ["create"]
+  - apiGroups: ["agones.dev"]
+    resources: ["gameservers"]
+    verbs: ["get", "list", "watch", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "opentournament.fullname" $ }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentournament.labels" $ | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "opentournament.serviceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "opentournament.fullname" $ }}
+{{- end }}
+{{- end }}

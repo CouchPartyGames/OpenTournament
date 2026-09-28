@@ -1,0 +1,48 @@
+# Lint/template values: Fleets in two namespaces, secrets managed outside the chart.
+config:
+  oidcIssuer: https://sso.example.com/realms/games
+database:
+  existingSecret: opentournament-db
+  existingSecretKey: url
+matchTokenKey:
+  existingSecret: opentournament-match-token
+env:
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://otel-collector.observability:4317
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: tournaments.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: tournaments-tls
+      hosts: [tournaments.example.com]
+catalog:
+  games:
+    - id: arena
+      name: Arena
+      identityKinds: [keycloak, steam]
+      maximumMatchSize: 2
+      fleet:
+        name: arena
+        namespace: games
+      trustedClients: [arena-backend]
+    - id: royale
+      name: Royale
+      identityKinds: [keycloak]
+      maximumMatchSize: 100
+      fleet:
+        name: royale
+        namespace: games
+      trustedClients: [royale-backend]
+    - id: duel
+      name: Duel
+      identityKinds: [keycloak]
+      maximumMatchSize: 2
+      fleet:
+        name: duel
+  identityClaims:
+    steam: steam_id

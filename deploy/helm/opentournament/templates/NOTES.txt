@@ -1,0 +1,19 @@
+Open Tournament is running as {{ include "opentournament.fullname" . }} in {{ .Release.Namespace }}.
+
+Reach the API from your machine:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "opentournament.fullname" . }} 8080:{{ .Values.service.port }}
+  curl http://localhost:8080/api/v1/openapi.json
+{{- if .Values.config.docs }}
+  open http://localhost:8080/api/v1/docs
+{{- end }}
+{{- if eq .Values.config.gameServers "agones" }}
+
+Matches get Game Servers from these Agones Fleets, which must exist:
+{{- range .Values.catalog.games }}
+  - {{ default "default" .fleet.namespace }}/{{ .fleet.name }} (Game {{ .id }})
+{{- end }}
+{{- else }}
+
+config.gameServers is fake: Matches will not get real Game Servers.
+{{- end }}
