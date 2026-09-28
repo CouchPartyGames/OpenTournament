@@ -3,6 +3,7 @@ package app_test
 import (
 	"encoding/json"
 	"net/http"
+	"slices"
 	"testing"
 
 	"github.com/couchpartygames/opentournament/internal/app/apptest"
@@ -191,5 +192,35 @@ func TestListsTournamentsByStatus(t *testing.T) {
 
 	if len(body.Tournaments) != 1 || body.Tournaments[0].ID != b.ID {
 		t.Fatalf("drafts = %+v, want only %s", body.Tournaments, b.ID)
+	}
+}
+
+func TestListsTournamentsInEveryStatusWithoutAFilter(t *testing.T) {
+	h := apptest.MustStart(t)
+	a := mustCreate(t, h, settings(h))
+	a.openRegistration()
+	b := mustCreate(t, h, settings(h))
+
+	var body struct {
+		Tournaments []tournamentView `json:"tournaments"`
+	}
+	h.Do(http.MethodGet, "/api/v1/tournaments", "", nil).Expect(http.StatusOK).Decode(&body)
+
+	var got []string
+	for _, tv := range body.Tournaments {
+		got = append(got, tv.ID)
+	}
+	if !slices.Contains(got, a.ID) || !slices.Contains(got, b.ID) {
+		t.Fatalf("listed %v, want both %s (registration open) and %s (draft)", got, a.ID, b.ID)
+	}
+}
+
+func TestListingByAnUnknownStatusFailsValidation(t *testing.T) {
+	h := apptest.MustStart(t)
+
+	r := h.Do(http.MethodGet, "/api/v1/tournaments?status=paused", "", nil).Expect(http.StatusUnprocessableEntity)
+
+	if got := locations(r); r.Code() != "validation-failed" || !slices.Equal(got, []string{"query.status"}) {
+		t.Fatalf("code %s at %v, want validation-failed at query.status", r.Code(), got)
 	}
 }

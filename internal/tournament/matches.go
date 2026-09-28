@@ -10,6 +10,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/events"
 	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/jackc/pgx/v5"
 )
@@ -205,7 +206,7 @@ func (tx *Tx) Leave(p ids.ParticipantID, status string) error {
 	if err != nil {
 		return err
 	}
-	if tx.T.Status != Running || person.Status != Active {
+	if tx.T.Status != lifecycle.Running || person.Status != Active {
 		return problem.New(problem.Conflict, CodeParticipantNotActive, "only an active participant of a running tournament can leave it")
 	}
 	if err := tx.setParticipantStatus(p, status); err != nil {
