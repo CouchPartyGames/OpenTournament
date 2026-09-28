@@ -104,7 +104,9 @@ func (tx *Tx) startStage(st db.Stage, seeds []format.ParticipantID) error {
 	for i, members := range format.Snake(seeds, int(st.GroupCount)) {
 		g := ids.New[ids.GroupID]()
 		groups = append(groups, g)
-		if err := tx.Q.InsertGroup(tx.ctx, db.InsertGroupParams{ID: g, TournamentID: tx.T.ID, StageID: st.ID, Position: int32(i)}); err != nil {
+		if err := tx.Q.InsertGroup(tx.ctx, db.InsertGroupParams{
+			ID: g, TournamentID: tx.T.ID, StageID: st.ID, Position: int32(i), Status: lifecycle.StageRunning,
+		}); err != nil {
 			return fmt.Errorf("insert group: %w", err)
 		}
 		var participants []format.Participant

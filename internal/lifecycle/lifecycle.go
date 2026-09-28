@@ -1,7 +1,7 @@
 // Package lifecycle names the statuses a Tournament, its Participants, its
-// Stages and Groups, and its Matches move through, and how a Match ends. The queries store them and the
-// Tournament aggregate moves between them, so they live here, below both,
-// where each can import them without a cycle.
+// Stages and Groups, and its Matches move through, and how a Match ends. The
+// queries store them and the Tournament aggregate moves between them, so they
+// live here, below both, where each can import them without a cycle.
 package lifecycle
 
 import "github.com/danielgtaylor/huma/v2"

@@ -41,7 +41,7 @@ func (q *Queries) GetGroup(ctx context.Context, id ids.GroupID) (Group, error) {
 }
 
 const insertGroup = `-- name: InsertGroup :exec
-INSERT INTO groups (id, tournament_id, stage_id, position, status) VALUES ($1, $2, $3, $4, 'running')
+INSERT INTO groups (id, tournament_id, stage_id, position, status) VALUES ($1, $2, $3, $4, $5)
 `
 
 type InsertGroupParams struct {
@@ -49,6 +49,7 @@ type InsertGroupParams struct {
 	TournamentID ids.TournamentID
 	StageID      ids.StageID
 	Position     int32
+	Status       lifecycle.StageStatus
 }
 
 func (q *Queries) InsertGroup(ctx context.Context, arg InsertGroupParams) error {
@@ -57,6 +58,7 @@ func (q *Queries) InsertGroup(ctx context.Context, arg InsertGroupParams) error 
 		arg.TournamentID,
 		arg.StageID,
 		arg.Position,
+		arg.Status,
 	)
 	return err
 }
@@ -85,7 +87,7 @@ func (q *Queries) InsertGroupParticipant(ctx context.Context, arg InsertGroupPar
 const insertStage = `-- name: InsertStage :exec
 INSERT INTO stages (id, tournament_id, position, format, group_count, advancement, best_of, bouts,
                     swiss_rounds, result_deadline_seconds, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 `
 
 type InsertStageParams struct {
@@ -99,6 +101,7 @@ type InsertStageParams struct {
 	Bouts                 int32
 	SwissRounds           int32
 	ResultDeadlineSeconds int32
+	Status                lifecycle.StageStatus
 }
 
 func (q *Queries) InsertStage(ctx context.Context, arg InsertStageParams) error {
@@ -113,6 +116,7 @@ func (q *Queries) InsertStage(ctx context.Context, arg InsertStageParams) error 
 		arg.Bouts,
 		arg.SwissRounds,
 		arg.ResultDeadlineSeconds,
+		arg.Status,
 	)
 	return err
 }

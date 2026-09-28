@@ -1,7 +1,7 @@
 -- name: InsertStage :exec
 INSERT INTO stages (id, tournament_id, position, format, group_count, advancement, best_of, bouts,
                     swiss_rounds, result_deadline_seconds, status)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending');
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
 
 -- name: DeleteStages :exec
 DELETE FROM stages WHERE tournament_id = $1;
@@ -16,7 +16,7 @@ SELECT * FROM stages WHERE tournament_id = ANY(sqlc.arg(tournament_ids)::uuid[])
 UPDATE stages SET status = $2 WHERE id = $1;
 
 -- name: InsertGroup :exec
-INSERT INTO groups (id, tournament_id, stage_id, position, status) VALUES ($1, $2, $3, $4, 'running');
+INSERT INTO groups (id, tournament_id, stage_id, position, status) VALUES ($1, $2, $3, $4, $5);
 
 -- name: GetGroup :one
 SELECT * FROM groups WHERE id = $1;
