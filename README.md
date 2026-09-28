@@ -37,6 +37,10 @@ OT_MATCH_TOKEN_KEY=$(head -c 32 /dev/urandom | base64) OT_GAME_SERVERS=fake OT_D
 ./bin/opentournament
 ```
 
+CI publishes images to `ghcr.io/couchpartygames/opentournament`: `:main` and
+`:sha-<commit>` for every commit to `main`, and `:<version>`, `:<major>.<minor>`
+and `:latest` for every `v*` tag.
+
 The API lives under `/api/v1`; its OpenAPI 3.1 document is at `/api/v1/openapi.json`.
 Health checks are `/livez`, `/readyz` and `/startupz`. On `SIGTERM` the service
 fails readiness, drains in-flight requests, then stops its background workers.
