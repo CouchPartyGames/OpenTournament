@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/auth"
@@ -16,6 +17,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/tournament"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // Register registers the slice's operations.
@@ -121,6 +123,45 @@ func (h handlers) cancel(ctx context.Context, in *idInput) (*tournamentOutput, e
 
 // Create creates a Tournament whose Registration Window opens on schedule.
 func Create(ctx context.Context, svc *tournament.Service, p auth.Principal, body NewTournament) (TournamentView, error) {
+	return create(ctx, svc, p, body, nil)
+}
+
+// Declare creates the Tournament a Tournament Manifest declares, unless it
+// exists already. manifest names the Manifest uniquely across the service,
+// e.g. tournament/<namespace>/<name>. Several replicas can declare the same
+// Manifest at once: one creates the Tournament, the others return it.
+func Declare(ctx context.Context, svc *tournament.Service, manifest string, p auth.Principal, body NewTournament) (TournamentView, error) {
+	v, err := findDeclared(ctx, svc.Queries, manifest)
+	if !errors.Is(err, tournament.ErrTournamentNotFound) {
+		return v, err
+	}
+	// A Manifest doesn't pass through the API's schema, whose only default is
+	// a Stage's single Group.
+	body.Stages = slices.Clone(body.Stages)
+	for i := range body.Stages {
+		if body.Stages[i].Groups == 0 {
+			body.Stages[i].Groups = 1
+		}
+	}
+	v, err = create(ctx, svc, p, body, &manifest)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "tournaments_manifest_key" {
+		return findDeclared(ctx, svc.Queries, manifest)
+	}
+	return v, err
+}
+
+func findDeclared(ctx context.Context, q *db.Queries, manifest string) (TournamentView, error) {
+	t, err := q.GetDeclaredTournament(ctx, manifest)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return TournamentView{}, tournament.ErrTournamentNotFound
+	} else if err != nil {
+		return TournamentView{}, err
+	}
+	return Find(ctx, q, t.ID)
+}
+
+func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body NewTournament, manifest *string) (TournamentView, error) {
 	game, ok := svc.Games.Get(body.GameID)
 	if !ok {
 		return TournamentView{}, problem.Fields{{Location: "body.gameId", Message: "no such game", Value: body.GameID}}.Err()
@@ -137,6 +178,7 @@ func Create(ctx context.Context, svc *tournament.Service, p auth.Principal, body
 		StartsAt: body.StartsAt.UTC(), RegistrationOpensAt: body.RegistrationOpensAt.UTC(),
 		Capacity: body.Capacity, MinimumParticipants: body.MinimumParticipants,
 		CheckInEnabled: body.CheckIn.Enabled, CheckInSeconds: body.CheckIn.WindowSeconds, CreatedAt: svc.Clock.Now(),
+		Manifest: manifest,
 	}
 	if err := svc.Create(ctx, row, body.TournamentSettings.apply); err != nil {
 		return TournamentView{}, err

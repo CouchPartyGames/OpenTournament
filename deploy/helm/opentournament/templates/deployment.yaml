@@ -57,6 +57,8 @@ spec:
               value: {{ .Values.config.eventRetention | quote }}
             - name: OT_SHUTDOWN_TIMEOUT
               value: {{ .Values.config.shutdownTimeout | quote }}
+            - name: OT_MANIFEST_NAMESPACES
+              value: {{ join "," .Values.config.manifestNamespaces | quote }}
             - name: OT_DATABASE_URL
               valueFrom:
                 secretKeyRef:

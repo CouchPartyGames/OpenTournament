@@ -29,6 +29,7 @@ import (
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -84,9 +85,21 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	servers, err := gameServers(ctx, cfg, catalog)
+	var kube *rest.Config
+	if cfg.GameServers == "agones" || len(cfg.ManifestNamespaces) > 0 {
+		if kube, err = kubernetesConfig(cfg); err != nil {
+			return err
+		}
+	}
+	servers, err := gameServers(ctx, cfg, kube, catalog)
 	if err != nil {
 		return err
+	}
+	var manifests dynamic.Interface
+	if len(cfg.ManifestNamespaces) > 0 {
+		if manifests, err = dynamic.NewForConfig(kube); err != nil {
+			return fmt.Errorf("kubernetes client: %w", err)
+		}
 	}
 
 	var seed [16]byte
@@ -95,6 +108,7 @@ func run() error {
 		Pool: pool, Clock: clock.Real{}, Games: catalog, Verifier: verifier,
 		Rand:          mrand.New(mrand.NewPCG(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:]))),
 		MatchTokenKey: cfg.MatchTokenKey, GameServers: servers, Docs: cfg.Docs, Version: version,
+		Kubernetes: manifests, ManifestNamespaces: cfg.ManifestNamespaces,
 	})
 	if err != nil {
 		return err
@@ -149,11 +163,7 @@ func notProbe(r *http.Request) bool {
 	return true
 }
 
-func gameServers(ctx context.Context, cfg config.Config, catalog *games.Catalog) (gameserver.Port, error) {
-	if cfg.GameServers == "fake" {
-		slog.Warn("using the in-memory fake game server port; matches will not get real servers")
-		return gameservertest.NewFake(), nil
-	}
+func kubernetesConfig(cfg config.Config) (*rest.Config, error) {
 	var rc *rest.Config
 	var err error
 	if cfg.Kubeconfig != "" {
@@ -164,5 +174,13 @@ func gameServers(ctx context.Context, cfg config.Config, catalog *games.Catalog)
 	if err != nil {
 		return nil, fmt.Errorf("kubernetes config: %w", err)
 	}
-	return agones.New(ctx, rc, catalog.Namespaces())
+	return rc, nil
+}
+
+func gameServers(ctx context.Context, cfg config.Config, kube *rest.Config, catalog *games.Catalog) (gameserver.Port, error) {
+	if cfg.GameServers == "fake" {
+		slog.Warn("using the in-memory fake game server port; matches will not get real servers")
+		return gameservertest.NewFake(), nil
+	}
+	return agones.New(ctx, kube, catalog.Namespaces())
 }

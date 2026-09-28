@@ -1,6 +1,8 @@
-# Lint/template values: Fleets in two namespaces, secrets managed outside the chart.
+# Lint/template values: Fleets in two namespaces, secrets managed outside the
+# chart, and Tournament Manifests watched in a Fleet namespace and another.
 config:
   oidcIssuer: https://sso.example.com/realms/games
+  manifestNamespaces: [games, tournaments]
 database:
   existingSecret: opentournament-db
   existingSecretKey: url

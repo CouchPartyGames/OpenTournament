@@ -4,6 +4,10 @@ Deploys [Open Tournament](../../../README.md): the service, its Game catalog, it
 secrets, and a Role and RoleBinding in every Fleet namespace the catalog names.
 Bring your own PostgreSQL, Keycloak realm and Agones Fleets.
 
+It also installs the `Tournament` CRD for [declarative Tournaments](../../../README.md#declarative-tournaments)
+from [`crds/`](crds). Helm installs CRDs only on the first install and never
+upgrades or deletes them; after an upgrade, `kubectl apply -f crds/` from the chart.
+
 ```sh
 # A released chart; its appVersion is the matching image tag.
 helm install ot oci://ghcr.io/couchpartygames/charts/opentournament --version 1.2.3 \
@@ -39,6 +43,7 @@ catalog:
 | `config.docs` | `false` | Serve API docs at `/api/v1/docs`. |
 | `config.eventRetention` | `1h` | How long live-update events are kept. |
 | `config.shutdownTimeout` | `30s` | Drain bound; keep below `terminationGracePeriodSeconds` (45). |
+| `config.manifestNamespaces` | `[]` | Namespaces whose Tournament Manifests declare Tournaments; a Role to read them and update their status is added in each. Empty turns declared Tournaments off. |
 | `database.url` / `database.existingSecret` | — | PostgreSQL connection string, inline or from a Secret. One is required. |
 | `matchTokenKey.value` / `matchTokenKey.existingSecret` | generated | Base64 key (≥ 32 bytes) signing Match tokens. When neither is set, the chart generates one and keeps it across upgrades. |
 | `catalog` | — | The Game catalog, as in [`examples/games.yaml`](../../../examples/games.yaml). At least one Game is required. |

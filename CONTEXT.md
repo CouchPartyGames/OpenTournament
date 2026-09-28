@@ -32,6 +32,14 @@ _Avoid_: Lobby size, server capacity
 One competitive event for one online game. It has a fixed start and is made up of one or more Stages.
 _Avoid_: Event, competition, cup
 
+**Tournament Manifest**:
+A Kubernetes resource, usually kept in git, that declares one Tournament's configuration and its Organizer. It never holds runtime state such as Registrations or Matches; its status only points at the Tournament it declares.
+_Avoid_: Custom resource, CR, template, spec
+
+**Declared Tournament**:
+A Tournament created from a Tournament Manifest rather than through the API. It records which Manifest it came from, and one Manifest declares at most one Tournament.
+_Avoid_: GitOps tournament, managed tournament
+
 **Stage**:
 One phase of a Tournament that is played in a single Format (e.g. a Swiss stage followed by a single-elimination stage).
 _Avoid_: Phase, round, bracket

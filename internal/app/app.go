@@ -16,6 +16,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/features/gameservers"
 	"github.com/couchpartygames/opentournament/internal/features/live"
+	"github.com/couchpartygames/opentournament/internal/features/manifests"
 	"github.com/couchpartygames/opentournament/internal/features/matches"
 	"github.com/couchpartygames/opentournament/internal/features/participants"
 	"github.com/couchpartygames/opentournament/internal/features/registrations"
@@ -33,6 +34,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"k8s.io/client-go/dynamic"
 )
 
 // Config holds the service's dependencies.
@@ -44,6 +46,12 @@ type Config struct {
 	Verifier      auth.Verifier
 	MatchTokenKey []byte
 	GameServers   gameserver.Port
+	// Kubernetes is where Tournament Manifests are read from. It is only used
+	// when ManifestNamespaces names at least one namespace.
+	Kubernetes dynamic.Interface
+	// ManifestNamespaces are the namespaces whose Tournament Manifests are
+	// declared. None turns declared Tournaments off.
+	ManifestNamespaces []string
 	// Docs serves interactive API docs (Scalar), for development.
 	Docs    bool
 	Version string
@@ -57,6 +65,8 @@ type App struct {
 	Scheduler  *scheduler.Scheduler
 	Reconciler *reconciler.Runner
 	Hub        *live.Hub
+	// Manifests is nil when no namespace is watched.
+	Manifests *manifests.Controller
 
 	pool     *pgxpool.Pool
 	started  atomic.Bool
@@ -91,6 +101,9 @@ func New(cfg Config) (*App, error) {
 		Reconciler: reconciler.New(svc.Reconcile, cfg.GameServers.Watch),
 		Hub:        live.NewHub(cfg.Pool, cfg.Verifier),
 		pool:       cfg.Pool,
+	}
+	if len(cfg.ManifestNamespaces) > 0 {
+		a.Manifests = manifests.New(cfg.Kubernetes, svc, cfg.ManifestNamespaces)
 	}
 
 	mux := http.NewServeMux()
@@ -159,7 +172,11 @@ func (formatSchema) Schema(huma.Registry) *huma.Schema {
 // have stopped.
 func (a *App) Run(ctx context.Context) {
 	var wg sync.WaitGroup
-	for _, run := range []func(context.Context){a.Scheduler.Run, a.Reconciler.Run, a.Hub.Run} {
+	workers := []func(context.Context){a.Scheduler.Run, a.Reconciler.Run, a.Hub.Run}
+	if a.Manifests != nil {
+		workers = append(workers, a.Manifests.Run)
+	}
+	for _, run := range workers {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

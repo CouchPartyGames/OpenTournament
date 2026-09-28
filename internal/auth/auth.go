@@ -41,6 +41,20 @@ func (p Principal) ID() string {
 	return "user:" + p.Subject
 }
 
+// ParsePrincipal reads a Principal from its ID: user:<keycloak subject> or
+// client:<keycloak client id>. The Principal has no Player Identities.
+func ParsePrincipal(id string) (Principal, error) {
+	kind, value, _ := strings.Cut(id, ":")
+	switch {
+	case value == "":
+	case kind == "user":
+		return Principal{Subject: value}, nil
+	case kind == "client":
+		return Principal{ClientID: value}, nil
+	}
+	return Principal{}, fmt.Errorf("principal %q is neither user:<subject> nor client:<client id>", id)
+}
+
 // IsService reports whether the caller is a service client rather than a human.
 func (p Principal) IsService() bool { return p.ClientID != "" }
 

@@ -11,7 +11,8 @@
         "gameServers": { "enum": ["agones", "fake"] },
         "docs": { "type": "boolean" },
         "eventRetention": { "type": "string" },
-        "shutdownTimeout": { "type": "string" }
+        "shutdownTimeout": { "type": "string" },
+        "manifestNamespaces": { "type": "array", "items": { "type": "string", "minLength": 1 } }
       },
       "additionalProperties": false
     },

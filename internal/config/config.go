@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -29,6 +31,10 @@ type Config struct {
 	// Kubeconfig is used outside a cluster (OT_KUBECONFIG); in-cluster
 	// configuration is used when empty.
 	Kubeconfig string
+	// ManifestNamespaces are the namespaces whose Tournament Manifests are
+	// declared (OT_MANIFEST_NAMESPACES, comma separated). Empty turns
+	// declared Tournaments off.
+	ManifestNamespaces []string
 	// Docs serves Scalar API docs at /api/v1/docs (OT_DOCS).
 	Docs bool
 	// EventRetention is how long live-update events are kept (OT_EVENT_RETENTION, default 1h).
@@ -76,6 +82,11 @@ func FromEnv() (Config, error) {
 	}
 	if c.GameServers != "agones" && c.GameServers != "fake" {
 		errs = append(errs, fmt.Errorf("OT_GAME_SERVERS must be agones or fake, got %q", c.GameServers))
+	}
+	for _, ns := range strings.Split(os.Getenv("OT_MANIFEST_NAMESPACES"), ",") {
+		if ns = strings.TrimSpace(ns); ns != "" && !slices.Contains(c.ManifestNamespaces, ns) {
+			c.ManifestNamespaces = append(c.ManifestNamespaces, ns)
+		}
 	}
 	if v := os.Getenv("OT_DOCS"); v != "" {
 		b, err := strconv.ParseBool(v)
