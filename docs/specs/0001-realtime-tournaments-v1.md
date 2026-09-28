@@ -104,16 +104,15 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 61. As a Participant, I want the address and port of my Match's Game Server, and I want only that Match's Participants and the Organizer to be able to see it, so that I can connect and nobody else can target the server.
 62. As a Participant, I want only the Match's Participants admitted to the Game Server, so that nobody else can join or interfere.
 63. As a Game Server, I want a per-Match token when I'm allocated, so that I can authenticate to the API for that Match only.
-64. As a Game Server, I want to fetch my Match (Participants, Player Identities, Best-of or Bout count, Bouts already completed) using my token, so that I can set up the right session.
+64. As a Game Server, I want to fetch my Match (Participants, Player Identities, Best-of or Bout count, Bouts already completed, and which Participants have forfeited) using my token, so that I can set up the right session.
 65. As a Game Server, I want to report that the Match has started, so that the Match shows as In Progress.
 66. As a Game Server, I want to report each Bout's result (winner for head-to-head, or placement and points per Participant for free-for-all), so that Standings update live.
 67. As a Game Server, I want to report a No-show for a Bout, which counts as a Forfeit of that Bout, so that a missing Participant doesn't block the Match.
-68. As a Game Server, I want my token rejected for any other Match and after my Match ends, so that a compromised server can't change other results.
+68. As a Game Server, I want my token rejected for any other Match, after my Match ends, after its Result Deadline grace period, and once my Match has been moved to a new server, so that a compromised or stale server can't change results.
 69. As a Participant, I want the Game Server released once the Match completes, so that capacity is recycled for other Matches.
 70. As a Participant, I want allocation retried (with backoff) when no warm server is available, even across a service restart, so that my Match still starts once capacity frees up.
 71. As a Participant whose Game Server crashes mid-Match, I want the Match Aborted and a new server allocated, so that the Match can still be finished. Its Result Deadline keeps running, so a server that keeps crashing ends in Stalled rather than looping forever.
 72. As a Participant in an Aborted Match, I want completed Bouts kept and only missing Bouts replayed, so that a crash doesn't erase my lead.
-
 ### Results, Standings and Placements
 
 73. As a spectator or Participant, I want Standings per Group updated as each result arrives, so that I can follow the Tournament live.
@@ -133,14 +132,14 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 84. As an Organizer, I want resolving a Stalled Match to be the only manual way to set a result, so that results can't be quietly tampered with.
 85. As an Organizer, I want to disqualify a Participant, so that I can remove cheaters or abusive players.
 86. As a Participant, I want to withdraw from a running Tournament, so that I can leave cleanly.
-87. As an Organizer, I want a withdrawn or disqualified Participant to forfeit every Bout they have not yet completed, including those in a Match already In Progress, so that the brackets keep moving.
+87. As an Organizer, I want a withdrawn or disqualified Participant to forfeit every Bout they have not yet completed, including those in a Match already In Progress, so that the brackets keep moving. The Match's Game Server is told promptly, so it can remove them.
 88. As a Participant in Swiss, I want withdrawn or disqualified players excluded from future pairings, while their past results still count toward others' Buchholz, so that tiebreaks stay fair.
 
 ### Reading and live updates
 
 89. As anyone, I want to list public Tournaments with their Game, status and start time, so that I can find one to join or watch.
 90. As anyone, I want a Tournament's full structure (Stages, Groups, Rounds, Matches, Bouts), so that a frontend can draw brackets and tables.
-91. As anyone, I want to subscribe to live updates for a Tournament (registrations, status changes, Match state changes, Bout results, Standings), so that frontends don't have to poll.
+91. As anyone, I want to subscribe to live updates for a Tournament (registrations, status changes, Match state changes, Bout results, Standings), so that frontends don't have to poll. Each event carries a sequence number per Tournament, so a client can spot a gap and refetch.
 92. As a Participant, I want to receive a live update when my Match is Ready and its Game Server address is known, so that I can join immediately. Public updates show only that a Match is allocated or In Progress, never the address.
 93. As a frontend developer, I want error responses as Problem Details (RFC 9457) with specific error codes, so that I can show meaningful messages.
 
@@ -149,17 +148,18 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 94. As an operator, I want to register Games (their accepted Player Identity kinds, Maximum Match Size, Agones Fleet, trusted client) through configuration, so that no admin role or UI is needed.
 95. As an operator, I want liveness, readiness and startup health checks, so that the service runs reliably in Kubernetes.
 96. As an operator, I want traces, metrics and logs over OpenTelemetry, so that I can diagnose problems in live Tournaments.
-97. As an operator, I want the service to recover time-based transitions and deadlines after a restart, so that a pod restart doesn't freeze a Tournament.
+97. As an operator, I want the service to recover time-based transitions and deadlines after a restart, and to reconcile every running Match with its Game Server on startup, so that a pod restart doesn't freeze a Tournament or miss a server that died while the service was down.
 98. As a contributor, I want the Format logic isolated in a pure module with its own tests, so that I can add or fix Formats safely.
 
 ## Implementation Decisions
 
 ### Platform and architecture
 
-- Go (current stable release), HTTP served by the standard library `net/http` with `ServeMux` method and path patterns. The code is organized as vertical slices: one package per feature. Each handler decodes its input, calls one command or query function, and does nothing else.
-- Expected failures (validation, not found, conflicts, wrong status for the operation) are returned as ordinary Go `error` values, never as panics. Each kind of failure has a typed domain error that carries its specific error code. Each slice validates its own input explicitly and returns every field error at once. A single central mapper turns errors into Problem Details (RFC 9457) responses, and any unrecognized error becomes a 500.
+- Go (current stable release), module `github.com/couchpartygames/opentournament`. See ADR-0004.
+- HTTP uses Huma on top of the standard library `net/http`. The code is organized as vertical slices: one package per feature, each registering its own Huma operations. Each handler takes its decoded input, calls one command or query function, and does nothing else.
+- Expected failures (validation, not found, conflicts, wrong status for the operation) are returned as ordinary Go `error` values, never as panics. Each kind of failure has a typed domain error that carries its specific error code. Huma validates per-field input from struct tags, and rules that span several fields (e.g. Advancement vs Group size) are checked in the slice's own validation, which returns every field error at once. A single central mapper, hooked into Huma's error handling, turns errors into Problem Details (RFC 9457) responses, and any unrecognized error becomes a 500.
 - PostgreSQL through `pgx`. SQL is written by hand and compiled into type-safe Go with `sqlc`, with one set of queries for the tournament bounded context. Read queries select straight into response DTOs. There is no ORM. Every schema change is a versioned SQL migration (`goose`). IDs are distinct named types (e.g. `TournamentID`, `MatchID`) over version-7 UUIDs, so they cannot be mixed up.
-- The URLs are versioned (`/api/v1/...`). An OpenAPI 3.1 document is exposed, with Scalar in development.
+- The URLs are versioned (`/api/v1/...`). An OpenAPI 3.1 document is generated by Huma from the registered operations, so it can't drift from the code. It is exposed, with Scalar in development.
 - OpenTelemetry (Go SDK) covers traces, metrics and logs. Logging uses `log/slog`, bridged to OpenTelemetry. Health checks are split into liveness (`/livez`), readiness (`/readyz`) and startup (`/startupz`).
 - Every long-running operation takes a `context.Context`, and the process shuts down gracefully on SIGTERM: it stops accepting requests, drains in-flight work and background workers, then exits.
 
@@ -180,10 +180,23 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
    - Stalled is reached when the Result Deadline passes, and ends in Completed through the Organizer's resolution. The Result Deadline is set per Stage, counted from Ready, and not reset by an Abort.
    - A Forfeit is recorded per Bout, and the Match result follows from its Bouts (see Result rules).
    - Completing a Match hands its result back to the Format engine to unlock the next Matches or Rounds.
-4. **Game Server coordination (port plus Agones adapter).** The port is a narrow Go interface: allocate for a Match (Game → Fleet), watch server state, and release. The Agones adapter uses the official Agones Go client and `client-go` informers. It creates GameServerAllocations against the Game's Fleet, passes the Match ID as allocation metadata, and watches the allocated GameServer. If the server becomes Unhealthy or is deleted before the Match completes, the Match is Aborted. Every replica watches GameServers. Each state change is a conditional update of the Match row: for example, move In Progress to Aborted only if the Match still points at that allocation. Exactly one replica's update succeeds, and the others are no-ops, so no leader election is needed. Allocation is a persisted scheduler job ("allocate Match X, due at T"). A failed attempt reschedules the job with backoff, so retries survive a restart. Kubernetes RBAC is limited to GameServerAllocations plus reading and watching GameServers. See ADR-0001.
-5. **Match tokens.** The service issues a signed, short-lived token (a JWT signed with a service-held key) when it allocates a server, scoped to a single Match ID. It is separate from Keycloak-issued tokens and is accepted only on the Game Server endpoints for that Match while the Match isn't yet Completed or Cancelled. It is passed to the Game Server in allocation metadata. See ADR-0002.
+4. **Game Server coordination (port plus Agones adapter).** The port is a narrow Go interface: allocate for a Match (Game → Fleet), watch server state, notify a Forfeit mid-Match, and release. The Agones adapter uses the official Agones Go client and `client-go` informers. It creates GameServerAllocations against the Game's Fleet, and passes the Match ID and an Open Tournament label as allocation metadata.
+
+   Game Server state is handled by a **level-triggered reconcile loop**, not by reacting to individual watch events. A missed event, such as a GameServer deleted while every replica was down, can then never leave a Match stuck. The loop compares each Match in Allocating or In Progress (from Postgres) with its allocated GameServer (from Agones):
+
+   | Match (Postgres) | GameServer (Agones) | Action |
+   |---|---|---|
+   | In Progress, allocation A | A Allocated | nothing |
+   | In Progress, allocation A | A Unhealthy or missing | Abort the Match and schedule an allocation job |
+   | Completed or Cancelled | A still exists | release A |
+   | no Match references it | allocated with the Open Tournament label | release it (leaked server) |
+
+   Reconciliation runs at startup, on every GameServer event, and on a periodic resync, using `client-go` workqueues (rate-limited requeue). Postgres stays the source of truth for Tournament state; nothing about Tournaments is stored in Kubernetes. Every replica reconciles. Each state change is a conditional update of the Match row: for example, move In Progress to Aborted only if the Match still points at that allocation. Exactly one replica's update succeeds, and the others are no-ops, so no leader election is needed. Allocation is a persisted scheduler job ("allocate Match X, due at T"). A failed attempt reschedules the job with backoff, so retries survive a restart. When a Participant withdraws or is disqualified during an In Progress Match, the adapter writes a GameServer annotation (`opentournament/forfeited: <participant IDs>`). The server sees it through the Agones SDK's `WatchGameServer` and kicks those Participants. "Get my Match" also shows each Participant's forfeited status, so a restarted server can catch up. Releasing a server means deleting its GameServer, which returns the capacity to the Fleet. Kubernetes RBAC is limited to creating GameServerAllocations plus getting, listing, watching, patching and deleting GameServers. See ADR-0001.
+5. **Match tokens.** The service issues a signed token (a JWT signed with a service-held key) when it allocates a server, scoped to a single Match ID and to that allocation. It is separate from Keycloak-issued tokens and is accepted only on the Game Server endpoints for that Match while the Match isn't yet Completed or Cancelled. It expires at the Match's Result Deadline plus a short grace period, so there is no refresh endpoint. When a Match gets a new allocation after an Abort, tokens for earlier allocations are rejected. It is passed to the Game Server in allocation metadata. See ADR-0002.
 6. **Scheduler.** A background worker goroutine, started with the server and stopped through its context, drives time-based and retried work: registration opens, the Check-in Window opens, the Tournament starts (dropping Participants who didn't check in, and cancelling below Minimum Participants), Game Server allocation attempts, and Result Deadlines. It works from persisted due times rather than in-memory timers, so a restart loses nothing, and it is safe with more than one replica (claim due work with `SELECT … FOR UPDATE SKIP LOCKED`). It uses an injected clock interface.
-7. **Live updates.** A WebSocket endpoint on which clients subscribe to and unsubscribe from Tournaments. Domain changes are published after the transaction commits: registration counts, status, Match state, Bout results and Standings. The Game Server address goes only to that Match's Participants and the Organizer, never in public updates. Events are fanned out across replicas with PostgreSQL `LISTEN`/`NOTIFY`, so a client receives every update no matter which replica made the change.
+7. **Live updates.** A single WebSocket connection per client. The client may authenticate by sending its token in its first message, never in the URL; unauthenticated clients receive public events only. On that connection a client subscribes to and unsubscribes from any number of Tournaments. Events cover registration counts, status, Match state, Bout results and Standings. Private events, currently the Game Server address, go only to that Match's Participants and the Organizer, on the same connection, and never in public updates.
+   - **Transactional outbox:** each event is written to an `events` table in the same transaction as the change that caused it, which assigns it a sequence number per Tournament. After commit, a PostgreSQL `NOTIFY` carries only the Tournament ID and sequence number. Each replica then reads the rows it hasn't forwarded yet and sends them to its subscribed sockets, so a client receives every update no matter which replica made the change. Rows are pruned after a short retention period. See ADR-0003.
+   - **No replay:** the server keeps no per-client buffer. When a client (re)connects, or sees a gap in sequence numbers, it fetches current state over REST and then applies newer events. REST stays the source of truth.
 8. **Game catalog.** Games come from configuration: Game ID and name, accepted Player Identity kinds, Maximum Match Size, Agones Fleet name and namespace, and the Keycloak client IDs trusted to act for the Game.
 
 ### Authentication and authorization
@@ -202,19 +215,20 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 - Structure: get Stages, Groups, Rounds, Matches and Standings. Get Final Placements.
 - Matches: get one (including the Game Server address for its Participants), resolve Stalled (Organizer).
 - Game Server endpoints (Match token): get my Match, report Match started, report a Bout result, report a No-show.
-- Live updates (WebSocket): subscribe to or unsubscribe from a Tournament.
+- Live updates (one WebSocket connection): authenticate (optional, first message), subscribe to or unsubscribe from a Tournament.
 
 ### Result rules
 
 - **Head-to-head Bout result:** the winning Participant, no draws. The Match completes when one Participant reaches the majority of the Best-of.
 - **Free-for-all Bout result:** a placement and points for every Participant in the Match. Placements are strict, and the Game Server computes the points (the platform only sums them). The Match completes after the configured number of Bouts.
-- **Forfeit:** recorded per Bout. A No-show reported by the Game Server forfeits that Bout. A Withdrawal or Disqualification forfeits every Bout the Participant has not yet completed, including those in a Match already In Progress. In head-to-head, a forfeited Bout is won by the opponent, so a Participant leading 1–0 in a best-of-3 who withdraws loses 1–2, and the Match completes right away. In free-for-all, a forfeited Bout scores last placement and no points, and the Match continues for everyone else. A double Forfeit (Organizer resolving a Stalled Match) means both Participants lose. In elimination, the next Match's opponent gets a Bye.
+- **Forfeit:** recorded per Bout. A No-show reported by the Game Server forfeits that Bout. A Withdrawal or Disqualification forfeits every Bout the Participant has not yet completed, including those in a Match already In Progress. In head-to-head, a forfeited Bout is won by the opponent, so a Participant leading 1–0 in a best-of-3 who withdraws loses 1–2, and the Match completes right away. In free-for-all, a forfeited Bout scores last placement and no points, and the Match continues for everyone else. A double Forfeit means both Participants lose, and in elimination the next Match's opponent gets a Bye. It happens when the Organizer resolves a Stalled Match that way, or when both head-to-head Participants are No-shows for the same Bout (without waiting for the Result Deadline). A free-for-all Match completes right away once one Participant or none is left who hasn't forfeited: the remaining Bouts are forfeited as usual, and the Game Server is released.
 - **Validation at creation:** besides the per-field rules, the configuration is rejected if any Group could have fewer than Advancement + 1 Participants when attendance equals Minimum Participants.
 - **Duplicates and conflicts:** reporting a Bout number that is already recorded is idempotent if the data is identical, and a conflict otherwise.
+- **Forfeit wins over a late report:** once a Bout is forfeited (e.g. a Withdrawal in the middle of a head-to-head Bout), a later result for that Bout from the Game Server is rejected with the error code `bout-already-forfeited`. It is not treated as a duplicate.
 
 ### Data
 
-- **Persisted:** Tournaments, Stages, Groups, Rounds, Matches, Match slots (the Participants in a Match), Bouts, Bout results per Participant, Participants (with Player Identity kind and value, registration and check-in times, and status: registered, checked in, active, withdrawn, disqualified, eliminated), game-server allocations, and scheduled due times.
+- **Persisted:** Tournaments, Stages, Groups, Rounds, Matches, Match slots (the Participants in a Match), Bouts, Bout results per Participant, Participants (with Player Identity kind and value, registration and check-in times, and status: registered, checked in, active, withdrawn, disqualified, eliminated), game-server allocations, scheduled due times, and the live-update event outbox (short retention).
 - **Computed or cached:** Standings and Final Placements are computed by the Format engine from persisted results. Caching them is an optimization, not the source of truth.
 
 ## Testing Decisions
@@ -241,7 +255,7 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 
   Property-style tests (e.g. with `pgregory.net/rapid`) and native Go fuzz tests are encouraged, for example "every Participant plays exactly once per Round" and "a single-elimination bracket always yields N−1 Matches".
 - **Controlled test doubles** (these replace dependencies; they aren't extra seams):
-  - **Fake Game Server port:** records allocations and releases, and lets a test simulate allocation failure, a server becoming Unhealthy, or its deletion.
+  - **Fake Game Server port:** records allocations, releases and Forfeit notices, and lets a test simulate allocation failure, a server becoming Unhealthy, or its deletion. It can also simulate a server disappearing while the app was down (no event, just missing at startup), and a leaked allocated server that no Match references.
   - **Fake clock:** lets tests move time forward to trigger scheduler transitions and deadlines.
   - **Seeded random source** (a seeded `math/rand/v2` source): gives repeatable Seeding and Swiss random tiebreaks.
 - **Agones adapter:** not covered by automated tests in v1. A manual smoke test against a local cluster (for example kind with Agones installed) is documented instead.
@@ -258,6 +272,8 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 - Configurable Tiebreakers, a third-place Match, and making the Bracket Reset optional.
 - Seeding by rating, and manual Seeding by the Organizer.
 - Preventing players from entering overlapping Tournaments.
+- Stopping one person from entering a Tournament twice through different Player Identities (e.g. once as a Keycloak user and once by Steam ID). Uniqueness is per Player Identity only.
+- Replaying missed live updates. Clients refetch over REST instead.
 - Creating Agones Fleets and sizing or autoscaling them (an operations concern).
 - Ladders or leagues with no fixed end, prizes and payments.
 - Best-of values other than 1 and 3.
@@ -267,5 +283,7 @@ See `CONTEXT.md` for the vocabulary used throughout, and ADR-0001 and ADR-0002 f
 - The vocabulary comes from `CONTEXT.md` and should be used in code as well (type names, routes, event names).
 - ADR-0001: this app coordinates Agones itself, allocating from a warm Fleet per Game.
 - ADR-0002: only Game Servers report results, each using a token scoped to one Match.
+- ADR-0003: live updates go through a transactional outbox, fanned out across replicas with PostgreSQL `LISTEN`/`NOTIFY`.
+- ADR-0004: the service is written in Go.
 - Tournaments start in bursts: every first-Round Match becomes Ready at the same moment. Allocation and live update publishing must handle that burst without serializing on a single lock.
 - Suggested first slice: create a Tournament, register Participants, start it, and generate a single-elimination Stage. Then report Bout results through the fake Game Server port all the way to Final Placements. Other Formats, Check-in, Groups and multi-Stage support come after.

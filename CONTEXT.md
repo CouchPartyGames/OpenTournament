@@ -95,7 +95,7 @@ The rule that moves the top N Participants of each Group, by Standing, into the 
 _Avoid_: Qualification, promotion, progression
 
 **Forfeit**:
-A Participant not completing a Bout, through a No-show, Withdrawal, Disqualification, or the Organizer's resolution of a Stalled Match. A forfeited Bout is lost in head-to-head, and scores last placement with no points in free-for-all.
+A Participant not completing a Bout, through a No-show, Withdrawal, Disqualification, or the Organizer's resolution of a Stalled Match. A forfeited Bout is lost in head-to-head, and scores last placement with no points in free-for-all. When both Participants of a head-to-head Match forfeit, it is a double Forfeit and both lose.
 _Avoid_: Walkover, default loss, DQ
 
 **No-show**:
