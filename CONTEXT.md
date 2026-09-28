@@ -45,7 +45,7 @@ A Kubernetes resource that declares a Tournament template and a schedule in a ti
 _Avoid_: Series, cron tournament, repeating tournament
 
 **Occurrence**:
-One start time produced by a Recurring Tournament's schedule, and the Tournament that starts then. Each wall-clock time the schedule matches is at most one Occurrence, even across daylight-saving changes.
+One start time produced by a Recurring Tournament's schedule, and the Tournament that starts then. Daylight-saving changes never drop or repeat one.
 _Avoid_: Instance, run, iteration
 
 **Stage**:

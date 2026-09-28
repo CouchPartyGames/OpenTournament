@@ -12,8 +12,8 @@ import (
 // 2026-09-28 is a Monday. Europe/Berlin springs forward at 02:00 on
 // 2026-03-29 and falls back at 03:00 on 2026-10-25.
 
-func utc(year int, month time.Month, day, hour, min int) time.Time {
-	return time.Date(year, month, day, hour, min, 0, 0, time.UTC)
+func utc(year int, month time.Month, day, hour, minute int) time.Time {
+	return time.Date(year, month, day, hour, minute, 0, 0, time.UTC)
 }
 
 func mustParse(t *testing.T, expr, timeZone string, lookahead time.Duration) recurrence.Schedule {
@@ -142,6 +142,45 @@ func TestDaylightSavingTransitionsNeitherDropNorRepeatAnOccurrence(t *testing.T)
 			},
 		},
 		{
+			// A schedule that matches every hour follows real time, so the
+			// repeated hour has its Occurrence like any other.
+			name:      "hourly across fall back",
+			expr:      "0 * * * *",
+			now:       utc(2026, time.October, 25, 0, 0),
+			lookahead: 2 * time.Hour,
+			want: []time.Time{
+				utc(2026, time.October, 25, 0, 0),
+				utc(2026, time.October, 25, 1, 0),
+				utc(2026, time.October, 25, 2, 0),
+			},
+		},
+		{
+			name:      "every 15 minutes across fall back",
+			expr:      "*/15 * * * *",
+			now:       utc(2026, time.October, 25, 0, 30),
+			lookahead: time.Hour,
+			want: []time.Time{
+				utc(2026, time.October, 25, 0, 30),
+				utc(2026, time.October, 25, 0, 45),
+				utc(2026, time.October, 25, 1, 0),
+				utc(2026, time.October, 25, 1, 15),
+				utc(2026, time.October, 25, 1, 30),
+			},
+		},
+		{
+			name:      "every 15 minutes across spring forward",
+			expr:      "*/15 * * * *",
+			now:       utc(2026, time.March, 29, 0, 30),
+			lookahead: time.Hour,
+			want: []time.Time{
+				utc(2026, time.March, 29, 0, 30),
+				utc(2026, time.March, 29, 0, 45),
+				utc(2026, time.March, 29, 1, 0),
+				utc(2026, time.March, 29, 1, 15),
+				utc(2026, time.March, 29, 1, 30),
+			},
+		},
+		{
 			// Inside the repeated hour, 02:30 has already happened once.
 			name:      "now inside the repeated hour",
 			expr:      "30 2 * * *",
@@ -210,6 +249,16 @@ func TestNextEntry(t *testing.T) {
 			now:       utc(2026, time.October, 1, 10, 0),
 			want:      utc(2026, time.October, 1, 10, 0).Add(time.Nanosecond),
 		},
+		{
+			// Exactly 100 fit, so the next Occurrence, entering at 09:00,
+			// is cut off until the first returned one has started.
+			name:      "full window",
+			expr:      "0-49 10,12 * * *",
+			timeZone:  "UTC",
+			lookahead: 25 * time.Hour,
+			now:       utc(2026, time.October, 1, 8, 0),
+			want:      utc(2026, time.October, 1, 10, 0).Add(time.Nanosecond),
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := mustParse(t, tc.expr, tc.timeZone, tc.lookahead)
@@ -243,18 +292,18 @@ func TestParseRejectsInvalidSchedules(t *testing.T) {
 		lookahead time.Duration
 		want      error
 	}{
-		{"", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"0 20 * *", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"0 20 * * * *", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"61 20 * * *", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"0 20 * * mon-xyz", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"@every 1h", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"CRON_TZ=Europe/Berlin 0 20 * * *", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"TZ=Europe/Berlin 0 20 * * *", "UTC", 0, recurrence.ErrInvalidSchedule},
-		{"0 20 * * *", "Mars/Olympus_Mons", 0, recurrence.ErrUnknownTimeZone},
-		{"0 20 * * *", "Local", 0, recurrence.ErrUnknownTimeZone},
-		{"0 20 * * *", "", 0, recurrence.ErrUnknownTimeZone},
-		{"0 20 * * *", "UTC", -time.Hour, recurrence.ErrInvalidLookahead},
+		{expr: "", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "0 20 * *", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "0 20 * * * *", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "61 20 * * *", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "0 20 * * mon-xyz", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "@every 1h", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "CRON_TZ=Europe/Berlin 0 20 * * *", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "TZ=Europe/Berlin 0 20 * * *", timeZone: "UTC", want: recurrence.ErrInvalidSchedule},
+		{expr: "0 20 * * *", timeZone: "Mars/Olympus_Mons", want: recurrence.ErrUnknownTimeZone},
+		{expr: "0 20 * * *", timeZone: "Local", want: recurrence.ErrUnknownTimeZone},
+		{expr: "0 20 * * *", timeZone: "", want: recurrence.ErrUnknownTimeZone},
+		{expr: "0 20 * * *", timeZone: "UTC", lookahead: -time.Hour, want: recurrence.ErrInvalidLookahead},
 	} {
 		_, err := recurrence.Parse(tc.expr, tc.timeZone, tc.lookahead)
 		if !errors.Is(err, tc.want) {

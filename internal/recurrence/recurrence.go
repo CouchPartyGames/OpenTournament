@@ -5,17 +5,18 @@
 // nothing but the time zone database. The caller passes "now", and the same
 // inputs always produce the same outputs.
 //
-// A schedule is a standard five-field cron expression read on the wall clock
-// of its time zone. Each wall-clock time the expression matches is at most one
-// Occurrence, so daylight-saving transitions neither drop nor repeat one:
+// A schedule is a standard five-field cron expression in its time zone.
+// Daylight-saving transitions neither drop nor repeat an Occurrence; like
+// Vixie cron, a schedule is read one of two ways:
 //
-//   - When the clocks skip a matching time (02:30 when they spring forward from
-//     02:00 to 03:00), its Occurrence starts at the instant they jump.
-//   - When the clocks read a matching time twice (02:30 when they fall back
-//     from 03:00 to 02:00), only the first counts.
-//
-// An hourly schedule therefore has no Occurrence in the hour the clocks
-// repeat, since its wall-clock times have already been used.
+//   - A schedule that matches every hour, such as every 15 minutes, follows
+//     real time. It has no Occurrences in the hour the clocks skip, since that
+//     hour never happens, and has them in both passes of an hour they repeat.
+//   - Any other schedule names times on the wall clock, and each wall-clock
+//     time it matches is one Occurrence. When the clocks skip a matching time
+//     (02:30 when they spring forward from 02:00 to 03:00), its Occurrence
+//     starts at the instant they jump. When they read a matching time twice
+//     (02:30 when they fall back from 03:00 to 02:00), only the first counts.
 package recurrence
 
 import (
@@ -47,13 +48,15 @@ var (
 // @daily.
 var parser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
 
+// everyHour is the hour field of a schedule that matches every hour.
+const everyHour = 1<<24 - 1
+
 // Schedule is a Recurring Tournament's schedule: which Occurrences fall within
 // its lookahead window at any given time.
 type Schedule struct {
-	// wallClock matches wall-clock times, held as UTC times whose fields
-	// read as the wall clock in loc.
-	wallClock *cron.SpecSchedule
-	loc       *time.Location
+	// next returns the first Occurrence strictly after an instant, in UTC,
+	// or zero if there is none.
+	next      func(after time.Time) time.Time
 	lookahead time.Duration
 }
 
@@ -73,11 +76,10 @@ func Parse(expr, timeZone string, lookahead time.Duration) (Schedule, error) {
 	}
 	// @every counts from whenever it is asked, so its Occurrences would move
 	// with now.
-	wallClock, ok := parsed.(*cron.SpecSchedule)
+	spec, ok := parsed.(*cron.SpecSchedule)
 	if !ok {
 		return Schedule{}, fmt.Errorf("%w %q: @every is not supported", ErrInvalidSchedule, expr)
 	}
-	wallClock.Location = time.UTC
 
 	// "" and "Local" are valid for time.LoadLocation, but they depend on the
 	// host rather than on the Recurring Tournament.
@@ -95,7 +97,19 @@ func Parse(expr, timeZone string, lookahead time.Duration) (Schedule, error) {
 	if lookahead == 0 {
 		lookahead = DefaultLookahead
 	}
-	return Schedule{wallClock: wallClock, loc: loc, lookahead: lookahead}, nil
+
+	s := Schedule{lookahead: lookahead}
+	if spec.Hour&everyHour == everyHour {
+		// robfig/cron steps through hours as they happen, which is real time.
+		spec.Location = loc
+		s.next = func(after time.Time) time.Time { return spec.Next(after).UTC() }
+	} else {
+		// spec matches wall-clock times, held as UTC times whose fields read
+		// as the wall clock in loc.
+		spec.Location = time.UTC
+		s.next = func(after time.Time) time.Time { return nextOnWallClock(spec, loc, after) }
+	}
+	return s, nil
 }
 
 // Occurrences returns the Occurrences within [now, now+lookahead], in order and
@@ -103,63 +117,71 @@ func Parse(expr, timeZone string, lookahead time.Duration) (Schedule, error) {
 // returned: the earliest ones.
 func (s Schedule) Occurrences(now time.Time) []time.Time {
 	occurrences, _ := s.scan(now)
-	return occurrences[:min(len(occurrences), MaxOccurrences)]
+	return occurrences
 }
 
 // NextEntry returns the earliest time after now at which Occurrences returns an
 // Occurrence that it doesn't return at now, in UTC. That is usually when the
-// next Occurrence after the window enters it. When the window holds more than
-// MaxOccurrences, it is instead just after the earliest returned Occurrence,
-// when that one leaves the window and makes room for the next.
+// next Occurrence after the window enters it. When the window already holds
+// MaxOccurrences, it can be later: just after the first returned Occurrence
+// has started, which makes room for the next.
 //
 // It reports false if the schedule never produces another Occurrence.
 func (s Schedule) NextEntry(now time.Time) (time.Time, bool) {
-	occurrences, after := s.scan(now)
-	switch {
-	case len(occurrences) > MaxOccurrences:
-		return occurrences[0].Add(time.Nanosecond), true
-	case after.IsZero():
+	occurrences, following := s.scan(now)
+	if following.IsZero() {
 		return time.Time{}, false
 	}
-	return after.Add(-s.lookahead), true
+	entry := following.Add(-s.lookahead)
+	if len(occurrences) == MaxOccurrences {
+		if roomAt := occurrences[0].Add(time.Nanosecond); entry.Before(roomAt) {
+			entry = roomAt
+		}
+	}
+	return entry, true
 }
 
-// scan returns the Occurrences within the window at now, stopping after
-// MaxOccurrences+1 so callers can tell the window was capped. If it wasn't,
-// it also returns the first Occurrence after the window, or zero if none.
-func (s Schedule) scan(now time.Time) (occurrences []time.Time, after time.Time) {
+// scan returns what Occurrences returns at now, and the Occurrence that
+// follows them, or zero if there is none.
+func (s Schedule) scan(now time.Time) (occurrences []time.Time, following time.Time) {
 	end := now.Add(s.lookahead)
-	// Every wall-clock time whose Occurrence is at or after now comes after
-	// the wall-clock reading just before now. (Reading it at now would miss a
-	// skipped time whose Occurrence is exactly now, the instant of the jump.)
-	wall := wallTime(now.Add(-time.Nanosecond).In(s.loc))
-	var last time.Time
-	for len(occurrences) <= MaxOccurrences {
-		// The next matching wall-clock time. robfig/cron gives up after five
-		// years without a match, as for 30 February.
-		wall = s.wallClock.Next(wall)
-		if wall.IsZero() {
-			return occurrences, time.Time{}
-		}
-		o := instant(wall, s.loc)
-		// A wall-clock time just after now can still be before now when now
-		// is in an hour the clocks repeat; and a skipped wall-clock time shares
-		// its instant with the first time after the jump.
-		if o.Before(now) || o.Equal(last) {
-			continue
-		}
-		if o.After(end) {
+	// Starting just before now includes an Occurrence exactly at now.
+	o := now.Add(-time.Nanosecond)
+	for {
+		o = s.next(o)
+		if o.IsZero() || o.After(end) || len(occurrences) == MaxOccurrences {
 			return occurrences, o
 		}
 		occurrences = append(occurrences, o)
-		last = o
 	}
-	return occurrences, time.Time{}
+}
+
+// nextOnWallClock returns, in UTC, the first Occurrence strictly after an
+// instant for a schedule read on the wall clock in loc, or zero if there is
+// none. wallClock matches wall-clock times held as UTC times.
+func nextOnWallClock(wallClock *cron.SpecSchedule, loc *time.Location, after time.Time) time.Time {
+	// instant never decreases as the wall clock advances, so no time on or
+	// before after's own reading can have an Occurrence after it.
+	wall := wallTime(after.In(loc))
+	for {
+		// robfig/cron gives up after five years without a match, as for
+		// 30 February.
+		wall = wallClock.Next(wall)
+		if wall.IsZero() {
+			return time.Time{}
+		}
+		// A later wall-clock time can still have an Occurrence that isn't
+		// later: in an hour the clocks repeat, or when it is skipped and shares
+		// the instant of the jump.
+		if o := instant(wall, loc); o.After(after) {
+			return o
+		}
+	}
 }
 
 // instant returns, in UTC, the first instant at which the clocks in loc read
 // wall. If they skip wall, it returns the instant they jump. The result never
-// decreases as wall increases, which scan relies on.
+// decreases as wall increases, which nextOnWallClock relies on.
 func instant(wall time.Time, loc *time.Location) time.Time {
 	t := time.Date(wall.Year(), wall.Month(), wall.Day(), wall.Hour(), wall.Minute(), wall.Second(), 0, loc)
 	// For a skipped wall-clock time, time.Date picks an instant on either side

@@ -16,6 +16,8 @@ func TestOccurrencesAndNextEntryAgreeForAnyWindow(t *testing.T) {
 	rapid.Check(t, func(rt *rapid.T) {
 		expr := rapid.SampledFrom([]string{
 			"0 20 * * 1-5", "30 2 * * *", "0 * * * *", "*/15 * * * *", "* * * * *", "0 0 1 * *", "@daily",
+			// Irregular enough that a window can hold exactly MaxOccurrences.
+			"0-49 10,12 * * *", "*/7 1-3,9-17 * * 1-5",
 		}).Draw(rt, "schedule")
 		timeZone := rapid.SampledFrom([]string{
 			"UTC", "Europe/Berlin", "America/New_York", "Australia/Lord_Howe", "Asia/Kolkata",
