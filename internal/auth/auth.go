@@ -45,12 +45,13 @@ func (p Principal) ID() string {
 // client:<keycloak client id>. The Principal has no Player Identities.
 func ParsePrincipal(id string) (Principal, error) {
 	kind, value, _ := strings.Cut(id, ":")
-	switch {
-	case value == "":
-	case kind == "user":
-		return Principal{Subject: value}, nil
-	case kind == "client":
-		return Principal{ClientID: value}, nil
+	if value != "" {
+		switch kind {
+		case "user":
+			return Principal{Subject: value}, nil
+		case "client":
+			return Principal{ClientID: value}, nil
+		}
 	}
 	return Principal{}, fmt.Errorf("principal %q is neither user:<subject> nor client:<client id>", id)
 }

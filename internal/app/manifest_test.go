@@ -25,11 +25,11 @@ func mustApply(t *testing.T, h *apptest.Harness, namespace, name string, spec ma
 	// when read from the API server.
 	b, err := json.Marshal(spec)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("encode spec of manifest %s/%s: %v", namespace, name, err)
 	}
 	var object map[string]any
 	if err := json.Unmarshal(b, &object); err != nil {
-		t.Fatal(err)
+		t.Fatalf("decode spec %s: %v", b, err)
 	}
 	u := &unstructured.Unstructured{Object: map[string]any{"spec": object}}
 	u.SetAPIVersion("opentournament.io/v1alpha1")
@@ -75,7 +75,7 @@ func mustReadStatus(t *testing.T, h *apptest.Harness, namespace, name string) ma
 	}
 	b, err := json.Marshal(u.Object["status"])
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("encode status of manifest %s/%s: %v", namespace, name, err)
 	}
 	var s manifestStatus
 	if err := json.Unmarshal(b, &s); err != nil {
@@ -95,7 +95,7 @@ func TestApplyingAManifestDeclaresADraftTournament(t *testing.T) {
 		t.Fatalf("GET /api/v1/tournaments lists %d Tournaments, want 1", len(ts))
 	}
 	if ts[0].Status != "draft" || ts[0].Organizer != "client:arena-backend" {
-		t.Errorf("got %+v, want a draft organized by client:arena-backend", ts[0])
+		t.Errorf("GET /api/v1/tournaments lists %+v, want a draft organized by client:arena-backend", ts[0])
 	}
 }
 
@@ -111,10 +111,10 @@ func TestManifestStatusReportsTheDeclaredTournament(t *testing.T) {
 	}
 	s := mustReadStatus(t, h, "games", "friday-cup")
 	if s.ObservedGeneration != 3 || s.TournamentID != ts[0].ID || s.TournamentStatus != "draft" {
-		t.Errorf("status = %+v, want generation 3, Tournament %s, draft", s, ts[0].ID)
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want generation 3, Tournament %s, draft", s, ts[0].ID)
 	}
 	if len(s.Conditions) != 1 || s.Conditions[0].Type != "Synced" || s.Conditions[0].Status != "True" || s.Conditions[0].Reason != "Created" {
-		t.Errorf("conditions = %+v, want only Synced=True because Created", s.Conditions)
+		t.Errorf("mustReadStatus(games/friday-cup).Conditions = %+v, want only Synced=True because Created", s.Conditions)
 	}
 }
 
@@ -122,32 +122,31 @@ func TestTheExampleManifestDeclaresATournament(t *testing.T) {
 	h := apptest.MustStart(t, apptest.WatchManifests("games"))
 	b, err := os.ReadFile("../../examples/tournament.yaml")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("read the example: %v", err)
 	}
 	var example struct {
 		Metadata struct{ Name, Namespace string }
 		Spec     map[string]any
 	}
+	var dates struct {
+		Spec struct{ StartsAt, RegistrationOpensAt time.Time }
+	}
 	if err := yaml.Unmarshal(b, &example); err != nil {
 		t.Fatalf("parse the example: %v", err)
 	}
+	if err := yaml.Unmarshal(b, &dates); err != nil {
+		t.Fatalf("parse the example's dates: %v", err)
+	}
 	// The example's dates are in the fake clock's past; keep their spacing.
-	starts, err := time.Parse(time.RFC3339, example.Spec["startsAt"].(string))
-	if err != nil {
-		t.Fatal(err)
-	}
-	opens, err := time.Parse(time.RFC3339, example.Spec["registrationOpensAt"].(string))
-	if err != nil {
-		t.Fatal(err)
-	}
-	example.Spec["startsAt"] = h.FakeClock.Now().Add(24 * time.Hour)
-	example.Spec["registrationOpensAt"] = h.FakeClock.Now().Add(24*time.Hour - starts.Sub(opens))
+	starts := h.FakeClock.Now().Add(24 * time.Hour)
+	example.Spec["startsAt"] = starts
+	example.Spec["registrationOpensAt"] = starts.Add(-dates.Spec.StartsAt.Sub(dates.Spec.RegistrationOpensAt))
 
 	mustApply(t, h, example.Metadata.Namespace, example.Metadata.Name, example.Spec)
 	h.Settle()
 
 	if s := mustReadStatus(t, h, example.Metadata.Namespace, example.Metadata.Name); s.TournamentStatus != "draft" {
-		t.Errorf("status = %+v, want a draft Tournament", s)
+		t.Errorf("mustReadStatus(example) = %+v, want a draft Tournament", s)
 	}
 }
 
@@ -166,7 +165,30 @@ func TestManifestGetsTheAPIsDefaults(t *testing.T) {
 	}
 	h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil).Expect(http.StatusOK).Decode(&tv)
 	if tv.Organizer != "user:organizer" || len(tv.Stages) != 1 || tv.Stages[0].Groups != 1 {
-		t.Errorf("got %+v, want organized by user:organizer with one Stage of one Group", tv)
+		t.Errorf("GET /api/v1/tournaments/%s = %+v, want organized by user:organizer with one Stage of one Group", id, tv)
+	}
+}
+
+func TestEditingAManifestIsNotReportedAsObserved(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
+	h.Settle()
+
+	// Editing a declared Tournament comes later: until then, the status must
+	// not claim the edited generation.
+	client := h.FakeKubernetes.Resource(manifests.Resource).Namespace("games")
+	u, err := client.Get(context.Background(), "friday-cup", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("get manifest games/friday-cup: %v", err)
+	}
+	u.SetGeneration(4)
+	if _, err := client.Update(context.Background(), u, metav1.UpdateOptions{}); err != nil {
+		t.Fatalf("update manifest games/friday-cup: %v", err)
+	}
+	h.Settle()
+
+	if s := mustReadStatus(t, h, "games", "friday-cup"); s.ObservedGeneration != 3 {
+		t.Errorf("mustReadStatus(games/friday-cup).ObservedGeneration = %d, want 3, the generation declared", s.ObservedGeneration)
 	}
 }
 
@@ -180,7 +202,7 @@ func TestManifestsOutsideWatchedNamespacesAreIgnored(t *testing.T) {
 		t.Errorf("GET /api/v1/tournaments lists %d Tournaments, want none", len(ts))
 	}
 	if s := mustReadStatus(t, h, "elsewhere", "friday-cup"); len(s.Conditions) != 0 || s.TournamentID != "" {
-		t.Errorf("status = %+v, want none", s)
+		t.Errorf("mustReadStatus(elsewhere/friday-cup) = %+v, want none", s)
 	}
 }
 
@@ -222,7 +244,7 @@ func TestTheServiceWatchesManifestsAsTheyAreApplied(t *testing.T) {
 		t.Errorf("GET /api/v1/tournaments lists %d Tournaments, want 1", len(ts))
 	}
 	if s := mustReadStatus(t, h, "elsewhere", "friday-cup"); s.TournamentID != "" {
-		t.Errorf("the unwatched Manifest's status = %+v, want none", s)
+		t.Errorf("mustReadStatus(elsewhere/friday-cup) = %+v, want none", s)
 	}
 }
 

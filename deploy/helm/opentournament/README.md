@@ -7,6 +7,8 @@ Bring your own PostgreSQL, Keycloak realm and Agones Fleets.
 It also installs the `Tournament` CRD for [declarative Tournaments](../../../README.md#declarative-tournaments)
 from [`crds/`](crds). Helm installs CRDs only on the first install and never
 upgrades or deletes them; after an upgrade, `kubectl apply -f crds/` from the chart.
+Installing a CRD needs cluster-wide permissions: without declarative Tournaments,
+pass `--skip-crds`.
 
 ```sh
 # A released chart; its appVersion is the matching image tag.

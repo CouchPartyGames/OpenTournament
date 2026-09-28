@@ -48,14 +48,16 @@ type Spec struct {
 
 // Status reports the declared Tournament of a Tournament Manifest.
 type Status struct {
-	// ObservedGeneration is the Manifest generation last reconciled.
+	// ObservedGeneration is the Manifest generation the Tournament matches.
+	// Edits aren't applied yet, so it stays the generation that declared it.
 	ObservedGeneration int64                      `json:"observedGeneration,omitempty"`
 	TournamentID       string                     `json:"tournamentId,omitempty"`
 	TournamentStatus   lifecycle.TournamentStatus `json:"tournamentStatus,omitempty"`
 	Conditions         []metav1.Condition         `json:"conditions,omitempty"`
 }
 
-// ConditionSynced is true when the Tournament matches its Manifest.
+// ConditionSynced is true when the Tournament matches its Manifest's
+// observed generation.
 const ConditionSynced = "Synced"
 
 // ReasonCreated says the Tournament of a Synced Manifest was created from it.
@@ -109,7 +111,7 @@ func (c *Controller) Run(ctx context.Context) {
 	for _, ns := range c.namespaces {
 		factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(c.client, c.Resync, ns, nil)
 		if _, err := factory.ForResource(Resource).Informer().AddEventHandler(handler); err != nil {
-			slog.ErrorContext(ctx, "watch manifests", "namespace", ns, "error", err)
+			slog.ErrorContext(ctx, "can't watch the manifests of a namespace; its Tournaments won't be declared", "namespace", ns, "error", err)
 			continue
 		}
 		factory.Start(ctx.Done())
@@ -164,12 +166,16 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 	if err := convert(status, &want); err != nil {
 		return err
 	}
-	want.ObservedGeneration = u.GetGeneration()
+	// Edits aren't applied yet, so a later generation isn't observed: the
+	// Tournament still matches the generation that declared it.
+	if want.TournamentID != tv.ID.String() {
+		want.ObservedGeneration = u.GetGeneration()
+	}
 	want.TournamentID = tv.ID.String()
 	want.TournamentStatus = tv.Status
 	meta.SetStatusCondition(&want.Conditions, metav1.Condition{
 		Type: ConditionSynced, Status: metav1.ConditionTrue, Reason: ReasonCreated,
-		Message: "The Tournament is created", ObservedGeneration: u.GetGeneration(),
+		Message: "The Tournament is created", ObservedGeneration: want.ObservedGeneration,
 		LastTransitionTime: metav1.NewTime(c.svc.Clock.Now()),
 	})
 	// Writing only on change keeps the status update's own watch event from

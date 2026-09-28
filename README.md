@@ -103,7 +103,8 @@ every 30 seconds.
 
 Only creation is supported so far: editing a Manifest, reporting an invalid one
 in its status, deleting it and recurring schedules are still to come. Until then,
-an invalid Manifest is retried with backoff and logged as a warning.
+an edited Manifest keeps the `observedGeneration` that declared its Tournament,
+and an invalid Manifest is retried with backoff and logged as a warning.
 
 ## How it fits together
 
