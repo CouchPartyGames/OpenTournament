@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/google/uuid"
 )
 
@@ -121,7 +122,7 @@ UPDATE matches SET status = 'completed', result = $2, winner_id = $3, completed_
 
 type CompleteMatchParams struct {
 	ID          ids.MatchID
-	Result      *string
+	Result      *lifecycle.MatchResult
 	WinnerID    ids.ParticipantID
 	CompletedAt *time.Time
 }
@@ -817,7 +818,7 @@ UPDATE matches SET status = $2 WHERE id = $1
 
 type SetMatchStatusParams struct {
 	ID     ids.MatchID
-	Status string
+	Status lifecycle.MatchStatus
 }
 
 func (q *Queries) SetMatchStatus(ctx context.Context, arg SetMatchStatusParams) error {

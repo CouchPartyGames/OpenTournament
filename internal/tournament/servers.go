@@ -9,6 +9,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/gameserver"
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/matchtoken"
 	"github.com/jackc/pgx/v5"
 )
@@ -20,7 +21,7 @@ import (
 func (s *Service) Allocate(ctx context.Context, id ids.MatchID) error {
 	var req gameserver.AllocationRequest
 	err := s.InMatch(ctx, id, func(tx *Tx, m db.Match) error {
-		if (m.Status != MatchReady && m.Status != MatchAllocating) || m.ServerName != nil {
+		if (m.Status != lifecycle.MatchReady && m.Status != lifecycle.MatchAllocating) || m.ServerName != nil {
 			return nil
 		}
 		game, err := tx.Game()
@@ -28,7 +29,7 @@ func (s *Service) Allocate(ctx context.Context, id ids.MatchID) error {
 			return err
 		}
 		allocation := ids.New[ids.AllocationID]()
-		wasReady := m.Status == MatchReady
+		wasReady := m.Status == lifecycle.MatchReady
 		m, err = tx.Q.RequestAllocation(tx.ctx, db.RequestAllocationParams{ID: m.ID, AllocationID: allocation})
 		if err != nil {
 			return err
@@ -147,7 +148,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 	}
 	for _, sv := range servers {
 		m, ok := byID[sv.MatchID]
-		current := ok && m.AllocationID == sv.AllocationID && (m.Status == MatchAllocating || m.Status == MatchInProgress)
+		current := ok && m.AllocationID == sv.AllocationID && m.Status.Playing()
 		if current && sv.State == gameserver.Healthy {
 			continue // still in use, or its allocation is being confirmed
 		}

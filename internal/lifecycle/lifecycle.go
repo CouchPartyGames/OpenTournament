@@ -1,7 +1,7 @@
-// Package lifecycle names the statuses a Tournament and its Participants move
-// through. The queries store them and the Tournament aggregate moves between
-// them, so they live here, below both, where each can import them without a
-// cycle.
+// Package lifecycle names the statuses a Tournament, its Participants and its
+// Matches move through, and how a Match ends. The queries store them and the
+// Tournament aggregate moves between them, so they live here, below both,
+// where each can import them without a cycle.
 package lifecycle
 
 import "github.com/danielgtaylor/huma/v2"
@@ -51,6 +51,61 @@ func (s ParticipantStatus) HasLeft() bool { return s == Withdrawn || s == Disqua
 // Schema lists the Participant statuses as an enum in the OpenAPI document.
 func (ParticipantStatus) Schema(huma.Registry) *huma.Schema {
 	return enum(Registered, CheckedIn, NotCheckedIn, Active, Withdrawn, Disqualified, Eliminated)
+}
+
+// MatchStatus is where a Match is in its lifecycle: Pending until its
+// Participants are known and its Round opens, then Ready, Allocating while it
+// gets a Game Server and InProgress once that server reports it started,
+// until it is Completed. An Abort sends it back to Allocating, and a Bye or
+// an empty Match goes straight from Pending to Completed.
+//
+// A Match with no result by its Result Deadline is Stalled until the
+// Organizer resolves it, or its Game Server reports the deciding result late
+// while its token is still good. One still unfinished when its Tournament is
+// cancelled is Cancelled.
+type MatchStatus string
+
+// Match statuses. Unlike the Tournament and Participant statuses they carry a
+// prefix, as several share a name with those.
+const (
+	MatchPending    MatchStatus = "pending"
+	MatchReady      MatchStatus = "ready"
+	MatchAllocating MatchStatus = "allocating"
+	MatchInProgress MatchStatus = "in-progress"
+	MatchStalled    MatchStatus = "stalled"
+	MatchCompleted  MatchStatus = "completed"
+	MatchCancelled  MatchStatus = "cancelled"
+)
+
+// Open reports whether the Match can still receive results.
+func (s MatchStatus) Open() bool { return s == MatchReady || s.Playing() || s == MatchStalled }
+
+// Playing reports whether the Match is being played, or about to be, on a
+// Game Server of its own: Allocating or InProgress.
+func (s MatchStatus) Playing() bool { return s == MatchAllocating || s == MatchInProgress }
+
+// Schema lists the Match statuses as an enum in the OpenAPI document.
+func (MatchStatus) Schema(huma.Registry) *huma.Schema {
+	return enum(MatchPending, MatchReady, MatchAllocating, MatchInProgress, MatchStalled, MatchCompleted, MatchCancelled)
+}
+
+// MatchResult is how a Completed Match ended: a Win, a double Forfeit, a Bye,
+// Empty when it had no Participants at all, or FreeForAll for any other
+// Match of a free-for-all Stage, whose Standings its Bouts decide.
+type MatchResult string
+
+// Match results.
+const (
+	ResultWin           MatchResult = "win"
+	ResultDoubleForfeit MatchResult = "double-forfeit"
+	ResultBye           MatchResult = "bye"
+	ResultEmpty         MatchResult = "empty"
+	ResultFreeForAll    MatchResult = "free-for-all"
+)
+
+// Schema lists the Match results as an enum in the OpenAPI document.
+func (MatchResult) Schema(huma.Registry) *huma.Schema {
+	return enum(ResultWin, ResultDoubleForfeit, ResultBye, ResultEmpty, ResultFreeForAll)
 }
 
 // enum describes a string type that holds only the given values.

@@ -66,8 +66,8 @@ type Match struct {
 	Key            string
 	Round          int32
 	Bracket        string
-	Status         string
-	Result         *string
+	Status         lifecycle.MatchStatus
+	Result         *lifecycle.MatchResult
 	WinnerID       ids.ParticipantID
 	ReadyAt        *time.Time
 	ResultDeadline *time.Time

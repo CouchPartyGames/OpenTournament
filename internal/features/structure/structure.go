@@ -101,23 +101,23 @@ type RoundView struct {
 
 // MatchView is a Match without its Game Server address.
 type MatchView struct {
-	ID              ids.MatchID           `json:"id"`
-	TournamentID    ids.TournamentID      `json:"tournamentId"`
-	GroupID         ids.GroupID           `json:"groupId"`
-	Key             string                `json:"key" doc:"Stable position of the Match in its Group, e.g. R2-M1"`
-	Round           int32                 `json:"round"`
-	Bracket         string                `json:"bracket,omitempty"`
-	Status          string                `json:"status" enum:"pending,ready,allocating,in-progress,stalled,completed,cancelled"`
-	Result          *string               `json:"result,omitempty" enum:"win,double-forfeit,bye,empty,free-for-all"`
-	WinnerID        *ids.ParticipantID    `json:"winnerId,omitempty"`
-	Participants    []ids.ParticipantID   `json:"participants"`
-	Bouts           []tournament.BoutView `json:"bouts"`
-	ReadyAt         *time.Time            `json:"readyAt,omitempty"`
-	ResultDeadline  *time.Time            `json:"resultDeadline,omitempty"`
-	StartedAt       *time.Time            `json:"startedAt,omitempty"`
-	CompletedAt     *time.Time            `json:"completedAt,omitempty"`
-	Aborts          int32                 `json:"aborts" doc:"How often its Game Server failed mid-play"`
-	ServerAllocated bool                  `json:"serverAllocated"`
+	ID              ids.MatchID            `json:"id"`
+	TournamentID    ids.TournamentID       `json:"tournamentId"`
+	GroupID         ids.GroupID            `json:"groupId"`
+	Key             string                 `json:"key" doc:"Stable position of the Match in its Group, e.g. R2-M1"`
+	Round           int32                  `json:"round"`
+	Bracket         string                 `json:"bracket,omitempty"`
+	Status          lifecycle.MatchStatus  `json:"status"`
+	Result          *lifecycle.MatchResult `json:"result,omitempty"`
+	WinnerID        *ids.ParticipantID     `json:"winnerId,omitempty"`
+	Participants    []ids.ParticipantID    `json:"participants"`
+	Bouts           []tournament.BoutView  `json:"bouts"`
+	ReadyAt         *time.Time             `json:"readyAt,omitempty"`
+	ResultDeadline  *time.Time             `json:"resultDeadline,omitempty"`
+	StartedAt       *time.Time             `json:"startedAt,omitempty"`
+	CompletedAt     *time.Time             `json:"completedAt,omitempty"`
+	Aborts          int32                  `json:"aborts" doc:"How often its Game Server failed mid-play"`
+	ServerAllocated bool                   `json:"serverAllocated"`
 }
 
 // MatchViewOf builds a MatchView.
@@ -126,7 +126,7 @@ func MatchViewOf(m db.Match, slots []ids.ParticipantID, bouts []db.BoutResult) M
 		ID: m.ID, TournamentID: m.TournamentID, GroupID: m.GroupID, Key: m.Key, Round: m.Round, Bracket: m.Bracket,
 		Status: m.Status, Result: m.Result, Participants: slots, Bouts: tournament.BoutsView(bouts),
 		ReadyAt: m.ReadyAt, ResultDeadline: m.ResultDeadline, StartedAt: m.StartedAt, CompletedAt: m.CompletedAt,
-		Aborts: m.Aborts, ServerAllocated: m.ServerName != nil && (m.Status == tournament.MatchAllocating || m.Status == tournament.MatchInProgress),
+		Aborts: m.Aborts, ServerAllocated: m.ServerName != nil && m.Status.Playing(),
 	}
 	if v.Participants == nil {
 		v.Participants = []ids.ParticipantID{}
