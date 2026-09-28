@@ -12,6 +12,7 @@ import (
 
 	"github.com/couchpartygames/opentournament/internal/clock"
 	"github.com/couchpartygames/opentournament/internal/db"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -23,7 +24,7 @@ type Handler func(ctx context.Context, job db.Job) error
 type Scheduler struct {
 	q        *db.Queries
 	clock    clock.Clock
-	handlers map[string]Handler
+	handlers map[lifecycle.JobKind]Handler
 	wake     chan struct{}
 
 	// Lease is how long a claimed job is reserved for its worker.
@@ -38,7 +39,7 @@ type Scheduler struct {
 }
 
 // New returns a Scheduler.
-func New(q *db.Queries, c clock.Clock, handlers map[string]Handler) *Scheduler {
+func New(q *db.Queries, c clock.Clock, handlers map[lifecycle.JobKind]Handler) *Scheduler {
 	return &Scheduler{
 		q: q, clock: c, handlers: handlers, wake: make(chan struct{}, 1),
 		Lease: time.Minute, Poll: time.Second, Retention: time.Hour, Concurrency: 16,

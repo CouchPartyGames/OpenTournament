@@ -277,10 +277,10 @@ func (tx *Tx) makeReady(gs *groupState, m db.Match) error {
 	if err := tx.Q.SetMatchReady(tx.ctx, db.SetMatchReadyParams{ID: m.ID, ReadyAt: &tx.now, ResultDeadline: &deadline}); err != nil {
 		return err
 	}
-	if err := tx.Schedule(JobAllocate, m.ID, tx.now); err != nil {
+	if err := tx.Schedule(lifecycle.JobAllocate, m.ID, tx.now); err != nil {
 		return err
 	}
-	if err := tx.Schedule(JobResultDeadline, m.ID, deadline); err != nil {
+	if err := tx.Schedule(lifecycle.JobResultDeadline, m.ID, deadline); err != nil {
 		return err
 	}
 	m.Status, m.ReadyAt, m.ResultDeadline = lifecycle.MatchReady, &tx.now, &deadline
@@ -294,10 +294,10 @@ func (tx *Tx) completeMatch(gs *groupState, m db.Match, result lifecycle.MatchRe
 	}); err != nil {
 		return err
 	}
-	if err := tx.Unschedule(JobAllocate, m.ID); err != nil {
+	if err := tx.Unschedule(lifecycle.JobAllocate, m.ID); err != nil {
 		return err
 	}
-	if err := tx.Unschedule(JobResultDeadline, m.ID); err != nil {
+	if err := tx.Unschedule(lifecycle.JobResultDeadline, m.ID); err != nil {
 		return err
 	}
 	tx.release(m)

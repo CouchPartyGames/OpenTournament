@@ -29,14 +29,14 @@ func (s *Service) OpenRegistration(ctx context.Context, id ids.TournamentID) err
 		if err := tx.SetStatus(lifecycle.RegistrationOpen); err != nil {
 			return err
 		}
-		if err := tx.Schedule(JobStart, ids.MatchID{}, tx.T.StartsAt); err != nil {
+		if err := tx.Schedule(lifecycle.JobStart, ids.MatchID{}, tx.T.StartsAt); err != nil {
 			return err
 		}
 		if !tx.T.CheckInEnabled {
 			return nil
 		}
 		if opens := CheckInOpensAt(tx.T); opens.After(tx.now) {
-			return tx.Schedule(JobOpenCheckIn, ids.MatchID{}, opens)
+			return tx.Schedule(lifecycle.JobOpenCheckIn, ids.MatchID{}, opens)
 		}
 		return tx.SetStatus(lifecycle.CheckIn)
 	})

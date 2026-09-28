@@ -86,5 +86,7 @@ sql:
             go_type: {import: github.com/couchpartygames/opentournament/internal/lifecycle, type: StageStatus}
           - column: groups.status
             go_type: {import: github.com/couchpartygames/opentournament/internal/lifecycle, type: StageStatus}
+          - column: jobs.kind
+            go_type: {import: github.com/couchpartygames/opentournament/internal/lifecycle, type: JobKind}
           - column: stages.format
             go_type: {import: github.com/couchpartygames/opentournament/internal/format, type: Kind}

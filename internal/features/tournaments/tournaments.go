@@ -190,7 +190,7 @@ func (s TournamentSettings) apply(tx *tournament.Tx) error {
 			return err
 		}
 	}
-	return tx.Schedule(tournament.JobOpenRegistration, ids.MatchID{}, tx.T.RegistrationOpensAt)
+	return tx.Schedule(lifecycle.JobOpenRegistration, ids.MatchID{}, tx.T.RegistrationOpensAt)
 }
 
 // Cancel stops a Tournament that hasn't completed.
