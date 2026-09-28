@@ -359,7 +359,7 @@ func (s *Service) ExpireMatch(ctx context.Context, id ids.MatchID) error {
 		if err := tx.Q.SetMatchStatus(tx.ctx, db.SetMatchStatusParams{ID: m.ID, Status: lifecycle.MatchStalled}); err != nil {
 			return err
 		}
-		if err := tx.Unschedule(JobAllocate, m.ID); err != nil {
+		if err := tx.Unschedule(lifecycle.JobAllocate, m.ID); err != nil {
 			return err
 		}
 		tx.release(m)

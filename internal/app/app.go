@@ -24,6 +24,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/gameserver"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/matchtoken"
 	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/couchpartygames/opentournament/internal/reconciler"
@@ -75,12 +76,12 @@ func New(cfg Config) (*App, error) {
 	svc := tournament.NewService(tournament.Deps{
 		Pool: cfg.Pool, Clock: cfg.Clock, Games: cfg.Games, Tokens: tokens, Servers: cfg.GameServers, Rand: cfg.Rand,
 	})
-	sched := scheduler.New(db.New(cfg.Pool), cfg.Clock, map[string]scheduler.Handler{
-		tournament.JobOpenRegistration: func(ctx context.Context, j db.Job) error { return svc.OpenRegistration(ctx, j.TournamentID) },
-		tournament.JobOpenCheckIn:      func(ctx context.Context, j db.Job) error { return svc.OpenCheckIn(ctx, j.TournamentID) },
-		tournament.JobStart:            func(ctx context.Context, j db.Job) error { return svc.Start(ctx, j.TournamentID) },
-		tournament.JobAllocate:         func(ctx context.Context, j db.Job) error { return svc.Allocate(ctx, j.MatchID) },
-		tournament.JobResultDeadline:   func(ctx context.Context, j db.Job) error { return svc.ExpireMatch(ctx, j.MatchID) },
+	sched := scheduler.New(db.New(cfg.Pool), cfg.Clock, map[lifecycle.JobKind]scheduler.Handler{
+		lifecycle.JobOpenRegistration: func(ctx context.Context, j db.Job) error { return svc.OpenRegistration(ctx, j.TournamentID) },
+		lifecycle.JobOpenCheckIn:      func(ctx context.Context, j db.Job) error { return svc.OpenCheckIn(ctx, j.TournamentID) },
+		lifecycle.JobStart:            func(ctx context.Context, j db.Job) error { return svc.Start(ctx, j.TournamentID) },
+		lifecycle.JobAllocate:         func(ctx context.Context, j db.Job) error { return svc.Allocate(ctx, j.MatchID) },
+		lifecycle.JobResultDeadline:   func(ctx context.Context, j db.Job) error { return svc.ExpireMatch(ctx, j.MatchID) },
 	})
 	svc.Wake = sched.Wake
 

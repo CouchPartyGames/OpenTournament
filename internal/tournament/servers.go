@@ -171,7 +171,7 @@ func (s *Service) abort(ctx context.Context, failed db.Match) error {
 		}
 		slog.InfoContext(ctx, "match aborted: game server failed", "match", m.ID, "server", *failed.ServerName)
 		tx.release(failed)
-		if err := tx.Schedule(JobAllocate, m.ID, tx.now); err != nil {
+		if err := tx.Schedule(lifecycle.JobAllocate, m.ID, tx.now); err != nil {
 			return err
 		}
 		gs, err := tx.loadGroup(m.GroupID)

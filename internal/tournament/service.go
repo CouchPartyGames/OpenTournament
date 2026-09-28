@@ -178,13 +178,13 @@ func (tx *Tx) EmitEvent(e events.Event) error {
 }
 
 // Schedule persists a due time for background work.
-func (tx *Tx) Schedule(kind string, match ids.MatchID, due time.Time) error {
+func (tx *Tx) Schedule(kind lifecycle.JobKind, match ids.MatchID, due time.Time) error {
 	tx.wake = true
 	return tx.Q.ScheduleJob(tx.ctx, db.ScheduleJobParams{Kind: kind, TournamentID: tx.T.ID, MatchID: match, DueAt: due})
 }
 
 // Unschedule drops pending background work.
-func (tx *Tx) Unschedule(kind string, match ids.MatchID) error {
+func (tx *Tx) Unschedule(kind lifecycle.JobKind, match ids.MatchID) error {
 	return tx.Q.UnscheduleJob(tx.ctx, db.UnscheduleJobParams{Kind: kind, TournamentID: tx.T.ID, MatchID: match})
 }
 

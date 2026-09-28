@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/ids"
+	"github.com/couchpartygames/opentournament/internal/lifecycle"
 )
 
 const claimDueJobs = `-- name: ClaimDueJobs :many
@@ -102,7 +103,7 @@ ON CONFLICT (kind, tournament_id, match_id) DO UPDATE SET due_at = EXCLUDED.due_
 `
 
 type ScheduleJobParams struct {
-	Kind         string
+	Kind         lifecycle.JobKind
 	TournamentID ids.TournamentID
 	MatchID      ids.MatchID
 	DueAt        time.Time
@@ -123,7 +124,7 @@ DELETE FROM jobs WHERE kind = $1 AND tournament_id = $2 AND match_id IS NOT DIST
 `
 
 type UnscheduleJobParams struct {
-	Kind         string
+	Kind         lifecycle.JobKind
 	TournamentID ids.TournamentID
 	MatchID      ids.MatchID
 }

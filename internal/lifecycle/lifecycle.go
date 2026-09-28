@@ -1,7 +1,8 @@
 // Package lifecycle names the statuses a Tournament, its Participants, its
-// Stages and Groups, and its Matches move through, and how a Match ends. The
-// queries store them and the Tournament aggregate moves between them, so they
-// live here, below both, where each can import them without a cycle.
+// Stages and Groups, and its Matches move through, how a Match ends, and the
+// kinds of work scheduled to move them on. The queries store them and the
+// Tournament aggregate moves between them, so they live here, below both,
+// where each can import them without a cycle.
 package lifecycle
 
 import "github.com/danielgtaylor/huma/v2"
@@ -126,6 +127,21 @@ const (
 func (MatchResult) Schema(huma.Registry) *huma.Schema {
 	return enum(ResultWin, ResultDoubleForfeit, ResultBye, ResultEmpty, ResultFreeForAll)
 }
+
+// JobKind is a kind of work the scheduler runs when it falls due: opening
+// registration, opening Check-in, starting the Tournament, allocating a
+// Match's Game Server, and a Match's Result Deadline passing.
+type JobKind string
+
+// Job kinds. They are stored with each pending job, so changing a value
+// orphans the jobs already scheduled under it.
+const (
+	JobOpenRegistration JobKind = "open-registration"
+	JobOpenCheckIn      JobKind = "open-check-in"
+	JobStart            JobKind = "start"
+	JobAllocate         JobKind = "allocate"
+	JobResultDeadline   JobKind = "result-deadline"
+)
 
 // enum describes a string type that holds only the given values.
 func enum[T ~string](values ...T) *huma.Schema {

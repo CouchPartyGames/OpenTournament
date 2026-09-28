@@ -52,7 +52,7 @@ type GroupParticipant struct {
 
 type Job struct {
 	ID           int64
-	Kind         string
+	Kind         lifecycle.JobKind
 	TournamentID ids.TournamentID
 	MatchID      ids.MatchID
 	DueAt        time.Time
