@@ -1,0 +1,3 @@
+# Only game servers report results, each with a per-Match token
+
+Match results come exclusively from the Game Server that hosted the Match. There is no self-reporting by Participants and no dispute flow. The only manual path is the Organizer resolving a Stalled Match. When the API allocates a Game Server, it issues a short-lived token scoped to that one Match and passes it to the server. The server uses the token to fetch its Match and report Bout results. We rejected a shared credential per Game because, in an open-source project with publicly available server builds, any compromised or modified server could then report results for any Match.
