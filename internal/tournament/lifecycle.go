@@ -94,7 +94,7 @@ func (s *Service) Start(ctx context.Context, id ids.TournamentID) error {
 // startStage splits the seeded Participants into Groups by snake Seeding and
 // opens every Group.
 func (tx *Tx) startStage(st db.Stage, seeds []format.ParticipantID) error {
-	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: StageRunning}); err != nil {
+	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: lifecycle.StageRunning}); err != nil {
 		return err
 	}
 	if err := tx.Emit(events.StageStarted, map[string]any{"stageId": st.ID, "position": st.Position}); err != nil {
@@ -104,7 +104,9 @@ func (tx *Tx) startStage(st db.Stage, seeds []format.ParticipantID) error {
 	for i, members := range format.Snake(seeds, int(st.GroupCount)) {
 		g := ids.New[ids.GroupID]()
 		groups = append(groups, g)
-		if err := tx.Q.InsertGroup(tx.ctx, db.InsertGroupParams{ID: g, TournamentID: tx.T.ID, StageID: st.ID, Position: int32(i)}); err != nil {
+		if err := tx.Q.InsertGroup(tx.ctx, db.InsertGroupParams{
+			ID: g, TournamentID: tx.T.ID, StageID: st.ID, Position: int32(i), Status: lifecycle.StageRunning,
+		}); err != nil {
 			return fmt.Errorf("insert group: %w", err)
 		}
 		var participants []format.Participant
@@ -133,10 +135,10 @@ func (tx *Tx) finishStageIfComplete(st db.Stage) error {
 	if err != nil {
 		return err
 	}
-	if slices.ContainsFunc(groups, func(g db.Group) bool { return g.Status != StageCompleted }) {
+	if slices.ContainsFunc(groups, func(g db.Group) bool { return g.Status != lifecycle.StageCompleted }) {
 		return nil
 	}
-	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: StageCompleted}); err != nil {
+	if err := tx.Q.SetStageStatus(tx.ctx, db.SetStageStatusParams{ID: st.ID, Status: lifecycle.StageCompleted}); err != nil {
 		return err
 	}
 	if err := tx.Emit(events.StageCompleted, map[string]any{"stageId": st.ID, "position": st.Position}); err != nil {

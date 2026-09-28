@@ -1,7 +1,7 @@
-// Package lifecycle names the statuses a Tournament, its Participants and its
-// Matches move through, and how a Match ends. The queries store them and the
-// Tournament aggregate moves between them, so they live here, below both,
-// where each can import them without a cycle.
+// Package lifecycle names the statuses a Tournament, its Participants, its
+// Stages and Groups, and its Matches move through, and how a Match ends. The
+// queries store them and the Tournament aggregate moves between them, so they
+// live here, below both, where each can import them without a cycle.
 package lifecycle
 
 import "github.com/danielgtaylor/huma/v2"
@@ -51,6 +51,25 @@ func (s ParticipantStatus) HasLeft() bool { return s == Withdrawn || s == Disqua
 // Schema lists the Participant statuses as an enum in the OpenAPI document.
 func (ParticipantStatus) Schema(huma.Registry) *huma.Schema {
 	return enum(Registered, CheckedIn, NotCheckedIn, Active, Withdrawn, Disqualified, Eliminated)
+}
+
+// StageStatus is where a Stage or a Group is in its lifecycle. A Stage is
+// Pending until it starts, the first with its Tournament and each later one
+// when the Stage before it completes, then Running until every one of its
+// Groups is Completed. A Group starts Running, as it is only created when its
+// Stage starts.
+type StageStatus string
+
+// Stage and Group statuses.
+const (
+	StagePending   StageStatus = "pending"
+	StageRunning   StageStatus = "running"
+	StageCompleted StageStatus = "completed"
+)
+
+// Schema lists the Stage and Group statuses as an enum in the OpenAPI document.
+func (StageStatus) Schema(huma.Registry) *huma.Schema {
+	return enum(StagePending, StageRunning, StageCompleted)
 }
 
 // MatchStatus is where a Match is in its lifecycle: Pending until its

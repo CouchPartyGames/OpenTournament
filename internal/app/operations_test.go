@@ -150,3 +150,37 @@ func TestOpenAPIDocumentListsEveryMatchStatusAndResult(t *testing.T) {
 		}
 	}
 }
+
+func TestOpenAPIDocumentListsEveryStageStatusAndFormat(t *testing.T) {
+	h := apptest.MustStart(t)
+
+	var doc struct {
+		Components struct {
+			Schemas map[string]struct {
+				Properties map[string]struct {
+					Enum []any `json:"enum"`
+				} `json:"properties"`
+			} `json:"schemas"`
+		} `json:"components"`
+	}
+	h.Do(http.MethodGet, "/api/v1/openapi.json", "", nil).Expect(http.StatusOK).Decode(&doc)
+
+	statuses := []any{"pending", "running", "completed"}
+	formats := []any{"single-elimination", "double-elimination", "round-robin", "swiss", "free-for-all"}
+	for _, c := range []struct {
+		schema, property string
+		want             []any
+	}{
+		{schema: "ConfiguredStageView", property: "status", want: statuses},
+		{schema: "StageView", property: "status", want: statuses},
+		{schema: "GroupView", property: "status", want: statuses},
+		{schema: "StageSettings", property: "format", want: formats},
+		{schema: "ConfiguredStageView", property: "format", want: formats},
+		{schema: "StageView", property: "format", want: formats},
+		{schema: "ServerMatchView", property: "format", want: formats},
+	} {
+		if got := doc.Components.Schemas[c.schema].Properties[c.property].Enum; !slices.Equal(got, c.want) {
+			t.Errorf("%s.%s enum = %v, want %v", c.schema, c.property, got, c.want)
+		}
+	}
+}

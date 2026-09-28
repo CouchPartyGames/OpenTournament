@@ -68,18 +68,18 @@ type StructureView struct {
 
 // StageView is a Stage with its Groups.
 type StageView struct {
-	ID       ids.StageID `json:"id"`
-	Position int32       `json:"position"`
-	Format   string      `json:"format"`
-	Status   string      `json:"status"`
-	Groups   []GroupView `json:"groups"`
+	ID       ids.StageID           `json:"id"`
+	Position int32                 `json:"position"`
+	Format   format.Kind           `json:"format"`
+	Status   lifecycle.StageStatus `json:"status"`
+	Groups   []GroupView           `json:"groups"`
 }
 
 // GroupView is a Group with its Standings and Rounds.
 type GroupView struct {
 	ID           ids.GroupID               `json:"id"`
 	Position     int32                     `json:"position"`
-	Status       string                    `json:"status" enum:"running,completed"`
+	Status       lifecycle.StageStatus     `json:"status"`
 	Participants []GroupParticipantView    `json:"participants"`
 	Standings    []tournament.StandingView `json:"standings"`
 	Rounds       []RoundView               `json:"rounds"`

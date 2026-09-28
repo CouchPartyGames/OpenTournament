@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/db"
+	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/ids"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/matchtoken"
@@ -55,7 +56,7 @@ type ServerMatchView struct {
 	TournamentID ids.TournamentID        `json:"tournamentId"`
 	GameID       string                  `json:"gameId"`
 	Status       lifecycle.MatchStatus   `json:"status"`
-	Format       string                  `json:"format"`
+	Format       format.Kind             `json:"format"`
 	BestOf       int32                   `json:"bestOf,omitempty" doc:"Head-to-head only: 1 or 3"`
 	Bouts        int32                   `json:"bouts,omitempty" doc:"Free-for-all only: the number of Bouts"`
 	Participants []ServerParticipantView `json:"participants"`

@@ -185,7 +185,7 @@ func (s TournamentSettings) apply(tx *tournament.Tx) error {
 		if err := tx.Q.InsertStage(tx.Ctx(), db.InsertStageParams{
 			ID: ids.New[ids.StageID](), TournamentID: tx.T.ID, Position: int32(i), Format: st.Format,
 			GroupCount: st.Groups, Advancement: st.Advancement, BestOf: st.BestOf, Bouts: st.Bouts,
-			SwissRounds: st.SwissRounds, ResultDeadlineSeconds: st.ResultDeadlineSeconds,
+			SwissRounds: st.SwissRounds, ResultDeadlineSeconds: st.ResultDeadlineSeconds, Status: lifecycle.StagePending,
 		}); err != nil {
 			return err
 		}
@@ -309,8 +309,8 @@ type TournamentView struct {
 
 // ConfiguredStageView is a configured Stage.
 type ConfiguredStageView struct {
-	ID       ids.StageID `json:"id"`
-	Position int32       `json:"position"`
-	Status   string      `json:"status" enum:"pending,running,completed"`
+	ID       ids.StageID           `json:"id"`
+	Position int32                 `json:"position"`
+	Status   lifecycle.StageStatus `json:"status"`
 	StageSettings
 }

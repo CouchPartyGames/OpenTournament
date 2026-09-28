@@ -6,6 +6,7 @@ import (
 	"context"
 	"math/rand/v2"
 	"net/http"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/couchpartygames/opentournament/internal/features/registrations"
 	"github.com/couchpartygames/opentournament/internal/features/structure"
 	"github.com/couchpartygames/opentournament/internal/features/tournaments"
+	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/gameserver"
 	"github.com/couchpartygames/opentournament/internal/matchtoken"
@@ -104,6 +106,7 @@ func New(cfg Config) (*App, error) {
 		"keycloak":   {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "A Keycloak-issued access token."},
 		"matchToken": {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "The per-Match token a Game Server receives when it is allocated."},
 	}
+	hc.Components.Schemas.RegisterTypeAlias(reflect.TypeFor[format.Kind](), reflect.TypeFor[formatSchema]())
 	api := humago.New(mux, hc)
 	a.API = api
 
@@ -135,6 +138,20 @@ func New(cfg Config) (*App, error) {
 
 	a.Handler = auth.Middleware(cfg.Verifier, gameservers.PathPrefix)(mux)
 	return a, nil
+}
+
+// formatSchema stands in for a Stage's Format in the OpenAPI document, which
+// lists every Format as an enum and so rejects any other in a request. It
+// lives here to keep the Format engine free of the HTTP framework.
+type formatSchema format.Kind
+
+// Schema lists the Formats as an enum.
+func (formatSchema) Schema(huma.Registry) *huma.Schema {
+	s := &huma.Schema{Type: huma.TypeString}
+	for _, k := range format.Kinds {
+		s.Enum = append(s.Enum, string(k))
+	}
+	return s
 }
 
 // Run starts the background workers and blocks until ctx ends and they
