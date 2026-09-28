@@ -54,14 +54,19 @@ func (ParticipantStatus) Schema(huma.Registry) *huma.Schema {
 }
 
 // MatchStatus is where a Match is in its lifecycle: Pending until its
-// Participants are known and its Round opens, then Ready, Allocating while it gets a Game Server
-// and InProgress once that server reports it started, until it is Completed.
+// Participants are known and its Round opens, then Ready, Allocating while it
+// gets a Game Server and InProgress once that server reports it started,
+// until it is Completed. An Abort sends it back to Allocating, and a Bye or
+// an empty Match goes straight from Pending to Completed.
+//
 // A Match with no result by its Result Deadline is Stalled until the
-// Organizer resolves it, and one still unfinished when its Tournament is
+// Organizer resolves it, or its Game Server reports the deciding result late
+// while its token is still good. One still unfinished when its Tournament is
 // cancelled is Cancelled.
 type MatchStatus string
 
-// Match statuses.
+// Match statuses. Unlike the Tournament and Participant statuses they carry a
+// prefix, as several share a name with those.
 const (
 	MatchPending    MatchStatus = "pending"
 	MatchReady      MatchStatus = "ready"
@@ -73,9 +78,7 @@ const (
 )
 
 // Open reports whether the Match can still receive results.
-func (s MatchStatus) Open() bool {
-	return s == MatchReady || s == MatchAllocating || s == MatchInProgress || s == MatchStalled
-}
+func (s MatchStatus) Open() bool { return s == MatchReady || s.Playing() || s == MatchStalled }
 
 // Playing reports whether the Match is being played, or about to be, on a
 // Game Server of its own: Allocating or InProgress.
@@ -87,8 +90,8 @@ func (MatchStatus) Schema(huma.Registry) *huma.Schema {
 }
 
 // MatchResult is how a Completed Match ended: a Win, a double Forfeit, a Bye,
-// Empty when it had no Participants at all, or FreeForAll when a free-for-all
-// Match was decided by points.
+// Empty when it had no Participants at all, or FreeForAll for any other
+// Match of a free-for-all Stage, whose Standings its Bouts decide.
 type MatchResult string
 
 // Match results.

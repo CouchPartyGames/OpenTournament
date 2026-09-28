@@ -141,9 +141,9 @@ func TestOpenAPIDocumentListsEveryMatchStatusAndResult(t *testing.T) {
 		schema, property string
 		want             []any
 	}{
-		{"MatchView", "status", statuses},
-		{"MatchView", "result", results},
-		{"ServerMatchView", "status", statuses},
+		{schema: "MatchView", property: "status", want: statuses},
+		{schema: "MatchView", property: "result", want: results},
+		{schema: "ServerMatchView", property: "status", want: statuses},
 	} {
 		if got := doc.Components.Schemas[c.schema].Properties[c.property].Enum; !slices.Equal(got, c.want) {
 			t.Errorf("%s.%s enum = %v, want %v", c.schema, c.property, got, c.want)

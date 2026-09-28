@@ -349,7 +349,8 @@ func (tx *Tx) ResolveStalled(m db.Match, r Resolution) error {
 // Stalled, and releases its Game Server.
 func (s *Service) ExpireMatch(ctx context.Context, id ids.MatchID) error {
 	return s.InMatch(ctx, id, func(tx *Tx, m db.Match) error {
-		if !m.Status.Open() || m.Status == lifecycle.MatchStalled {
+		awaitingResult := m.Status.Open() && m.Status != lifecycle.MatchStalled
+		if !awaitingResult {
 			return nil
 		}
 		if m.ResultDeadline != nil && m.ResultDeadline.After(tx.now) {
