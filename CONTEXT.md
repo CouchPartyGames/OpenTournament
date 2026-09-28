@@ -40,6 +40,14 @@ _Avoid_: Custom resource, CR, template, spec
 A Tournament created from a Tournament Manifest rather than through the API. It records which Manifest it came from, and one Manifest declares at most one Tournament.
 _Avoid_: GitOps tournament, managed tournament
 
+**Recurring Tournament**:
+A Kubernetes resource that declares a Tournament template and a schedule in a time zone, e.g. every weeknight at 20:00 Berlin time. It declares one Tournament per Occurrence that falls within its lookahead window.
+_Avoid_: Series, cron tournament, repeating tournament
+
+**Occurrence**:
+One start time produced by a Recurring Tournament's schedule, and the Tournament that starts then. Each wall-clock time the schedule matches is at most one Occurrence, even across daylight-saving changes.
+_Avoid_: Instance, run, iteration
+
 **Stage**:
 One phase of a Tournament that is played in a single Format (e.g. a Swiss stage followed by a single-elimination stage).
 _Avoid_: Phase, round, bracket
