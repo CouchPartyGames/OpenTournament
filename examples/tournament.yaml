@@ -1,0 +1,30 @@
+# A Tournament Manifest (ADR-0005). Applied in a namespace listed in
+# OT_MANIFEST_NAMESPACES, it declares a Draft Tournament of the arena Game in
+# examples/games.yaml. Move the dates into the future before applying it.
+apiVersion: opentournament.io/v1alpha1
+kind: Tournament
+metadata:
+  name: friday-cup
+  namespace: games
+spec:
+  # The Organizer: user:<keycloak subject> or client:<keycloak client id>. A
+  # Game backend's client must be trusted by the Game.
+  organizer: client:arena-backend
+  gameId: arena
+  name: Friday Cup
+  startsAt: "2026-10-02T19:00:00Z"
+  registrationOpensAt: "2026-10-02T18:30:00Z"
+  capacity: 64
+  minimumParticipants: 16
+  checkIn:
+    enabled: true
+    windowSeconds: 600
+  stages:
+    - format: swiss
+      groups: 2
+      advancement: 4
+      bestOf: 1
+      resultDeadlineSeconds: 900
+    - format: single-elimination
+      bestOf: 3
+      resultDeadlineSeconds: 1800

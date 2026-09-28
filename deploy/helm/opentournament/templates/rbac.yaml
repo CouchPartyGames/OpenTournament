@@ -34,3 +34,39 @@ roleRef:
   name: {{ include "opentournament.fullname" $ }}
 {{- end }}
 {{- end }}
+{{- /* Reading Tournament Manifests and reporting their status (ADR-0005), in each watched namespace. */}}
+{{- if .Values.rbac.create }}
+{{- range $namespace := .Values.config.manifestNamespaces | uniq }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "opentournament.fullname" $ }}-manifests
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentournament.labels" $ | nindent 4 }}
+rules:
+  - apiGroups: ["opentournament.io"]
+    resources: ["tournaments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["opentournament.io"]
+    resources: ["tournaments/status"]
+    verbs: ["update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "opentournament.fullname" $ }}-manifests
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentournament.labels" $ | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "opentournament.serviceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "opentournament.fullname" $ }}-manifests
+{{- end }}
+{{- end }}

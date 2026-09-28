@@ -6,7 +6,7 @@ This application is both the source of truth for tournament state and the coordi
 
 - **A separate orchestrator service:** rejected, see above.
 - **A `GameServer` resource per Match:** rejected, see above.
-- **A full Kubernetes operator** (Tournaments, Stages and Matches as custom resources in etcd): rejected. etcd can't serve the queries and multi-object transactions the rules need (Capacity, uniqueness per Player Identity, completing a Match and unlocking the next one). Players and Game backends aren't Kubernetes users, so an API in front would be needed anyway. And the start-of-tournament burst would load the cluster's shared control plane. We keep only the controller *pattern*: a level-triggered reconcile loop between Matches in Postgres and GameServers in Agones.
+- **A full Kubernetes operator** (Tournaments, Stages and Matches as custom resources in etcd): rejected. etcd can't serve the queries and multi-object transactions the rules need (Capacity, uniqueness per Player Identity, completing a Match and unlocking the next one). Players and Game backends aren't Kubernetes users, so an API in front would be needed anyway. And the start-of-tournament burst would load the cluster's shared control plane. We keep only the controller *pattern*: a level-triggered reconcile loop between Matches in Postgres and GameServers in Agones. [ADR-0005](0005-tournament-manifests-declare-configuration-in-kubernetes.md) refines this: a Tournament's desired configuration may be declared in Kubernetes, while its runtime state stays in Postgres.
 
 ## Consequences
 

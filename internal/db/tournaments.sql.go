@@ -28,8 +28,36 @@ func (q *Queries) CompleteTournament(ctx context.Context, arg CompleteTournament
 	return err
 }
 
+const getDeclaredTournament = `-- name: GetDeclaredTournament :one
+SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments WHERE manifest = $1::text
+`
+
+func (q *Queries) GetDeclaredTournament(ctx context.Context, manifest string) (Tournament, error) {
+	row := q.db.QueryRow(ctx, getDeclaredTournament, manifest)
+	var i Tournament
+	err := row.Scan(
+		&i.ID,
+		&i.GameID,
+		&i.Name,
+		&i.Organizer,
+		&i.Status,
+		&i.StartsAt,
+		&i.RegistrationOpensAt,
+		&i.Capacity,
+		&i.MinimumParticipants,
+		&i.CheckInEnabled,
+		&i.CheckInSeconds,
+		&i.LastEventSeq,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CompletedAt,
+		&i.Manifest,
+	)
+	return i, err
+}
+
 const getTournament = `-- name: GetTournament :one
-SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at FROM tournaments WHERE id = $1
+SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments WHERE id = $1
 `
 
 func (q *Queries) GetTournament(ctx context.Context, id ids.TournamentID) (Tournament, error) {
@@ -51,6 +79,7 @@ func (q *Queries) GetTournament(ctx context.Context, id ids.TournamentID) (Tourn
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CompletedAt,
+		&i.Manifest,
 	)
 	return i, err
 }
@@ -58,8 +87,8 @@ func (q *Queries) GetTournament(ctx context.Context, id ids.TournamentID) (Tourn
 const insertTournament = `-- name: InsertTournament :exec
 INSERT INTO tournaments (id, game_id, name, organizer, status, starts_at, registration_opens_at,
                          capacity, minimum_participants, check_in_enabled, check_in_seconds,
-                         created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
+                         created_at, updated_at, manifest)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12, $13)
 `
 
 type InsertTournamentParams struct {
@@ -75,6 +104,7 @@ type InsertTournamentParams struct {
 	CheckInEnabled      bool
 	CheckInSeconds      int32
 	CreatedAt           time.Time
+	Manifest            *string
 }
 
 func (q *Queries) InsertTournament(ctx context.Context, arg InsertTournamentParams) error {
@@ -91,12 +121,13 @@ func (q *Queries) InsertTournament(ctx context.Context, arg InsertTournamentPara
 		arg.CheckInEnabled,
 		arg.CheckInSeconds,
 		arg.CreatedAt,
+		arg.Manifest,
 	)
 	return err
 }
 
 const listTournaments = `-- name: ListTournaments :many
-SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at FROM tournaments
+SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments
 WHERE (status = $1 OR $1 = '')
   AND ($2::text IS NULL OR game_id = $2)
 ORDER BY starts_at DESC, id
@@ -142,6 +173,7 @@ func (q *Queries) ListTournaments(ctx context.Context, arg ListTournamentsParams
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CompletedAt,
+			&i.Manifest,
 		); err != nil {
 			return nil, err
 		}
@@ -154,7 +186,7 @@ func (q *Queries) ListTournaments(ctx context.Context, arg ListTournamentsParams
 }
 
 const lockTournament = `-- name: LockTournament :one
-SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at FROM tournaments WHERE id = $1 FOR UPDATE
+SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments WHERE id = $1 FOR UPDATE
 `
 
 func (q *Queries) LockTournament(ctx context.Context, id ids.TournamentID) (Tournament, error) {
@@ -176,6 +208,7 @@ func (q *Queries) LockTournament(ctx context.Context, id ids.TournamentID) (Tour
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CompletedAt,
+		&i.Manifest,
 	)
 	return i, err
 }

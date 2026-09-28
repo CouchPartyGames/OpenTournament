@@ -1,6 +1,7 @@
 // Package apptest hosts the real app in-process against a real PostgreSQL,
 // with controlled test doubles: a fake clock, a fake Game Server port, a
-// seeded random source and a test JWT issuer in place of Keycloak.
+// seeded random source, a test JWT issuer in place of Keycloak, and
+// client-go's fake dynamic client in place of the Kubernetes API.
 package apptest
 
 import (
@@ -19,10 +20,16 @@ import (
 	"github.com/couchpartygames/opentournament/internal/auth"
 	"github.com/couchpartygames/opentournament/internal/auth/authtest"
 	"github.com/couchpartygames/opentournament/internal/clock/clocktest"
+	"github.com/couchpartygames/opentournament/internal/features/manifests"
 	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/gameserver/gameservertest"
 	"github.com/couchpartygames/opentournament/internal/ids"
 	"github.com/jackc/pgx/v5/pgxpool"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/tools/cache"
 )
 
 // Epoch is where the fake clock starts.
@@ -50,14 +57,26 @@ type Harness struct {
 	App         *app.App
 	FakeClock   *clocktest.Fake
 	FakeServers *gameservertest.Fake
-	Issuer      *authtest.Issuer
-	Pool        *pgxpool.Pool
+	// FakeKubernetes holds the Tournament Manifests. The app reads them only
+	// in the namespaces WatchManifests names.
+	FakeKubernetes *dynamicfake.FakeDynamicClient
+	Issuer         *authtest.Issuer
+	Pool           *pgxpool.Pool
+}
+
+// Option configures the hosted app.
+type Option func(*app.Config)
+
+// WatchManifests makes the app declare the Tournament Manifests in these
+// namespaces. Without it, no namespace is watched.
+func WatchManifests(namespaces ...string) Option {
+	return func(c *app.Config) { c.ManifestNamespaces = namespaces }
 }
 
 // MustStart hosts the app for one test. Background workers other than live
 // updates don't run: tests drive time and reconciliation with Advance and
 // Settle, so every scenario is deterministic.
-func MustStart(t testing.TB) *Harness {
+func MustStart(t testing.TB, opts ...Option) *Harness {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	pool, err := pgxpool.New(ctx, newDatabase(t))
@@ -73,11 +92,20 @@ func MustStart(t testing.TB) *Harness {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := &Harness{t: t, FakeClock: clocktest.NewFake(Epoch), FakeServers: gameservertest.NewFake(), Issuer: issuer, Pool: pool}
-	h.App, err = app.New(app.Config{
+	h := &Harness{
+		t: t, FakeClock: clocktest.NewFake(Epoch), FakeServers: gameservertest.NewFake(), Issuer: issuer, Pool: pool,
+		FakeKubernetes: dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
+			map[schema.GroupVersionResource]string{manifests.Resource: "TournamentList"}),
+	}
+	cfg := app.Config{
 		Pool: pool, Clock: h.FakeClock, Rand: rand.New(rand.NewPCG(1, 2)), Games: catalog,
 		Verifier: verifier, MatchTokenKey: bytes.Repeat([]byte("k"), 32), GameServers: h.FakeServers,
-	})
+		Kubernetes: h.FakeKubernetes,
+	}
+	for _, o := range opts {
+		o(&cfg)
+	}
+	h.App, err = app.New(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,11 +130,13 @@ func MustStart(t testing.TB) *Harness {
 	return h
 }
 
-// Settle runs every due job and reconciles Game Servers until nothing
-// changes, the way the background workers would.
+// Settle reconciles every Tournament Manifest, then runs every due job and
+// reconciles Game Servers until nothing changes, the way the background
+// workers would.
 func (h *Harness) Settle() {
 	h.t.Helper()
 	ctx := context.Background()
+	h.reconcileManifests(ctx)
 	for range 50 {
 		ran, err := h.App.Scheduler.RunDue(ctx)
 		if err != nil {
@@ -125,6 +155,26 @@ func (h *Harness) Settle() {
 		}
 	}
 	h.t.Fatal("background work did not settle")
+}
+
+// reconcileManifests reconciles every Manifest in the fake cluster, in every
+// namespace, as the informers would deliver them. The app itself ignores the
+// namespaces it doesn't watch.
+func (h *Harness) reconcileManifests(ctx context.Context) {
+	h.t.Helper()
+	if h.App.Manifests == nil {
+		return
+	}
+	list, err := h.FakeKubernetes.Resource(manifests.Resource).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		h.t.Fatalf("list manifests: %v", err)
+	}
+	for _, u := range list.Items {
+		name := cache.ObjectName{Namespace: u.GetNamespace(), Name: u.GetName()}
+		if err := h.App.Manifests.Reconcile(ctx, name); err != nil {
+			h.t.Fatalf("reconcile manifest %v: %v", name, err)
+		}
+	}
 }
 
 // Advance moves the clock forward and settles.

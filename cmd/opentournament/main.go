@@ -29,6 +29,7 @@ import (
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -88,6 +89,12 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	var kubernetes dynamic.Interface
+	if len(cfg.ManifestNamespaces) > 0 {
+		if kubernetes, err = kubernetesClient(cfg); err != nil {
+			return err
+		}
+	}
 
 	var seed [16]byte
 	rand.Read(seed[:]) // crypto/rand.Read never fails
@@ -95,6 +102,7 @@ func run() error {
 		Pool: pool, Clock: clock.Real{}, Games: catalog, Verifier: verifier,
 		Rand:          mrand.New(mrand.NewPCG(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:]))),
 		MatchTokenKey: cfg.MatchTokenKey, GameServers: servers, Docs: cfg.Docs, Version: version,
+		Kubernetes: kubernetes, ManifestNamespaces: cfg.ManifestNamespaces,
 	})
 	if err != nil {
 		return err
@@ -149,11 +157,7 @@ func notProbe(r *http.Request) bool {
 	return true
 }
 
-func gameServers(ctx context.Context, cfg config.Config, catalog *games.Catalog) (gameserver.Port, error) {
-	if cfg.GameServers == "fake" {
-		slog.Warn("using the in-memory fake game server port; matches will not get real servers")
-		return gameservertest.NewFake(), nil
-	}
+func kubernetesConfig(cfg config.Config) (*rest.Config, error) {
 	var rc *rest.Config
 	var err error
 	if cfg.Kubeconfig != "" {
@@ -163,6 +167,30 @@ func gameServers(ctx context.Context, cfg config.Config, catalog *games.Catalog)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("kubernetes config: %w", err)
+	}
+	return rc, nil
+}
+
+func kubernetesClient(cfg config.Config) (dynamic.Interface, error) {
+	rc, err := kubernetesConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	client, err := dynamic.NewForConfig(rc)
+	if err != nil {
+		return nil, fmt.Errorf("kubernetes client: %w", err)
+	}
+	return client, nil
+}
+
+func gameServers(ctx context.Context, cfg config.Config, catalog *games.Catalog) (gameserver.Port, error) {
+	if cfg.GameServers == "fake" {
+		slog.Warn("using the in-memory fake game server port; matches will not get real servers")
+		return gameservertest.NewFake(), nil
+	}
+	rc, err := kubernetesConfig(cfg)
+	if err != nil {
+		return nil, err
 	}
 	return agones.New(ctx, rc, catalog.Namespaces())
 }

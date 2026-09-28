@@ -24,6 +24,7 @@ environment:
 | `OT_MATCH_TOKEN_KEY` | Base64 key (≥ 32 bytes) signing Match tokens. Every replica needs the same key. |
 | `OT_GAME_SERVERS` | `agones` (default), or `fake` for local development without a cluster. |
 | `OT_KUBECONFIG` | Kubeconfig outside a cluster; in-cluster config is used when empty. |
+| `OT_MANIFEST_NAMESPACES` | Comma-separated namespaces whose Tournament Manifests declare Tournaments, see [Declarative Tournaments](#declarative-tournaments). Empty (the default) turns them off. |
 | `OT_HTTP_ADDR` | Listen address, default `:8080`. |
 | `OT_DOCS` | `true` serves Scalar API docs at `/api/v1/docs`. |
 | `OT_EVENT_RETENTION` | How long live-update events are kept, default `1h`. |
@@ -65,6 +66,46 @@ See the [chart README](deploy/helm/opentournament/README.md) for its values, and
 needs. Creating Fleets and sizing them for the start-of-Tournament burst is an
 operations concern: every first-Round Match wants a Game Server at the same moment.
 
+### Declarative Tournaments
+
+Tournaments can also live in git as Tournament Manifests, synced into the cluster
+by Argo CD or Flux ([ADR-0005](docs/adr/0005-tournament-manifests-declare-configuration-in-kubernetes.md)).
+A Manifest holds only configuration: the same settings `POST /api/v1/tournaments`
+takes, plus the Organizer. Registrations, Matches and every other runtime state
+stay in PostgreSQL.
+
+1. Install the `Tournament` CRD. The chart installs it from its `crds/` directory;
+   without the chart, apply
+   [`tournaments.opentournament.io.yaml`](deploy/helm/opentournament/crds/tournaments.opentournament.io.yaml).
+   Helm doesn't upgrade CRDs, so apply that file again after upgrading.
+2. List the namespaces to watch in `config.manifestNamespaces` (or
+   `OT_MANIFEST_NAMESPACES`). The chart grants the RBAC to read Manifests and update
+   their status in each of them.
+3. Apply a Manifest, such as [`examples/tournament.yaml`](examples/tournament.yaml),
+   in a watched namespace.
+
+The service creates a Draft Tournament organized by the Manifest's `organizer`
+(`user:<keycloak subject>` or `client:<keycloak client id>`; a Game backend's client
+must be trusted by the Game). The Tournament then shows up in
+`GET /api/v1/tournaments` like any other, and the Manifest's status reports it:
+
+```console
+$ kubectl -n games get tournaments
+NAME         STATUS   STARTS                 TOURNAMENT ID                          AGE
+friday-cup   draft    2026-10-02T19:00:00Z   01a0e9a6-1733-7ad2-8031-ac9678bf08d4   5s
+```
+
+The status carries `observedGeneration`, `tournamentId`, `tournamentStatus` and a
+`Synced` condition. Every replica watches the Manifests, without leader election;
+a Manifest declares exactly one Tournament however often, or however many
+replicas at once, reconcile it. The status follows the Tournament's own status
+every 30 seconds.
+
+Only creation is supported so far: editing a Manifest, reporting an invalid one
+in its status, deleting it and recurring schedules are still to come. Until then,
+an edited Manifest keeps the `observedGeneration` that declared its Tournament,
+and an invalid Manifest is retried with backoff and logged as a warning.
+
 ## How it fits together
 
 ```
@@ -73,6 +114,7 @@ internal/format            the Format engine: pure, no I/O (Seam 2)
 internal/tournament        the Tournament aggregate and Match lifecycle
 internal/lifecycle         the typed statuses shared by the aggregate and the queries
 internal/features/*        vertical slices, one per feature, each registering its Huma operations
+                           (manifests watches Tournament Manifests instead)
 internal/scheduler         persisted due times: registration, check-in, start, allocation, Result Deadlines
 internal/reconciler        level-triggered reconcile loop between Matches and GameServers
 internal/gameserver        the Game Server port, its Agones adapter and an in-memory fake

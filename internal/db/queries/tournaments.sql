@@ -1,8 +1,11 @@
 -- name: InsertTournament :exec
 INSERT INTO tournaments (id, game_id, name, organizer, status, starts_at, registration_opens_at,
                          capacity, minimum_participants, check_in_enabled, check_in_seconds,
-                         created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12);
+                         created_at, updated_at, manifest)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12, $13);
+
+-- name: GetDeclaredTournament :one
+SELECT * FROM tournaments WHERE manifest = sqlc.arg(manifest)::text;
 
 -- name: UpdateTournamentSettings :exec
 UPDATE tournaments
