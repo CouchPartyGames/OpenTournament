@@ -70,8 +70,11 @@ type Controller struct {
 	namespaces []string
 	queue      workqueue.TypedRateLimitingInterface[cache.ObjectName]
 	// Resync is the period at which every Manifest is reconciled again when
-	// nothing happens, so its status follows the Tournament's.
+	// nothing happens, so its status follows the Tournament's. It also sets
+	// the interval between removal sweeps.
 	Resync time.Duration
+	// Logger reports reconciliation failures and skipped removal sweeps.
+	Logger *slog.Logger
 }
 
 // New returns a Controller for the Manifests in namespaces.
@@ -84,6 +87,7 @@ func New(client dynamic.Interface, svc *tournament.Service, namespaces []string)
 			workqueue.DefaultTypedControllerRateLimiter[cache.ObjectName](),
 			workqueue.TypedRateLimitingQueueConfig[cache.ObjectName]{Name: "manifests"}),
 		Resync: 30 * time.Second,
+		Logger: slog.Default(),
 	}
 }
 
@@ -98,7 +102,7 @@ func (c *Controller) Run(ctx context.Context) {
 	enqueue := func(obj any) {
 		name, err := cache.DeletionHandlingObjectToName(obj)
 		if err != nil {
-			slog.ErrorContext(ctx, "unexpected object from the manifest informer", "error", err)
+			c.Logger.ErrorContext(ctx, "unexpected object from the manifest informer", "error", err)
 			return
 		}
 		c.queue.Add(name)
@@ -108,24 +112,41 @@ func (c *Controller) Run(ctx context.Context) {
 		UpdateFunc: func(_, obj any) { enqueue(obj) },
 		DeleteFunc: enqueue,
 	}
+	var synced []cache.InformerSynced
 	for _, ns := range c.namespaces {
 		factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(c.client, c.Resync, ns, nil)
-		if _, err := factory.ForResource(Resource).Informer().AddEventHandler(handler); err != nil {
-			slog.ErrorContext(ctx, "can't watch the manifests of a namespace; its Tournaments won't be declared", "namespace", ns, "error", err)
-			continue
+		informer := factory.ForResource(Resource).Informer()
+		if _, err := informer.AddEventHandler(handler); err != nil {
+			c.Logger.ErrorContext(ctx, "can't watch the manifests of a namespace; its Tournaments won't be declared", "namespace", ns, "error", err)
+			return
 		}
+		synced = append(synced, informer.HasSynced)
 		factory.Start(ctx.Done())
 		// Shutdown waits for the informers, which stop once ctx has ended,
 		// before the queue below lets Run return.
 		defer factory.Shutdown()
 	}
+	if !cache.WaitForCacheSync(ctx.Done(), synced...) {
+		return
+	}
+	// The empty name is a sweep, not a Manifest. Queueing it at startup and
+	// periodically catches removals even when no deletion event was seen.
+	sweep := cache.ObjectName{}
+	c.queue.Add(sweep)
 	for {
 		name, shutdown := c.queue.Get()
 		if shutdown {
 			return
 		}
-		if err := c.Reconcile(ctx, name); err != nil && ctx.Err() == nil {
-			slog.WarnContext(ctx, "reconcile manifest failed; retrying", "manifest", name, "error", err)
+		var err error
+		if name == sweep {
+			err = c.sweep(ctx)
+			c.queue.AddAfter(sweep, c.Resync)
+		} else {
+			err = c.Reconcile(ctx, name)
+		}
+		if err != nil && ctx.Err() == nil {
+			c.Logger.WarnContext(ctx, "reconcile manifest failed; retrying", "manifest", name, "error", err)
 			c.queue.AddRateLimited(name)
 		} else {
 			c.queue.Forget(name)

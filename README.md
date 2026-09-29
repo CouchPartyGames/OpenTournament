@@ -101,9 +101,23 @@ a Manifest declares exactly one Tournament however often, or however many
 replicas at once, reconcile it. The status follows the Tournament's own status
 every 30 seconds.
 
-Only creation is supported so far: editing a Manifest, reporting an invalid one
-in its status, deleting it and recurring schedules are still to come. Until then,
-an edited Manifest keeps the `observedGeneration` that declared its Tournament,
+Deleting a Manifest deletes its Draft Tournament, or cancels it if Registration
+or Check-in has opened, using the same cancellation path as the API (including
+Game Server release and live status updates). Running, Completed and Cancelled
+Tournaments are left untouched.
+
+A removal sweep runs at startup after every watch has synced, then every 30
+seconds, so deletions made while the service was down are handled too. Only
+Tournaments declared in currently watched namespaces are considered; removing a
+namespace from the watched list leaves its Tournaments alone. If a sweep would
+delete or cancel more than half of those declared Tournaments, it logs an error
+with the counts and skips all removals. This also protects a namespace set with
+only one declared Tournament. Restore the missing Manifests to bring the removal
+count within the limit before retrying; normal sweeps retry automatically. No
+Kubernetes finalizers are used.
+
+Editing a Manifest and reporting an invalid one in its status are still to come.
+Until then, an edited Manifest keeps the `observedGeneration` that declared its Tournament,
 and an invalid Manifest is retried with backoff and logged as a warning.
 
 ## How it fits together
