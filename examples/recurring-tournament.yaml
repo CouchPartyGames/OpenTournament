@@ -1,0 +1,36 @@
+# A Recurring Tournament. Applied in a namespace listed in
+# OT_MANIFEST_NAMESPACES, it declares a Draft Tournament of the arena Game in
+# examples/games.yaml for every weeknight at 20:00 Berlin time, 48 hours ahead.
+apiVersion: opentournament.io/v1alpha1
+kind: RecurringTournament
+metadata:
+  name: weeknight-cup
+  namespace: tournaments
+spec:
+  # A five-field cron expression: when each Tournament starts.
+  schedule: "0 20 * * 1-5"
+  # An IANA time zone. Daylight-saving changes never drop or repeat a Tournament.
+  timeZone: Europe/Berlin
+  # Declare the Tournaments starting within this window (default 24h).
+  lookahead: 48h
+  # Like a CronJob: true stops declaring new Tournaments and keeps existing ones.
+  suspend: false
+  # The Tournament settings, minus the two absolute times.
+  template:
+    # The Organizer: user:<keycloak subject> or client:<keycloak client id>. A
+    # Game backend's client must be trusted by the Game.
+    organizer: client:arena-backend
+    gameId: arena
+    # Each Tournament is named after its start, e.g. "Weeknight Cup 2026-10-02 20:00".
+    name: Weeknight Cup
+    # Replaces registrationOpensAt: the Registration Window opens this long
+    # before each start.
+    registrationOpensBefore: 30m
+    capacity: 32
+    minimumParticipants: 4
+    checkIn:
+      enabled: false
+    stages:
+      - format: single-elimination
+        bestOf: 1
+        resultDeadlineSeconds: 900

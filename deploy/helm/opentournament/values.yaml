@@ -21,8 +21,9 @@ config:
   eventRetention: 1h
   # Graceful shutdown bound; keep it below terminationGracePeriodSeconds.
   shutdownTimeout: 30s
-  # Namespaces whose Tournament Manifests declare Tournaments (ADR-0005), e.g.
-  # [games]. Empty turns declared Tournaments off. RBAC is granted in each.
+  # Namespaces whose Tournament Manifests and Recurring Tournaments declare
+  # Tournaments (ADR-0005), e.g. [games]. Empty turns declared Tournaments off.
+  # RBAC is granted in each.
   manifestNamespaces: []
 
 terminationGracePeriodSeconds: 45
@@ -60,7 +61,8 @@ serviceAccount:
 
 # Roles in each Fleet namespace to allocate, watch and manage GameServers
 # (only rendered with config.gameServers agones), and in each namespace of
-# config.manifestNamespaces to read Tournament Manifests and update their status.
+# config.manifestNamespaces to read Tournament Manifests and Recurring
+# Tournaments and update their status.
 rbac:
   create: true
 

@@ -15,6 +15,9 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	// The distroless image has no time zone database, and a Recurring
+	// Tournament's schedule is read in its time zone.
+	_ "time/tzdata"
 
 	"github.com/couchpartygames/opentournament/internal/app"
 	"github.com/couchpartygames/opentournament/internal/auth"

@@ -24,7 +24,7 @@ environment:
 | `OT_MATCH_TOKEN_KEY` | Base64 key (≥ 32 bytes) signing Match tokens. Every replica needs the same key. |
 | `OT_GAME_SERVERS` | `agones` (default), or `fake` for local development without a cluster. |
 | `OT_KUBECONFIG` | Kubeconfig outside a cluster; in-cluster config is used when empty. |
-| `OT_MANIFEST_NAMESPACES` | Comma-separated namespaces whose Tournament Manifests declare Tournaments, see [Declarative Tournaments](#declarative-tournaments). Empty (the default) turns them off. |
+| `OT_MANIFEST_NAMESPACES` | Comma-separated namespaces whose Tournament Manifests and Recurring Tournaments declare Tournaments, see [Declarative Tournaments](#declarative-tournaments). Empty (the default) turns them off. |
 | `OT_HTTP_ADDR` | Listen address, default `:8080`. |
 | `OT_DOCS` | `true` serves Scalar API docs at `/api/v1/docs`. |
 | `OT_EVENT_RETENTION` | How long live-update events are kept, default `1h`. |
@@ -74,13 +74,15 @@ A Manifest holds only configuration: the same settings `POST /api/v1/tournaments
 takes, plus the Organizer. Registrations, Matches and every other runtime state
 stay in PostgreSQL.
 
-1. Install the `Tournament` CRD. The chart installs it from its `crds/` directory;
-   without the chart, apply
-   [`tournaments.opentournament.io.yaml`](deploy/helm/opentournament/crds/tournaments.opentournament.io.yaml).
-   Helm doesn't upgrade CRDs, so apply that file again after upgrading.
+1. Install the `Tournament` and `RecurringTournament` CRDs. The chart installs them
+   from its `crds/` directory; without the chart, apply
+   [`deploy/helm/opentournament/crds`](deploy/helm/opentournament/crds).
+   Helm neither upgrades CRDs nor adds new ones, so apply that directory again
+   after upgrading. Without the `RecurringTournament` CRD, Tournament Manifests
+   still work, and client-go logs that it fails to watch Recurring Tournaments.
 2. List the namespaces to watch in `config.manifestNamespaces` (or
-   `OT_MANIFEST_NAMESPACES`). The chart grants the RBAC to read Manifests and update
-   their status in each of them.
+   `OT_MANIFEST_NAMESPACES`). The chart grants the RBAC to read Manifests and
+   Recurring Tournaments and update their status in each of them.
 3. Apply a Manifest, such as [`examples/tournament.yaml`](examples/tournament.yaml),
    in a watched namespace.
 
@@ -132,7 +134,67 @@ delete or cancel more than half of those declared Tournaments, it logs an error
 with the counts and skips all removals. This also protects a namespace set with
 only one declared Tournament. Restore the missing Manifests to bring the removal
 count within the limit before retrying; normal sweeps retry automatically. No
-Kubernetes finalizers are used. Recurring schedules are still to come.
+Kubernetes finalizers are used.
+
+### Recurring Tournaments
+
+A `RecurringTournament` declares a Tournament for every **Occurrence** of a
+schedule, from a template, such as
+[`examples/recurring-tournament.yaml`](examples/recurring-tournament.yaml):
+
+```yaml
+spec:
+  schedule: "0 20 * * 1-5"         # when each Tournament starts: five-field cron
+  timeZone: Europe/Berlin          # an IANA time zone
+  lookahead: 48h                   # declare Tournaments starting within this window (default 24h)
+  suspend: false                   # like a CronJob: stop declaring new ones, keep existing ones
+  template:                        # the Tournament settings, minus the two absolute times
+    organizer: client:arena-backend
+    gameId: arena
+    name: Weeknight Cup            # each Tournament: "Weeknight Cup 2026-10-02 20:00", in the time zone
+    registrationOpensBefore: 30m   # replaces startsAt / registrationOpensAt
+    capacity: 32
+    # … minimumParticipants, checkIn and stages, as in a Tournament Manifest
+```
+
+The service declares a Draft Tournament for each Occurrence that starts within
+the lookahead window, with registration opening `registrationOpensBefore` earlier.
+As time passes it looks again when the next Occurrence enters the window, without
+any change to the Recurring Tournament. Each Tournament records the Occurrence it
+came from (`recurring/<namespace>/<name>/<start>`), so each Occurrence is declared
+exactly once however many replicas reconcile it. Daylight-saving changes never
+drop or repeat an Occurrence. Durations such as `lookahead` are Go durations
+(`30m`, `48h`), which have no unit for days. Keep `lookahead` longer than
+`registrationOpensBefore`, or registration opens as soon as each Tournament is
+declared.
+
+The status lists the upcoming Occurrences, the latest declared start and a `Synced`
+condition:
+
+```console
+$ kubectl -n games get recurringtournaments
+NAME            SCHEDULE       TIME ZONE       SUSPEND   LAST SCHEDULE   SYNCED   AGE
+weeknight-cup   0 20 * * 1-5   Europe/Berlin   false     2d              True     5s
+$ kubectl -n games get recurringtournament weeknight-cup -o jsonpath='{.status.upcoming}'
+[{"startsAt":"2026-10-01T18:00:00Z","tournamentId":"01a0e9a6-…","tournamentStatus":"draft"}, …]
+```
+
+`Synced=True` has reason `Scheduled`, or `Suspended` while `suspend` is true. A
+Recurring Tournament that can't be applied declares nothing, and `Synced=False`
+says why:
+
+| Reason | When |
+|---|---|
+| `InvalidSchedule` | The schedule isn't a five-field cron expression or descriptor such as `@daily`. `@every` and a `TZ=` prefix aren't supported. |
+| `UnknownTimeZone` | The time zone isn't an IANA name such as `UTC` or `Europe/Berlin`. |
+| `InvalidLookahead` | The lookahead isn't a duration, or is negative. |
+| `ValidationFailed` | The template breaks a rule the API enforces. The message lists every field. |
+| `OrganizerNotTrusted` | The `client:` Organizer isn't trusted by the Game. |
+
+The API refuses to edit a declared Occurrence with `409 declared-in-git`, and
+can still cancel it. For now, editing the template or the schedule only affects
+Occurrences declared afterwards, and deleting a Recurring Tournament leaves its
+Tournaments alone.
 
 ## How it fits together
 
@@ -142,7 +204,7 @@ internal/format            the Format engine: pure, no I/O (Seam 2)
 internal/tournament        the Tournament aggregate and Match lifecycle
 internal/lifecycle         the typed statuses shared by the aggregate and the queries
 internal/features/*        vertical slices, one per feature, each registering its Huma operations
-                           (manifests watches Tournament Manifests instead)
+                           (manifests watches Tournament Manifests and Recurring Tournaments instead)
 internal/scheduler         persisted due times: registration, check-in, start, allocation, Result Deadlines
 internal/reconciler        level-triggered reconcile loop between Matches and GameServers
 internal/gameserver        the Game Server port, its Agones adapter and an in-memory fake
@@ -223,6 +285,15 @@ The Agones adapter has no automated tests in v1. To try it on a local cluster:
    - `kubectl -n games delete gs <name>` makes the Match Abort and get a new server within seconds;
    - withdrawing a Participant of a running free-for-all Match sets `opentournament/forfeited`;
    - reporting the final Bout deletes the GameServer.
+5. Check that the image reads schedules in a time zone, though it has no time
+   zone database of its own: install the chart with `config.manifestNamespaces: [tournaments]`,
+   create the `tournaments` namespace, and apply
+   [`examples/recurring-tournament.yaml`](examples/recurring-tournament.yaml) with
+   `timeZone: Asia/Kolkata` (UTC+05:30, no daylight saving) and a `schedule` a few
+   hours ahead. Check:
+   - `kubectl -n tournaments get recurringtournaments` shows `Synced` `True`;
+   - each Tournament in `GET /api/v1/tournaments` starts at the scheduled Kolkata
+     time, e.g. 20:00 there is `14:30:00Z`, and its name shows 20:00.
 
 ## License
 

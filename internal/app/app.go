@@ -50,8 +50,8 @@ type Config struct {
 	// Kubernetes is where Tournament Manifests are read from. It is only used
 	// when ManifestNamespaces names at least one namespace.
 	Kubernetes dynamic.Interface
-	// ManifestNamespaces are the namespaces whose Tournament Manifests are
-	// declared. None turns declared Tournaments off.
+	// ManifestNamespaces are the namespaces whose Tournament Manifests and
+	// Recurring Tournaments are declared. None turns declared Tournaments off.
 	ManifestNamespaces []string
 	// ManifestLogger receives Manifest controller diagnostics. It must be
 	// non-nil when ManifestNamespaces is non-empty.

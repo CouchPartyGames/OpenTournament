@@ -11,6 +11,7 @@ import (
 
 	"github.com/couchpartygames/opentournament/internal/auth"
 	"github.com/couchpartygames/opentournament/internal/db"
+	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/ids"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/problem"
@@ -220,15 +221,31 @@ func FindDeclared(ctx context.Context, q *db.Queries, manifest string) (Tourname
 	return Find(ctx, q, t.ID)
 }
 
-func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body NewTournament, manifest *string) (TournamentView, error) {
+// Validate checks that p may create the Tournament body describes, as
+// creating it would, without creating anything. The error is the
+// *problem.Error the API would return: validation-failed or
+// not-trusted-for-game.
+func Validate(svc *tournament.Service, p auth.Principal, body NewTournament) error {
+	_, err := validate(svc, p, body)
+	return err
+}
+
+// validate checks that p may create the Tournament body describes, and
+// returns its Game.
+func validate(svc *tournament.Service, p auth.Principal, body NewTournament) (games.Game, error) {
 	game, ok := svc.Games.Get(body.GameID)
 	if !ok {
-		return TournamentView{}, problem.Fields{{Location: "body.gameId", Message: "no such game", Value: body.GameID}}.Err()
+		return games.Game{}, problem.Fields{{Location: "body.gameId", Message: "no such game", Value: body.GameID}}.Err()
 	}
 	if p.IsService() && !game.Trusts(p.ClientID) {
-		return TournamentView{}, problem.New(problem.Forbidden, CodeNotTrustedForGame, "client %q is not trusted to act for game %q", p.ClientID, game.ID)
+		return games.Game{}, problem.New(problem.Forbidden, CodeNotTrustedForGame, "client %q is not trusted to act for game %q", p.ClientID, game.ID)
 	}
-	if err := body.TournamentSettings.validate(game, svc.Clock.Now()); err != nil {
+	return game, body.TournamentSettings.validate(game, svc.Clock.Now())
+}
+
+func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body NewTournament, manifest *string) (TournamentView, error) {
+	game, err := validate(svc, p, body)
+	if err != nil {
 		return TournamentView{}, err
 	}
 	id := ids.New[ids.TournamentID]()

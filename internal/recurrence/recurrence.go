@@ -58,6 +58,7 @@ type Schedule struct {
 	// or zero if there is none.
 	next      func(after time.Time) time.Time
 	lookahead time.Duration
+	loc       *time.Location
 }
 
 // Parse returns the Schedule for a cron expression read in timeZone, an IANA
@@ -98,7 +99,7 @@ func Parse(expr, timeZone string, lookahead time.Duration) (Schedule, error) {
 		lookahead = DefaultLookahead
 	}
 
-	s := Schedule{lookahead: lookahead}
+	s := Schedule{lookahead: lookahead, loc: loc}
 	if spec.Hour&everyHour == everyHour {
 		// robfig/cron steps through hours as they happen, which is real time.
 		spec.Location = loc
@@ -111,6 +112,9 @@ func Parse(expr, timeZone string, lookahead time.Duration) (Schedule, error) {
 	}
 	return s, nil
 }
+
+// Location returns the time zone the schedule is read in.
+func (s Schedule) Location() *time.Location { return s.loc }
 
 // Occurrences returns the Occurrences within [now, now+lookahead], in order and
 // in UTC. Both ends of the window are included. At most MaxOccurrences are
