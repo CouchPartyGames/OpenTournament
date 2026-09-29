@@ -28,6 +28,15 @@ func (q *Queries) CompleteTournament(ctx context.Context, arg CompleteTournament
 	return err
 }
 
+const deleteTournament = `-- name: DeleteTournament :exec
+DELETE FROM tournaments WHERE id = $1
+`
+
+func (q *Queries) DeleteTournament(ctx context.Context, id ids.TournamentID) error {
+	_, err := q.db.Exec(ctx, deleteTournament, id)
+	return err
+}
+
 const getDeclaredTournament = `-- name: GetDeclaredTournament :one
 SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments WHERE manifest = $1::text
 `
@@ -124,6 +133,50 @@ func (q *Queries) InsertTournament(ctx context.Context, arg InsertTournamentPara
 		arg.Manifest,
 	)
 	return err
+}
+
+const listDeclaredTournaments = `-- name: ListDeclaredTournaments :many
+SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments
+WHERE split_part(manifest, '/', 1) = 'tournament'
+  AND split_part(manifest, '/', 2) = ANY($1::text[])
+ORDER BY id
+`
+
+func (q *Queries) ListDeclaredTournaments(ctx context.Context, namespaces []string) ([]Tournament, error) {
+	rows, err := q.db.Query(ctx, listDeclaredTournaments, namespaces)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Tournament{}
+	for rows.Next() {
+		var i Tournament
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.Name,
+			&i.Organizer,
+			&i.Status,
+			&i.StartsAt,
+			&i.RegistrationOpensAt,
+			&i.Capacity,
+			&i.MinimumParticipants,
+			&i.CheckInEnabled,
+			&i.CheckInSeconds,
+			&i.LastEventSeq,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CompletedAt,
+			&i.Manifest,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listTournaments = `-- name: ListTournaments :many

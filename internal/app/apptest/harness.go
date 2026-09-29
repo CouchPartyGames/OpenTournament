@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"net/http/httptest"
@@ -100,7 +101,7 @@ func MustStart(t testing.TB, opts ...Option) *Harness {
 	cfg := app.Config{
 		Pool: pool, Clock: h.FakeClock, Rand: rand.New(rand.NewPCG(1, 2)), Games: catalog,
 		Verifier: verifier, MatchTokenKey: bytes.Repeat([]byte("k"), 32), GameServers: h.FakeServers,
-		Kubernetes: h.FakeKubernetes,
+		Kubernetes: h.FakeKubernetes, ManifestLogger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 	for _, o := range opts {
 		o(&cfg)

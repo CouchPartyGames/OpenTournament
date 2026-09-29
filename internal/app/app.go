@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"log/slog"
 	"math/rand/v2"
 	"net/http"
 	"reflect"
@@ -52,6 +53,9 @@ type Config struct {
 	// ManifestNamespaces are the namespaces whose Tournament Manifests are
 	// declared. None turns declared Tournaments off.
 	ManifestNamespaces []string
+	// ManifestLogger receives Manifest controller diagnostics. It must be
+	// non-nil when ManifestNamespaces is non-empty.
+	ManifestLogger *slog.Logger
 	// Docs serves interactive API docs (Scalar), for development.
 	Docs    bool
 	Version string
@@ -103,7 +107,7 @@ func New(cfg Config) (*App, error) {
 		pool:       cfg.Pool,
 	}
 	if len(cfg.ManifestNamespaces) > 0 {
-		a.Manifests = manifests.New(cfg.Kubernetes, svc, cfg.ManifestNamespaces)
+		a.Manifests = manifests.New(cfg.Kubernetes, svc, cfg.ManifestNamespaces, cfg.ManifestLogger)
 	}
 
 	mux := http.NewServeMux()

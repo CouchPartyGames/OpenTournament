@@ -7,6 +7,15 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12, $13);
 -- name: GetDeclaredTournament :one
 SELECT * FROM tournaments WHERE manifest = sqlc.arg(manifest)::text;
 
+-- name: ListDeclaredTournaments :many
+SELECT * FROM tournaments
+WHERE split_part(manifest, '/', 1) = 'tournament'
+  AND split_part(manifest, '/', 2) = ANY(sqlc.arg(namespaces)::text[])
+ORDER BY id;
+
+-- name: DeleteTournament :exec
+DELETE FROM tournaments WHERE id = $1;
+
 -- name: UpdateTournamentSettings :exec
 UPDATE tournaments
 SET name = $2, starts_at = $3, registration_opens_at = $4, capacity = $5,
