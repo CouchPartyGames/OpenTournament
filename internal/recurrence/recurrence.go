@@ -116,6 +116,10 @@ func Parse(expr, timeZone string, lookahead time.Duration) (Schedule, error) {
 // Location returns the time zone the schedule is read in.
 func (s Schedule) Location() *time.Location { return s.loc }
 
+// Lookahead returns the length of the window, DefaultLookahead if Parse was
+// given none.
+func (s Schedule) Lookahead() time.Duration { return s.lookahead }
+
 // Occurrences returns the Occurrences within [now, now+lookahead], in order and
 // in UTC. Both ends of the window are included. At most MaxOccurrences are
 // returned: the earliest ones.

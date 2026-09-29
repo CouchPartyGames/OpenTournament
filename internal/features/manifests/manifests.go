@@ -37,6 +37,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -102,7 +103,7 @@ type Controller struct {
 	client     dynamic.Interface
 	svc        *tournament.Service
 	namespaces []string
-	queue      workqueue.TypedRateLimitingInterface[item]
+	queue      workqueue.TypedRateLimitingInterface[key]
 	// Resync is the period at which every Manifest is reconciled again when
 	// nothing happens, so its status follows the Tournament's. It also sets
 	// the interval between removal sweeps.
@@ -119,8 +120,8 @@ func New(client dynamic.Interface, svc *tournament.Service, namespaces []string,
 		svc:        svc,
 		namespaces: namespaces,
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
-			workqueue.DefaultTypedControllerRateLimiter[item](),
-			workqueue.TypedRateLimitingQueueConfig[item]{Name: "manifests"}),
+			workqueue.DefaultTypedControllerRateLimiter[key](),
+			workqueue.TypedRateLimitingQueueConfig[key]{Name: "manifests"}),
 		Resync: 30 * time.Second,
 		Logger: logger,
 	}
@@ -150,7 +151,7 @@ func (c *Controller) Run(ctx context.Context) {
 				c.Logger.ErrorContext(ctx, "unexpected object from the manifest informer", "resource", resource.Resource, "error", err)
 				return
 			}
-			c.queue.Add(item{resource, name})
+			c.queue.Add(key{resource, name})
 		}
 		return cache.ResourceEventHandlerFuncs{
 			AddFunc:    enqueue,
@@ -181,48 +182,48 @@ func (c *Controller) Run(ctx context.Context) {
 	if !cache.WaitForCacheSync(ctx.Done(), synced...) {
 		return
 	}
-	// The empty item is a sweep, not a Manifest. Queueing it at startup and
+	// The empty key is a sweep, not a Manifest. Queueing it at startup and
 	// periodically catches removals even when no deletion event was seen.
-	sweep := item{}
+	sweep := key{}
 	c.queue.Add(sweep)
 	for {
-		it, shutdown := c.queue.Get()
+		k, shutdown := c.queue.Get()
 		if shutdown {
 			return
 		}
 		var next time.Time
 		var err error
-		switch it.resource {
-		case Resource:
-			err = c.Reconcile(ctx, it.name)
-		case RecurringResource:
-			next, err = c.ReconcileRecurring(ctx, it.name)
-		default:
+		switch {
+		case k == sweep:
 			err = c.sweep(ctx)
 			c.queue.AddAfter(sweep, c.Resync)
+		case k.resource == Resource:
+			err = c.Reconcile(ctx, k.name)
+		case k.resource == RecurringResource:
+			next, err = c.ReconcileRecurring(ctx, k.name)
 		}
 		if err != nil && ctx.Err() == nil {
-			if it == sweep {
+			if k == sweep {
 				c.Logger.WarnContext(ctx, "manifest removal sweep failed; retrying", "error", err)
 			} else {
-				c.Logger.WarnContext(ctx, "reconcile manifest failed; retrying", "resource", it.resource.Resource, "manifest", it.name, "error", err)
+				c.Logger.WarnContext(ctx, "reconcile manifest failed; retrying", "resource", k.resource.Resource, "manifest", k.name, "error", err)
 			}
-			c.queue.AddRateLimited(it)
+			c.queue.AddRateLimited(k)
 		} else {
-			c.queue.Forget(it)
+			c.queue.Forget(k)
 		}
 		if !next.IsZero() {
 			// Look again when the next Occurrence enters the window, rather
 			// than wait up to a whole resync for it.
-			c.queue.AddAfter(it, next.Sub(c.svc.Clock.Now()))
+			c.queue.AddAfter(k, next.Sub(c.svc.Clock.Now()))
 		}
-		c.queue.Done(it)
+		c.queue.Done(k)
 	}
 }
 
-// item is what the queue holds: a Manifest of a resource to reconcile, or a
+// key is what the queue holds: a Manifest of a resource to reconcile, or a
 // removal sweep when zero.
-type item struct {
+type key struct {
 	resource schema.GroupVersionResource
 	name     cache.ObjectName
 }
@@ -278,7 +279,7 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 	prev := meta.FindStatusCondition(want.Conditions, ConditionSynced)
 	switch {
 	case refused:
-		cond.Status, cond.Reason, cond.Message = metav1.ConditionFalse, reason, describe(p, "spec.")
+		cond.Status, cond.Reason, cond.Message = metav1.ConditionFalse, reason, describe(p, "The Manifest", "spec.")
 	case change == tournaments.Unchanged && prev != nil && prev.Status == metav1.ConditionTrue:
 		cond.Status, cond.Reason, cond.Message = metav1.ConditionTrue, prev.Reason, prev.Message
 	default:
@@ -288,11 +289,16 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 		want.ObservedGeneration = u.GetGeneration()
 	}
 	meta.SetStatusCondition(&want.Conditions, cond)
-	// Writing only on change keeps the status update's own watch event from
-	// triggering another write. But a Tournament that was just changed always
-	// writes: if another replica applied a later generation meanwhile, the
-	// write conflicts on resourceVersion, and the retry reapplies the latest.
-	if equality.Semantic.DeepEqual(status, want) && change == tournaments.Unchanged {
+	return c.updateStatus(ctx, Resource, u, status, want, change != tournaments.Unchanged)
+}
+
+// updateStatus writes want as the status of u, an object of resource, unless
+// it equals was. Writing only on change keeps the status update's own watch
+// event from triggering another write. But changed Tournaments always write:
+// if another replica applied a later generation meanwhile, the write
+// conflicts on resourceVersion, and the retry reapplies the latest.
+func (c *Controller) updateStatus(ctx context.Context, resource schema.GroupVersionResource, u *unstructured.Unstructured, was, want any, changed bool) error {
+	if equality.Semantic.DeepEqual(was, want) && !changed {
 		return nil
 	}
 	var object map[string]any
@@ -300,8 +306,8 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 		return err
 	}
 	u.Object["status"] = object
-	if _, err := c.client.Resource(Resource).Namespace(name.Namespace).UpdateStatus(ctx, u, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("update status of manifest %v: %w", name, err)
+	if _, err := c.client.Resource(resource).Namespace(u.GetNamespace()).UpdateStatus(ctx, u, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("update status of %s %s/%s: %w", resource.Resource, u.GetNamespace(), u.GetName(), err)
 	}
 	return nil
 }
@@ -316,10 +322,10 @@ func (c *Controller) declare(ctx context.Context, manifest string, spec Spec) (t
 	return tournaments.Declare(ctx, c.svc, manifest, organizer, spec.NewTournament)
 }
 
-// describe says why a Manifest can't be applied. It lists every field
-// message, located under prefix in the Manifest, such as "spec.", rather than
-// in the API's request body.
-func describe(p *problem.Error, prefix string) string {
+// describe says why subject, such as "The Manifest", can't be applied. It
+// lists every field message, located under prefix in the Manifest, such as
+// "spec.", rather than in the API's request body.
+func describe(p *problem.Error, subject, prefix string) string {
 	if len(p.Fields) == 0 {
 		return p.Message
 	}
@@ -331,7 +337,7 @@ func describe(p *problem.Error, prefix string) string {
 		}
 		msgs[i] = location + ": " + f.Message
 	}
-	return "The Manifest is invalid: " + strings.Join(msgs, "; ")
+	return subject + " is invalid: " + strings.Join(msgs, "; ")
 }
 
 // convert copies a value between its unstructured and typed forms, through

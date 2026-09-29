@@ -74,6 +74,7 @@ spec:
                   description: Tournaments starting within this window are declared, as a duration such as 48h. Defaults to 24h.
                 suspend:
                   type: boolean
+                  default: false
                   description: Stops declaring new Tournaments, like a suspended CronJob. Those already declared are kept.
                 template:
                   type: object

@@ -193,6 +193,57 @@ func TestTheNextOccurrenceIsDeclaredWhenItEntersTheWindow(t *testing.T) {
 	}
 }
 
+func TestTheControllerLooksAgainWhenTheNextOccurrenceEntersTheWindow(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	name := cache.ObjectName{Namespace: "games", Name: "weeknight-cup"}
+
+	next, err := h.App.Manifests.ReconcileRecurring(context.Background(), name)
+	if err != nil {
+		t.Fatalf("ReconcileRecurring(%v) = %v", name, err)
+	}
+	// Thursday's Occurrence is 48 hours away as Tuesday's starts.
+	if !next.Equal(tuesdayAt20) {
+		t.Errorf("ReconcileRecurring(%v) looks again at %v, want %v", name, next, tuesdayAt20)
+	}
+
+	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["suspend"] = true })
+	if next, err := h.App.Manifests.ReconcileRecurring(context.Background(), name); err != nil || !next.IsZero() {
+		t.Errorf("ReconcileRecurring(%v) while suspended = %v, %v, want no time to look again", name, next, err)
+	}
+}
+
+func TestTheManifestRemovalSweepLeavesOccurrencesAlone(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	// Enough Tournament Manifests that the sweep's "more than half" guard
+	// wouldn't stop it from removing the Occurrences.
+	for _, name := range []string{"monday-cup", "tuesday-cup", "wednesday-cup"} {
+		mustApply(t, h, "games", name, manifestSpec(h))
+	}
+	h.Settle()
+	before := listOccurrences(h)
+	// No Tournament Manifest names the Occurrences, and even deleting their
+	// Recurring Tournament leaves them to the rules of #11.
+	if err := h.FakeKubernetes.Resource(manifests.RecurringResource).Namespace("games").Delete(context.Background(), "weeknight-cup", metav1.DeleteOptions{}); err != nil {
+		t.Fatalf("delete recurring tournament games/weeknight-cup: %v", err)
+	}
+
+	mustRunManifests(t, h)
+	// Sweeps run at startup and then every second.
+	time.Sleep(1500 * time.Millisecond)
+
+	after := listOccurrences(h)
+	if len(after) != len(before) {
+		t.Fatalf("GET /api/v1/tournaments lists %+v after sweeps, want %+v", after, before)
+	}
+	for i := range after {
+		if after[i].ID != before[i].ID || after[i].Status != "draft" {
+			t.Errorf("Tournament %d = %+v after sweeps, want the draft %s", i, after[i], before[i].ID)
+		}
+	}
+}
+
 func TestReconcilingARecurringTournamentRepeatedlyOrAtOnceNeverDuplicatesAnOccurrence(t *testing.T) {
 	h := apptest.MustStart(t, apptest.WatchManifests("games"))
 	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())

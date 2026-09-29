@@ -1,7 +1,6 @@
 package manifests
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/couchpartygames/opentournament/internal/recurrence"
 	"github.com/couchpartygames/opentournament/internal/tournament"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -128,8 +126,8 @@ func (c *Controller) ReconcileRecurring(ctx context.Context, name cache.ObjectNa
 	if err != nil {
 		return time.Time{}, err
 	}
-	if s.upcoming != nil {
-		want.Upcoming = *s.upcoming
+	if s.readable {
+		want.Upcoming = s.upcoming
 	}
 	if n := len(want.Upcoming); n > 0 {
 		latest := want.Upcoming[n-1].StartsAt
@@ -150,28 +148,19 @@ func (c *Controller) ReconcileRecurring(ctx context.Context, name cache.ObjectNa
 		want.ObservedGeneration = u.GetGeneration()
 	}
 	meta.SetStatusCondition(&want.Conditions, cond)
-	// As for a Tournament Manifest, writing only on change keeps the status
-	// update's own watch event from triggering another write, and a
-	// declaration always writes so that a conflicting replica retries.
-	if equality.Semantic.DeepEqual(status, want) && !s.declared {
-		return s.next, nil
-	}
-	var object map[string]any
-	if err := convert(want, &object); err != nil {
+	if err := c.updateStatus(ctx, RecurringResource, u, status, want, s.declared); err != nil {
 		return time.Time{}, err
-	}
-	u.Object["status"] = object
-	if _, err := client.UpdateStatus(ctx, u, metav1.UpdateOptions{}); err != nil {
-		return time.Time{}, fmt.Errorf("update status of recurring tournament %v: %w", name, err)
 	}
 	return s.next, nil
 }
 
 // scheduled is what scheduling a Recurring Tournament found.
 type scheduled struct {
-	// upcoming are the Occurrences in the window with a Tournament, or nil
-	// when the schedule can't be read, which leaves them unknown.
-	upcoming *[]Occurrence
+	// readable is false when the schedule can't be read, which leaves the
+	// upcoming Occurrences unknown.
+	readable bool
+	// upcoming are the Occurrences in the window with a Tournament.
+	upcoming []Occurrence
 	// declared is true when a Tournament was declared.
 	declared bool
 	// next is when to schedule again, or zero if nothing is due.
@@ -210,12 +199,13 @@ func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, spec R
 			starts = append(starts, o)
 		}
 	}
-	s := scheduled{upcoming: new([]Occurrence)}
+	s := scheduled{readable: true}
 	tmpl, err := readTemplate(spec.Template, sched.Location())
 	if err == nil {
 		// Only the instants of an Occurrence's Tournament depend on when it
 		// starts, so any Occurrence in the window checks the template.
-		err = tournaments.Validate(c.svc, tmpl.organizer, tmpl.occurrence(now.Add(cmp.Or(lookahead, recurrence.DefaultLookahead))))
+		windowEnd := now.Add(sched.Lookahead())
+		err = tournaments.Validate(c.svc, tmpl.organizer, tmpl.occurrence(windowEnd))
 	}
 	if err != nil {
 		if s.reason, s.message, err = refusal(err); err != nil {
@@ -229,7 +219,9 @@ func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, spec R
 			if spec.Suspend || s.reason != "" {
 				continue
 			}
-			tv, _, err = tournaments.Declare(ctx, c.svc, manifest, tmpl.organizer, tmpl.occurrence(start))
+			// Editing the Tournament of an Occurrence is left to #11, so a
+			// replica with an older template can't overwrite a newer one's.
+			tv, err = tournaments.CreateDeclared(ctx, c.svc, manifest, tmpl.organizer, tmpl.occurrence(start))
 			if err != nil {
 				if s.reason, s.message, err = refusal(err); err != nil {
 					return scheduled{}, fmt.Errorf("declare occurrence %s of recurring tournament %v: %w", start.Format(time.RFC3339), name, err)
@@ -240,7 +232,7 @@ func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, spec R
 		} else if err != nil {
 			return scheduled{}, fmt.Errorf("find occurrence %s of recurring tournament %v: %w", start.Format(time.RFC3339), name, err)
 		}
-		*s.upcoming = append(*s.upcoming, Occurrence{StartsAt: metav1.NewTime(start), TournamentID: tv.ID.String(), TournamentStatus: tv.Status})
+		s.upcoming = append(s.upcoming, Occurrence{StartsAt: metav1.NewTime(start), TournamentID: tv.ID.String(), TournamentStatus: tv.Status})
 	}
 	if s.reason == "" && !spec.Suspend {
 		s.next, _ = sched.NextEntry(now)
@@ -253,13 +245,13 @@ func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, spec R
 func refusal(err error) (reason, message string, _ error) {
 	var p *problem.Error
 	if errors.As(err, &p) && notSynced[p.Code] != "" {
-		return notSynced[p.Code], describe(p, "spec.template."), nil
+		return notSynced[p.Code], describe(p, "The template", "spec.template."), nil
 	}
 	return "", "", err
 }
 
-// template is a Recurring Tournament's template, read.
-type template struct {
+// occurrenceTemplate is a Recurring Tournament's template, read.
+type occurrenceTemplate struct {
 	organizer               auth.Principal
 	body                    tournaments.NewTournament
 	registrationOpensBefore time.Duration
@@ -269,7 +261,7 @@ type template struct {
 // readTemplate reads a template whose Occurrences are named on the wall
 // clock in loc. The error is the *problem.Error the API would return for its
 // fields.
-func readTemplate(t Template, loc *time.Location) (template, error) {
+func readTemplate(t Template, loc *time.Location) (occurrenceTemplate, error) {
 	var f problem.Fields
 	organizer, err := auth.ParsePrincipal(t.Organizer)
 	if err != nil {
@@ -279,13 +271,13 @@ func readTemplate(t Template, loc *time.Location) (template, error) {
 	if err != nil || before <= 0 {
 		f.Add("body.registrationOpensBefore", "must be a positive duration such as 30m", t.RegistrationOpensBefore)
 	}
-	return template{organizer: organizer, body: t.NewTournament, registrationOpensBefore: before, loc: loc}, f.Err()
+	return occurrenceTemplate{organizer: organizer, body: t.NewTournament, registrationOpensBefore: before, loc: loc}, f.Err()
 }
 
 // occurrence returns the Tournament the template declares for the Occurrence
 // at start. Its name ends with the start on the wall clock, e.g.
 // "Weeknight Cup 2026-10-02 20:00".
-func (t template) occurrence(start time.Time) tournaments.NewTournament {
+func (t occurrenceTemplate) occurrence(start time.Time) tournaments.NewTournament {
 	body := t.body
 	body.Name = t.body.Name + " " + start.In(t.loc).Format("2006-01-02 15:04")
 	body.StartsAt, body.RegistrationOpensAt = start, start.Add(-t.registrationOpensBefore)
