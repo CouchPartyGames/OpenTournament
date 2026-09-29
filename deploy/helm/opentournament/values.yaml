@@ -1,5 +1,13 @@
 # Default values for opentournament.
 
+# The namespace the service is installed into. The chart creates it, so install
+# without --create-namespace; Helm keeps the release record in the namespace of
+# your kube context (or -n), which need not be this one. Set create to false to
+# install into an existing namespace, or one made with --create-namespace.
+namespace:
+  create: true
+  name: opentournament-system
+
 image:
   repository: ghcr.io/couchpartygames/opentournament
   # Defaults to the chart's appVersion.

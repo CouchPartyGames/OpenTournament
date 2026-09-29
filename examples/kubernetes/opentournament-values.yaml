@@ -1,3 +1,7 @@
+# The namespace made in step 2, shared with PostgreSQL and Keycloak.
+namespace:
+  create: false
+  name: opentournament
 replicaCount: 1
 config:
   oidcIssuer: http://keycloak-http.opentournament/realms/games

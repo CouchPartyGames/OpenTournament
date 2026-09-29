@@ -14,10 +14,23 @@ pass `--skip-crds`.
 ```sh
 # A released chart; its appVersion is the matching image tag.
 helm install ot oci://ghcr.io/couchpartygames/charts/opentournament --version 1.2.3 \
-  -n opentournament --create-namespace -f my-values.yaml
+  -f my-values.yaml
 
 # From a checkout; installs the image built from main.
-helm install ot deploy/helm/opentournament -n opentournament --create-namespace -f my-values.yaml
+helm install ot deploy/helm/opentournament -f my-values.yaml
+```
+
+The chart creates the namespace `opentournament-system` and installs everything
+into it. Don't pass `--create-namespace`: Helm would create it first and the chart
+could not adopt it. Helm keeps the release record in the namespace of your kube
+context (or `-n`), so `helm uninstall ot` needs that same `-n`.
+
+To install elsewhere, set `namespace.name`. To install into a namespace that
+already exists, or one made with `--create-namespace`, set `namespace.create=false`:
+
+```sh
+helm install ot ... --set namespace.name=games-platform
+helm install ot ... -n platform --create-namespace --set namespace.name=platform --set namespace.create=false
 ```
 
 A minimal `my-values.yaml`:
@@ -41,6 +54,8 @@ catalog:
 
 | Value | Default | Meaning |
 |---|---|---|
+| `namespace.name` | `opentournament-system` | Namespace the service, its Secret and ConfigMap are installed into. |
+| `namespace.create` | `true` | Create that namespace. Set `false` when it exists already. |
 | `config.oidcIssuer` | — | Keycloak realm URL. Required. |
 | `config.gameServers` | `agones` | `fake` runs without Game Servers and skips RBAC. |
 | `config.docs` | `false` | Serve API docs at `/api/v1/docs`. |

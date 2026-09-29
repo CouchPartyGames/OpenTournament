@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 OPENTOURNAMENT_VERSION=${OPENTOURNAMENT_VERSION:-0.0.4}
-NAMESPACE=opentournament-system
+NAMESPACE=opentournament
 
 echo "==> Agones"
 helm upgrade --install agones agones --repo https://agones.dev/chart/stable --version 1.61.0 \

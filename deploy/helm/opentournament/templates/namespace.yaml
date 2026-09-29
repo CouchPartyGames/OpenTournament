@@ -1,0 +1,8 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "opentournament.namespace" . }}
+  labels:
+    {{- include "opentournament.labels" . | nindent 4 }}
+{{- end }}

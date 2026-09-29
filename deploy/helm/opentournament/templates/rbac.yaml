@@ -27,7 +27,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: {{ include "opentournament.serviceAccountName" $ }}
-    namespace: {{ $.Release.Namespace }}
+    namespace: {{ include "opentournament.namespace" $ }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -63,7 +63,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: {{ include "opentournament.serviceAccountName" $ }}
-    namespace: {{ $.Release.Namespace }}
+    namespace: {{ include "opentournament.namespace" $ }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

@@ -22,6 +22,11 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
+{{/* The namespace everything is installed into, whatever namespace Helm keeps the release in. */}}
+{{- define "opentournament.namespace" -}}
+{{- default "opentournament-system" .Values.namespace.name }}
+{{- end }}
+
 {{- define "opentournament.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
 {{- default (include "opentournament.fullname" .) .Values.serviceAccount.name }}

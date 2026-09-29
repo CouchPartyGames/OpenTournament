@@ -3,6 +3,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: {{ include "opentournament.fullname" . }}
+  namespace: {{ include "opentournament.namespace" . }}
   labels:
     {{- include "opentournament.labels" . | nindent 4 }}
 spec:
