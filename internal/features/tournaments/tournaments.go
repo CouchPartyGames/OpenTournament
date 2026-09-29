@@ -11,6 +11,7 @@ import (
 
 	"github.com/couchpartygames/opentournament/internal/auth"
 	"github.com/couchpartygames/opentournament/internal/db"
+	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/ids"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/problem"
@@ -160,26 +161,10 @@ const (
 // Organizer; that fails validation too. A failed Declare changes nothing, and
 // reports Unchanged.
 func Declare(ctx context.Context, svc *tournament.Service, manifest string, p auth.Principal, body NewTournament) (TournamentView, Change, error) {
-	// PostgreSQL keeps instants to the microsecond. Finer ones would never
-	// match the Tournament, and be edited again on every reconcile.
-	body.StartsAt = body.StartsAt.Truncate(time.Microsecond)
-	body.RegistrationOpensAt = body.RegistrationOpensAt.Truncate(time.Microsecond)
-	// A Manifest doesn't pass through the API's schema, whose only default is
-	// a Stage's single Group.
-	body.Stages = slices.Clone(body.Stages)
-	for i := range body.Stages {
-		if body.Stages[i].Groups == 0 {
-			body.Stages[i].Groups = 1
-		}
-	}
+	body = declared(body)
 	v, err := FindDeclared(ctx, svc.Queries, manifest)
 	if errors.Is(err, tournament.ErrTournamentNotFound) {
-		v, err = create(ctx, svc, p, body, &manifest)
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "tournaments_manifest_key" {
-			// Another replica created it from the same Manifest.
-			v, err = FindDeclared(ctx, svc.Queries, manifest)
-		}
+		v, err = createDeclared(ctx, svc, manifest, p, body)
 		if err != nil {
 			return TournamentView{}, Unchanged, err
 		}
@@ -208,6 +193,46 @@ func Declare(ctx context.Context, svc *tournament.Service, manifest string, p au
 	return v, Updated, nil
 }
 
+// CreateDeclared creates the Tournament a manifest declares, and never edits
+// one that exists: several replicas can create it at once, and one with an
+// older manifest mustn't overwrite what another created. manifest names it
+// uniquely across the service, as for Declare. It returns the Tournament
+// created, by this call or a concurrent one.
+//
+// When the Tournament can't be created, the error is the *problem.Error the
+// API would return: validation-failed or not-trusted-for-game.
+func CreateDeclared(ctx context.Context, svc *tournament.Service, manifest string, p auth.Principal, body NewTournament) (TournamentView, error) {
+	return createDeclared(ctx, svc, manifest, p, declared(body))
+}
+
+func createDeclared(ctx context.Context, svc *tournament.Service, manifest string, p auth.Principal, body NewTournament) (TournamentView, error) {
+	v, err := create(ctx, svc, p, body, &manifest)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "tournaments_manifest_key" {
+		// Another replica created it from the same manifest.
+		return FindDeclared(ctx, svc.Queries, manifest)
+	}
+	return v, err
+}
+
+// declared returns body as a manifest declares it, which is how the API's
+// request would read.
+func declared(body NewTournament) NewTournament {
+	// PostgreSQL keeps instants to the microsecond. Finer ones would never
+	// match the Tournament, and be edited again on every reconcile.
+	body.StartsAt = body.StartsAt.Truncate(time.Microsecond)
+	body.RegistrationOpensAt = body.RegistrationOpensAt.Truncate(time.Microsecond)
+	// A manifest doesn't pass through the API's schema, whose only default is
+	// a Stage's single Group.
+	body.Stages = slices.Clone(body.Stages)
+	for i := range body.Stages {
+		if body.Stages[i].Groups == 0 {
+			body.Stages[i].Groups = 1
+		}
+	}
+	return body
+}
+
 // FindDeclared reads the Tournament a Tournament Manifest declared. It fails
 // with tournament.ErrTournamentNotFound when the Manifest declared none.
 func FindDeclared(ctx context.Context, q *db.Queries, manifest string) (TournamentView, error) {
@@ -220,15 +245,34 @@ func FindDeclared(ctx context.Context, q *db.Queries, manifest string) (Tourname
 	return Find(ctx, q, t.ID)
 }
 
-func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body NewTournament, manifest *string) (TournamentView, error) {
+// Validate checks that p may create the Tournament body describes, as
+// creating it would, without creating anything. The error is the
+// *problem.Error the API would return: validation-failed or
+// not-trusted-for-game.
+func Validate(svc *tournament.Service, p auth.Principal, body NewTournament) error {
+	_, err := validate(svc, p, body)
+	return err
+}
+
+// validate checks that p may create the Tournament body describes, and
+// returns its Game.
+func validate(svc *tournament.Service, p auth.Principal, body NewTournament) (games.Game, error) {
 	game, ok := svc.Games.Get(body.GameID)
 	if !ok {
-		return TournamentView{}, problem.Fields{{Location: "body.gameId", Message: "no such game", Value: body.GameID}}.Err()
+		return games.Game{}, problem.Fields{{Location: "body.gameId", Message: "no such game", Value: body.GameID}}.Err()
 	}
 	if p.IsService() && !game.Trusts(p.ClientID) {
-		return TournamentView{}, problem.New(problem.Forbidden, CodeNotTrustedForGame, "client %q is not trusted to act for game %q", p.ClientID, game.ID)
+		return games.Game{}, problem.New(problem.Forbidden, CodeNotTrustedForGame, "client %q is not trusted to act for game %q", p.ClientID, game.ID)
 	}
 	if err := body.TournamentSettings.validate(game, svc.Clock.Now()); err != nil {
+		return games.Game{}, err
+	}
+	return game, nil
+}
+
+func create(ctx context.Context, svc *tournament.Service, p auth.Principal, body NewTournament, manifest *string) (TournamentView, error) {
+	game, err := validate(svc, p, body)
+	if err != nil {
 		return TournamentView{}, err
 	}
 	id := ids.New[ids.TournamentID]()

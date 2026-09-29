@@ -5,12 +5,17 @@
 // Tournament each one declares and keeps its settings matching, since git is
 // their source of truth, and reports it in the Manifest's status.
 //
-// Every replica runs the controller, without leader election: a Manifest
-// declares at most one Tournament, and its status is a function of that
-// Tournament, so replicas that reconcile the same Manifest converge.
+// It also watches Recurring Tournaments, and declares a Tournament for each
+// Occurrence of their schedules within the lookahead window.
 //
-// RBAC needed: get, list and watch tournaments.opentournament.io, and update
-// tournaments/status, in every watched namespace.
+// Every replica runs the controller, without leader election: a Manifest
+// declares at most one Tournament, and each Occurrence of a Recurring
+// Tournament one more, and their status is a function of those Tournaments,
+// so replicas that reconcile the same Manifest converge.
+//
+// RBAC needed: get, list and watch tournaments.opentournament.io and
+// recurringtournaments.opentournament.io, and update their status, in every
+// watched namespace.
 package manifests
 
 import (
@@ -32,6 +37,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -97,7 +103,7 @@ type Controller struct {
 	client     dynamic.Interface
 	svc        *tournament.Service
 	namespaces []string
-	queue      workqueue.TypedRateLimitingInterface[cache.ObjectName]
+	queue      workqueue.TypedRateLimitingInterface[key]
 	// Resync is the period at which every Manifest is reconciled again when
 	// nothing happens, so its status follows the Tournament's. It also sets
 	// the interval between removal sweeps.
@@ -114,8 +120,8 @@ func New(client dynamic.Interface, svc *tournament.Service, namespaces []string,
 		svc:        svc,
 		namespaces: namespaces,
 		queue: workqueue.NewTypedRateLimitingQueueWithConfig(
-			workqueue.DefaultTypedControllerRateLimiter[cache.ObjectName](),
-			workqueue.TypedRateLimitingQueueConfig[cache.ObjectName]{Name: "manifests"}),
+			workqueue.DefaultTypedControllerRateLimiter[key](),
+			workqueue.TypedRateLimitingQueueConfig[key]{Name: "manifests"}),
 		Resync: 30 * time.Second,
 		Logger: logger,
 	}
@@ -138,62 +144,88 @@ func (c *Controller) Run(ctx context.Context) {
 		<-ctx.Done()
 		c.queue.ShutDown()
 	}()
-	enqueue := func(obj any) {
-		name, err := cache.DeletionHandlingObjectToName(obj)
-		if err != nil {
-			c.Logger.ErrorContext(ctx, "unexpected object from the manifest informer", "error", err)
-			return
+	handler := func(resource schema.GroupVersionResource) cache.ResourceEventHandlerFuncs {
+		enqueue := func(obj any) {
+			name, err := cache.DeletionHandlingObjectToName(obj)
+			if err != nil {
+				c.Logger.ErrorContext(ctx, "unexpected object from the manifest informer", "resource", resource.Resource, "error", err)
+				return
+			}
+			c.queue.Add(key{resource, name})
 		}
-		c.queue.Add(name)
-	}
-	handler := cache.ResourceEventHandlerFuncs{
-		AddFunc:    enqueue,
-		UpdateFunc: func(_, obj any) { enqueue(obj) },
-		DeleteFunc: enqueue,
+		return cache.ResourceEventHandlerFuncs{
+			AddFunc:    enqueue,
+			UpdateFunc: func(_, obj any) { enqueue(obj) },
+			DeleteFunc: enqueue,
+		}
 	}
 	var synced []cache.InformerSynced
 	for _, ns := range c.namespaces {
 		factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(c.client, c.Resync, ns, nil)
 		informer := factory.ForResource(Resource).Informer()
-		if _, err := informer.AddEventHandler(handler); err != nil {
+		if _, err := informer.AddEventHandler(handler(Resource)); err != nil {
 			c.Logger.ErrorContext(ctx, "can't watch the manifests of a namespace; its Tournaments won't be declared", "namespace", ns, "error", err)
 			return
 		}
 		synced = append(synced, informer.HasSynced)
+		// Only the removal sweep needs the Tournament Manifests' watches to
+		// have synced. Not waiting for the Recurring Tournaments' keeps
+		// Tournament Manifests working in a cluster without their CRD.
+		recurring := factory.ForResource(RecurringResource).Informer()
+		if _, err := recurring.AddEventHandler(handler(RecurringResource)); err != nil {
+			c.Logger.ErrorContext(ctx, "can't watch the recurring tournaments of a namespace; their Occurrences won't be declared", "namespace", ns, "error", err)
+			return
+		}
 		factory.Start(ctx.Done())
 		factories = append(factories, factory)
 	}
 	if !cache.WaitForCacheSync(ctx.Done(), synced...) {
 		return
 	}
-	// The empty name is a sweep, not a Manifest. Queueing it at startup and
+	// The empty key is a sweep, not a Manifest. Queueing it at startup and
 	// periodically catches removals even when no deletion event was seen.
-	sweep := cache.ObjectName{}
+	sweep := key{}
 	c.queue.Add(sweep)
 	for {
-		name, shutdown := c.queue.Get()
+		k, shutdown := c.queue.Get()
 		if shutdown {
 			return
 		}
+		var next time.Time
 		var err error
-		if name == sweep {
+		switch {
+		case k == sweep:
 			err = c.sweep(ctx)
 			c.queue.AddAfter(sweep, c.Resync)
-		} else {
-			err = c.Reconcile(ctx, name)
+		case k.resource == Resource:
+			err = c.Reconcile(ctx, k.name)
+		case k.resource == RecurringResource:
+			next, err = c.ReconcileRecurring(ctx, k.name)
 		}
 		if err != nil && ctx.Err() == nil {
-			if name == sweep {
+			if k == sweep {
 				c.Logger.WarnContext(ctx, "manifest removal sweep failed; retrying", "error", err)
 			} else {
-				c.Logger.WarnContext(ctx, "reconcile manifest failed; retrying", "manifest", name, "error", err)
+				c.Logger.WarnContext(ctx, "reconcile manifest failed; retrying", "resource", k.resource.Resource, "manifest", k.name, "error", err)
 			}
-			c.queue.AddRateLimited(name)
+			c.queue.AddRateLimited(k)
 		} else {
-			c.queue.Forget(name)
+			c.queue.Forget(k)
 		}
-		c.queue.Done(name)
+		if !next.IsZero() {
+			// Look again when the next Occurrence enters the window, rather
+			// than wait up to a whole resync for it.
+			c.queue.AddAfter(k, next.Sub(c.svc.Clock.Now()))
+		}
+		c.queue.Done(k)
 	}
+}
+
+// key is what the queue holds: a Manifest of a resource to reconcile, or a
+// removal sweep when zero.
+type key struct {
+	resource schema.GroupVersionResource
+	name     cache.ObjectName
 }
 
 // Reconcile makes the Tournament of one Manifest match it, and reports in
@@ -247,7 +279,7 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 	prev := meta.FindStatusCondition(want.Conditions, ConditionSynced)
 	switch {
 	case refused:
-		cond.Status, cond.Reason, cond.Message = metav1.ConditionFalse, reason, describe(p)
+		cond.Status, cond.Reason, cond.Message = metav1.ConditionFalse, reason, describe(p, "The Manifest", "spec.")
 	case change == tournaments.Unchanged && prev != nil && prev.Status == metav1.ConditionTrue:
 		cond.Status, cond.Reason, cond.Message = metav1.ConditionTrue, prev.Reason, prev.Message
 	default:
@@ -257,11 +289,16 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 		want.ObservedGeneration = u.GetGeneration()
 	}
 	meta.SetStatusCondition(&want.Conditions, cond)
-	// Writing only on change keeps the status update's own watch event from
-	// triggering another write. But a Tournament that was just changed always
-	// writes: if another replica applied a later generation meanwhile, the
-	// write conflicts on resourceVersion, and the retry reapplies the latest.
-	if equality.Semantic.DeepEqual(status, want) && change == tournaments.Unchanged {
+	return c.updateStatus(ctx, Resource, u, status, want, change != tournaments.Unchanged)
+}
+
+// updateStatus writes want as the status of u, an object of resource, unless
+// it equals was. Writing only on change keeps the status update's own watch
+// event from triggering another write. But changed Tournaments always write:
+// if another replica applied a later generation meanwhile, the write
+// conflicts on resourceVersion, and the retry reapplies the latest.
+func (c *Controller) updateStatus(ctx context.Context, resource schema.GroupVersionResource, u *unstructured.Unstructured, was, want any, changed bool) error {
+	if equality.Semantic.DeepEqual(was, want) && !changed {
 		return nil
 	}
 	var object map[string]any
@@ -269,8 +306,8 @@ func (c *Controller) Reconcile(ctx context.Context, name cache.ObjectName) error
 		return err
 	}
 	u.Object["status"] = object
-	if _, err := c.client.Resource(Resource).Namespace(name.Namespace).UpdateStatus(ctx, u, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("update status of manifest %v: %w", name, err)
+	if _, err := c.client.Resource(resource).Namespace(u.GetNamespace()).UpdateStatus(ctx, u, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("update status of %s %s/%s: %w", resource.Resource, u.GetNamespace(), u.GetName(), err)
 	}
 	return nil
 }
@@ -285,9 +322,10 @@ func (c *Controller) declare(ctx context.Context, manifest string, spec Spec) (t
 	return tournaments.Declare(ctx, c.svc, manifest, organizer, spec.NewTournament)
 }
 
-// describe says why a Manifest can't be applied. It lists every field
-// message, located in the Manifest's spec rather than the API's request body.
-func describe(p *problem.Error) string {
+// describe says why subject, such as "The Manifest", can't be applied. It
+// lists every field message, located under prefix in the Manifest, such as
+// "spec.", rather than in the API's request body.
+func describe(p *problem.Error, subject, prefix string) string {
 	if len(p.Fields) == 0 {
 		return p.Message
 	}
@@ -295,11 +333,11 @@ func describe(p *problem.Error) string {
 	for i, f := range p.Fields {
 		location := f.Location
 		if field, ok := strings.CutPrefix(location, "body."); ok {
-			location = "spec." + field
+			location = prefix + field
 		}
 		msgs[i] = location + ": " + f.Message
 	}
-	return "The Manifest is invalid: " + strings.Join(msgs, "; ")
+	return subject + " is invalid: " + strings.Join(msgs, "; ")
 }
 
 // convert copies a value between its unstructured and typed forms, through

@@ -31,8 +31,9 @@ type Config struct {
 	// Kubeconfig is used outside a cluster (OT_KUBECONFIG); in-cluster
 	// configuration is used when empty.
 	Kubeconfig string
-	// ManifestNamespaces are the namespaces whose Tournament Manifests are
-	// declared (OT_MANIFEST_NAMESPACES, comma separated). Empty turns
+	// ManifestNamespaces are the namespaces whose Tournament Manifests and
+	// Recurring Tournaments are declared (OT_MANIFEST_NAMESPACES, comma
+	// separated). Empty turns
 	// declared Tournaments off.
 	ManifestNamespaces []string
 	// Docs serves Scalar API docs at /api/v1/docs (OT_DOCS).

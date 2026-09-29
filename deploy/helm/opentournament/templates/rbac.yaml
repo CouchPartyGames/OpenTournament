@@ -34,7 +34,7 @@ roleRef:
   name: {{ include "opentournament.fullname" $ }}
 {{- end }}
 {{- end }}
-{{- /* Reading Tournament Manifests and reporting their status (ADR-0005), in each watched namespace. */}}
+{{- /* Reading Tournament Manifests and Recurring Tournaments, and reporting their status (ADR-0005), in each watched namespace. */}}
 {{- if .Values.rbac.create }}
 {{- range $namespace := .Values.config.manifestNamespaces | uniq }}
 ---
@@ -47,10 +47,10 @@ metadata:
     {{- include "opentournament.labels" $ | nindent 4 }}
 rules:
   - apiGroups: ["opentournament.io"]
-    resources: ["tournaments"]
+    resources: ["tournaments", "recurringtournaments"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["opentournament.io"]
-    resources: ["tournaments/status"]
+    resources: ["tournaments/status", "recurringtournaments/status"]
     verbs: ["update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

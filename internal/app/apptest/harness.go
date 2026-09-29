@@ -58,8 +58,9 @@ type Harness struct {
 	App         *app.App
 	FakeClock   *clocktest.Fake
 	FakeServers *gameservertest.Fake
-	// FakeKubernetes holds the Tournament Manifests. The app reads them only
-	// in the namespaces WatchManifests names.
+	// FakeKubernetes holds the Tournament Manifests and Recurring
+	// Tournaments. The app reads them only in the namespaces WatchManifests
+	// names.
 	FakeKubernetes *dynamicfake.FakeDynamicClient
 	Issuer         *authtest.Issuer
 	Pool           *pgxpool.Pool
@@ -68,8 +69,8 @@ type Harness struct {
 // Option configures the hosted app.
 type Option func(*app.Config)
 
-// WatchManifests makes the app declare the Tournament Manifests in these
-// namespaces. Without it, no namespace is watched.
+// WatchManifests makes the app declare the Tournament Manifests and
+// Recurring Tournaments in these namespaces. Without it, no namespace is watched.
 func WatchManifests(namespaces ...string) Option {
 	return func(c *app.Config) { c.ManifestNamespaces = namespaces }
 }
@@ -96,7 +97,10 @@ func MustStart(t testing.TB, opts ...Option) *Harness {
 	h := &Harness{
 		t: t, FakeClock: clocktest.NewFake(Epoch), FakeServers: gameservertest.NewFake(), Issuer: issuer, Pool: pool,
 		FakeKubernetes: dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
-			map[schema.GroupVersionResource]string{manifests.Resource: "TournamentList"}),
+			map[schema.GroupVersionResource]string{
+				manifests.Resource:          "TournamentList",
+				manifests.RecurringResource: "RecurringTournamentList",
+			}),
 	}
 	cfg := app.Config{
 		Pool: pool, Clock: h.FakeClock, Rand: rand.New(rand.NewPCG(1, 2)), Games: catalog,
@@ -131,7 +135,7 @@ func MustStart(t testing.TB, opts ...Option) *Harness {
 	return h
 }
 
-// Settle reconciles every Tournament Manifest, then runs every due job and
+// Settle reconciles every Tournament Manifest and Recurring Tournament, then runs every due job and
 // reconciles Game Servers until nothing changes, the way the background
 // workers would.
 func (h *Harness) Settle() {
@@ -158,9 +162,9 @@ func (h *Harness) Settle() {
 	h.t.Fatal("background work did not settle")
 }
 
-// reconcileManifests reconciles every Manifest in the fake cluster, in every
-// namespace, as the informers would deliver them. The app itself ignores the
-// namespaces it doesn't watch.
+// reconcileManifests reconciles every Tournament Manifest and Recurring
+// Tournament in the fake cluster, in every namespace, as the informers would
+// deliver them. The app itself ignores the namespaces it doesn't watch.
 func (h *Harness) reconcileManifests(ctx context.Context) {
 	h.t.Helper()
 	if h.App.Manifests == nil {
@@ -174,6 +178,16 @@ func (h *Harness) reconcileManifests(ctx context.Context) {
 		name := cache.ObjectName{Namespace: u.GetNamespace(), Name: u.GetName()}
 		if err := h.App.Manifests.Reconcile(ctx, name); err != nil {
 			h.t.Fatalf("reconcile manifest %v: %v", name, err)
+		}
+	}
+	list, err = h.FakeKubernetes.Resource(manifests.RecurringResource).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		h.t.Fatalf("list recurring tournaments: %v", err)
+	}
+	for _, u := range list.Items {
+		name := cache.ObjectName{Namespace: u.GetNamespace(), Name: u.GetName()}
+		if _, err := h.App.Manifests.ReconcileRecurring(ctx, name); err != nil {
+			h.t.Fatalf("reconcile recurring tournament %v: %v", name, err)
 		}
 	}
 }
