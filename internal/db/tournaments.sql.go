@@ -137,13 +137,65 @@ func (q *Queries) InsertTournament(ctx context.Context, arg InsertTournamentPara
 
 const listDeclaredTournaments = `-- name: ListDeclaredTournaments :many
 SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments
-WHERE split_part(manifest, '/', 1) = 'tournament'
-  AND split_part(manifest, '/', 2) = ANY($1::text[])
+WHERE split_part(manifest, '/', 1) = ANY($1::text[])
+  AND split_part(manifest, '/', 2) = ANY($2::text[])
 ORDER BY id
 `
 
-func (q *Queries) ListDeclaredTournaments(ctx context.Context, namespaces []string) ([]Tournament, error) {
-	rows, err := q.db.Query(ctx, listDeclaredTournaments, namespaces)
+type ListDeclaredTournamentsParams struct {
+	Kinds      []string
+	Namespaces []string
+}
+
+// kinds are the first segments of the manifests, such as tournament for
+// tournament/<namespace>/<name> or recurring for an Occurrence.
+func (q *Queries) ListDeclaredTournaments(ctx context.Context, arg ListDeclaredTournamentsParams) ([]Tournament, error) {
+	rows, err := q.db.Query(ctx, listDeclaredTournaments, arg.Kinds, arg.Namespaces)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Tournament{}
+	for rows.Next() {
+		var i Tournament
+		if err := rows.Scan(
+			&i.ID,
+			&i.GameID,
+			&i.Name,
+			&i.Organizer,
+			&i.Status,
+			&i.StartsAt,
+			&i.RegistrationOpensAt,
+			&i.Capacity,
+			&i.MinimumParticipants,
+			&i.CheckInEnabled,
+			&i.CheckInSeconds,
+			&i.LastEventSeq,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CompletedAt,
+			&i.Manifest,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOccurrenceTournaments = `-- name: ListOccurrenceTournaments :many
+SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments
+WHERE starts_with(manifest, $1::text)
+ORDER BY starts_at, id
+`
+
+// The Tournaments one Recurring Tournament declared, by the prefix
+// recurring/<namespace>/<name>/ of their Occurrences.
+func (q *Queries) ListOccurrenceTournaments(ctx context.Context, prefix string) ([]Tournament, error) {
+	rows, err := q.db.Query(ctx, listOccurrenceTournaments, prefix)
 	if err != nil {
 		return nil, err
 	}

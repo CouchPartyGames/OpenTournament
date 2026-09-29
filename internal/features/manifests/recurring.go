@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/auth"
@@ -33,8 +34,9 @@ type RecurringSpec struct {
 	// Lookahead is how far ahead Occurrences are declared, as a Go duration
 	// such as 48h. Empty means recurrence.DefaultLookahead.
 	Lookahead string `json:"lookahead,omitempty"`
-	// Suspend stops declaring new Occurrences, like a suspended CronJob. The
-	// Tournaments already declared are kept.
+	// Suspend stops declaring Occurrences, like a suspended CronJob, and no
+	// Occurrence is wanted: the Tournaments of those that haven't started are
+	// removed.
 	Suspend  bool     `json:"suspend,omitempty"`
 	Template Template `json:"template"`
 }
@@ -93,9 +95,12 @@ var unscheduled = map[error]string{
 
 // ReconcileRecurring declares a Tournament for each Occurrence of one
 // Recurring Tournament within its lookahead window, unless it is suspended,
-// and reports its upcoming Occurrences in its status. A Recurring Tournament
-// that can't be applied is reported rather than retried, and declares
-// nothing. Recurring Tournaments outside the watched namespaces are ignored.
+// edits those still Drafts to match its template, and removes those of
+// Occurrences still ahead that it no longer wants. It reports its upcoming
+// Occurrences in its status, and the Occurrences whose settings froze before
+// the template changed. A Recurring Tournament that can't be applied is
+// reported rather than retried, and changes nothing. Recurring Tournaments
+// outside the watched namespaces are ignored.
 //
 // It returns when the next Occurrence enters the window, which is when to
 // reconcile again, or zero if nothing is due.
@@ -122,7 +127,7 @@ func (c *Controller) ReconcileRecurring(ctx context.Context, name cache.ObjectNa
 		return time.Time{}, err
 	}
 
-	s, err := c.schedule(ctx, name, spec)
+	s, err := c.schedule(ctx, name, u.GetGeneration(), spec)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -140,7 +145,7 @@ func (c *Controller) ReconcileRecurring(ctx context.Context, name cache.ObjectNa
 	case s.reason != "":
 		cond.Status, cond.Reason, cond.Message = metav1.ConditionFalse, s.reason, s.message
 	case spec.Suspend:
-		cond.Status, cond.Reason, cond.Message = metav1.ConditionTrue, ReasonSuspended, "No new Occurrences are declared while suspended"
+		cond.Status, cond.Reason, cond.Message = metav1.ConditionTrue, ReasonSuspended, "No Occurrences are declared while suspended"
 	default:
 		cond.Status, cond.Reason, cond.Message = metav1.ConditionTrue, ReasonScheduled, "Every Occurrence in the lookahead window is declared"
 	}
@@ -148,7 +153,7 @@ func (c *Controller) ReconcileRecurring(ctx context.Context, name cache.ObjectNa
 		want.ObservedGeneration = u.GetGeneration()
 	}
 	meta.SetStatusCondition(&want.Conditions, cond)
-	if err := c.updateStatus(ctx, RecurringResource, u, status, want, s.declared); err != nil {
+	if err := c.updateStatus(ctx, RecurringResource, u, status, want, s.changed); err != nil {
 		return time.Time{}, err
 	}
 	return s.next, nil
@@ -161,18 +166,21 @@ type scheduled struct {
 	readable bool
 	// upcoming are the Occurrences in the window with a Tournament.
 	upcoming []Occurrence
-	// declared is true when a Tournament was declared.
-	declared bool
+	// changed is true when a Tournament was created, edited or removed.
+	changed bool
 	// next is when to schedule again, or zero if nothing is due.
 	next time.Time
-	// reason and message say why the Recurring Tournament can't be applied,
-	// and are empty when it can.
+	// reason and message say why the Recurring Tournament, or some of its
+	// Occurrences, can't be applied, and are empty when all can.
 	reason, message string
 }
 
-// schedule declares a Tournament for each Occurrence in the window that has
-// none, unless spec is suspended or can't be applied.
-func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, spec RecurringSpec) (scheduled, error) {
+// schedule makes the Tournaments of a Recurring Tournament's Occurrences
+// match spec, its generation: it removes those of Occurrences no longer
+// wanted, then declares one for each Occurrence in the window, unless spec is
+// suspended, and edits those still Drafts. A spec that can't be applied
+// changes nothing.
+func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, generation int64, spec RecurringSpec) (scheduled, error) {
 	var lookahead time.Duration
 	if spec.Lookahead != "" {
 		d, err := time.ParseDuration(spec.Lookahead)
@@ -212,32 +220,109 @@ func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, spec R
 			return scheduled{}, err
 		}
 	}
+	refused := s.reason != ""
+	if !refused {
+		wanted := map[string]bool{}
+		if !spec.Suspend {
+			for _, start := range starts {
+				wanted[occurrence(name, start)] = true
+			}
+		}
+		removed, err := c.removeUnwanted(ctx, name, generation, wanted)
+		if err != nil {
+			return scheduled{}, err
+		}
+		s.changed = removed
+	}
+
+	// Some Occurrences may refuse spec, such as those whose settings froze.
+	// The others are still declared.
+	var frozen []string
 	for _, start := range starts {
-		manifest := fmt.Sprintf("recurring/%v/%s", name, start.Format(time.RFC3339))
+		manifest := occurrence(name, start)
+		if !spec.Suspend && !refused {
+			tv, change, err := tournaments.Declare(ctx, c.svc, manifest, tmpl.organizer, tmpl.occurrence(start))
+			reason, message, err := refusal(err)
+			if err != nil {
+				return scheduled{}, fmt.Errorf("declare occurrence %s of recurring tournament %v: %w", start.Format(time.RFC3339), name, err)
+			}
+			if reason == "" {
+				s.changed = s.changed || change != tournaments.Unchanged
+				s.upcoming = append(s.upcoming, upcoming(start, tv))
+				continue
+			}
+			if reason == ReasonSettingsFrozen {
+				frozen = append(frozen, start.In(sched.Location()).Format("2006-01-02 15:04"))
+			} else if s.reason == "" {
+				s.reason, s.message = reason, message
+			}
+		}
+		// The Occurrence isn't declared as spec says, but its Tournament is
+		// still upcoming if it has one.
 		tv, err := tournaments.FindDeclared(ctx, c.svc.Queries, manifest)
 		if errors.Is(err, tournament.ErrTournamentNotFound) {
-			if spec.Suspend || s.reason != "" {
-				continue
-			}
-			// Editing the Tournament of an Occurrence is left to #11, so a
-			// replica with an older template can't overwrite a newer one's.
-			tv, err = tournaments.CreateDeclared(ctx, c.svc, manifest, tmpl.organizer, tmpl.occurrence(start))
-			if err != nil {
-				if s.reason, s.message, err = refusal(err); err != nil {
-					return scheduled{}, fmt.Errorf("declare occurrence %s of recurring tournament %v: %w", start.Format(time.RFC3339), name, err)
-				}
-				continue
-			}
-			s.declared = true
+			continue
 		} else if err != nil {
 			return scheduled{}, fmt.Errorf("find occurrence %s of recurring tournament %v: %w", start.Format(time.RFC3339), name, err)
 		}
-		s.upcoming = append(s.upcoming, Occurrence{StartsAt: metav1.NewTime(start), TournamentID: tv.ID.String(), TournamentStatus: tv.Status})
+		s.upcoming = append(s.upcoming, upcoming(start, tv))
 	}
-	if s.reason == "" && !spec.Suspend {
+	if s.reason == "" && len(frozen) > 0 {
+		s.reason = ReasonSettingsFrozen
+		s.message = "The Occurrences starting " + strings.Join(frozen, ", ") + " keep their settings, frozen once registration opened"
+	}
+	if !refused && !spec.Suspend {
 		s.next, _ = sched.NextEntry(now)
 	}
 	return s, nil
+}
+
+// removeUnwanted applies the removal policy to the Tournaments of a Recurring
+// Tournament's Occurrences that are still ahead and not wanted, by manifest,
+// in its generation. Occurrences that started are never unwanted. It reports
+// whether it removed any.
+func (c *Controller) removeUnwanted(ctx context.Context, name cache.ObjectName, generation int64, wanted map[string]bool) (bool, error) {
+	declared, err := c.svc.Queries.ListOccurrenceTournaments(ctx, "recurring/"+name.String()+"/")
+	if err != nil {
+		return false, fmt.Errorf("list occurrences of recurring tournament %v: %w", name, err)
+	}
+	removed := false
+	for _, t := range declared {
+		if wanted[*t.Manifest] || !unstarted(t.Status) || !t.StartsAt.After(c.svc.Clock.Now()) {
+			continue
+		}
+		err := c.svc.InTournament(ctx, t.ID, func(tx *tournament.Tx) error {
+			// A replica that read an older generation mustn't remove what a
+			// later one wants again. A deleted Recurring Tournament is the
+			// sweep's.
+			u, err := c.client.Resource(RecurringResource).Namespace(name.Namespace).Get(ctx, name.Name, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				return nil
+			} else if err != nil {
+				return fmt.Errorf("get recurring tournament %v: %w", name, err)
+			}
+			if u.GetGeneration() != generation || !unstarted(tx.T.Status) || !tx.T.StartsAt.After(tx.Now()) {
+				return nil
+			}
+			removed = true
+			return remove(tx)
+		})
+		if err != nil && !errors.Is(err, tournament.ErrTournamentNotFound) {
+			return removed, fmt.Errorf("remove occurrence %s of recurring tournament %v: %w", t.StartsAt.Format(time.RFC3339), name, err)
+		}
+	}
+	return removed, nil
+}
+
+// occurrence names the Occurrence of a Recurring Tournament at start as the
+// manifest of its Tournament.
+func occurrence(name cache.ObjectName, start time.Time) string {
+	return fmt.Sprintf("recurring/%v/%s", name, start.UTC().Format(time.RFC3339))
+}
+
+// upcoming is the Occurrence at start, and the Tournament it declared.
+func upcoming(start time.Time, tv tournaments.TournamentView) Occurrence {
+	return Occurrence{StartsAt: metav1.NewTime(start), TournamentID: tv.ID.String(), TournamentStatus: tv.Status}
 }
 
 // refusal returns the reason and message of the Synced condition when err

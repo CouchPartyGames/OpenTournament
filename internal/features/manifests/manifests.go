@@ -6,7 +6,9 @@
 // their source of truth, and reports it in the Manifest's status.
 //
 // It also watches Recurring Tournaments, and declares a Tournament for each
-// Occurrence of their schedules within the lookahead window.
+// Occurrence of their schedules within the lookahead window. Their
+// Tournaments follow the template and the schedule like a Manifest's: Drafts
+// are edited, and those of Occurrences no longer wanted are removed.
 //
 // Every replica runs the controller, without leader election: a Manifest
 // declares at most one Tournament, and each Occurrence of a Recurring
@@ -159,7 +161,7 @@ func (c *Controller) Run(ctx context.Context) {
 			DeleteFunc: enqueue,
 		}
 	}
-	var synced []cache.InformerSynced
+	var synced, recurringSynced []cache.InformerSynced
 	for _, ns := range c.namespaces {
 		factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(c.client, c.Resync, ns, nil)
 		informer := factory.ForResource(Resource).Informer()
@@ -168,14 +170,16 @@ func (c *Controller) Run(ctx context.Context) {
 			return
 		}
 		synced = append(synced, informer.HasSynced)
-		// Only the removal sweep needs the Tournament Manifests' watches to
-		// have synced. Not waiting for the Recurring Tournaments' keeps
-		// Tournament Manifests working in a cluster without their CRD.
+		// Only the removal sweep needs the watches to have synced. Not
+		// waiting for the Recurring Tournaments' keeps Tournament Manifests
+		// working in a cluster without their CRD; the sweep leaves
+		// Occurrences alone until they sync instead.
 		recurring := factory.ForResource(RecurringResource).Informer()
 		if _, err := recurring.AddEventHandler(handler(RecurringResource)); err != nil {
 			c.Logger.ErrorContext(ctx, "can't watch the recurring tournaments of a namespace; their Occurrences won't be declared", "namespace", ns, "error", err)
 			return
 		}
+		recurringSynced = append(recurringSynced, recurring.HasSynced)
 		factory.Start(ctx.Done())
 		factories = append(factories, factory)
 	}
@@ -195,7 +199,8 @@ func (c *Controller) Run(ctx context.Context) {
 		var err error
 		switch {
 		case k == sweep:
-			err = c.sweep(ctx)
+			occurrences := !slices.ContainsFunc(recurringSynced, func(synced cache.InformerSynced) bool { return !synced() })
+			err = c.sweep(ctx, occurrences)
 			c.queue.AddAfter(sweep, c.Resync)
 		case k.resource == Resource:
 			err = c.Reconcile(ctx, k.name)
