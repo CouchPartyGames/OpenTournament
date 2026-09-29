@@ -5,7 +5,7 @@ apiVersion: opentournament.io/v1alpha1
 kind: Tournament
 metadata:
   name: friday-cup
-  namespace: games
+  namespace: tournaments
 spec:
   # The Organizer: user:<keycloak subject> or client:<keycloak client id>. A
   # Game backend's client must be trusted by the Game.
