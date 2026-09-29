@@ -102,7 +102,7 @@ func run() error {
 		Pool: pool, Clock: clock.Real{}, Games: catalog, Verifier: verifier,
 		Rand:          mrand.New(mrand.NewPCG(binary.LittleEndian.Uint64(seed[:8]), binary.LittleEndian.Uint64(seed[8:]))),
 		MatchTokenKey: cfg.MatchTokenKey, GameServers: servers, Docs: cfg.Docs, Version: version,
-		Kubernetes: kubernetes, ManifestNamespaces: cfg.ManifestNamespaces,
+		Kubernetes: kubernetes, ManifestNamespaces: cfg.ManifestNamespaces, ManifestLogger: slog.Default(),
 	})
 	if err != nil {
 		return err

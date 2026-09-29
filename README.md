@@ -117,8 +117,22 @@ generation applied, and `Synced=False` says why:
 `kubectl -n games get tournaments -o wide` shows the `Synced` condition and its
 reason. The API refuses to edit a declared Tournament with `409 declared-in-git`.
 Cancelling it through the API still works as an emergency lever: the Tournament
-stays cancelled, and its Manifest keeps pointing to it. Deleting a Manifest and
-recurring schedules are still to come.
+stays cancelled, and its Manifest keeps pointing to it.
+
+Deleting a Manifest deletes its Draft Tournament, or cancels it if Registration
+or Check-in has opened, using the same cancellation path as the API (including
+Game Server release and live status updates). Running, Completed and Cancelled
+Tournaments are left untouched.
+
+A removal sweep runs at startup after every watch has synced, then every 30
+seconds, so deletions made while the service was down are handled too. Only
+Tournaments declared in currently watched namespaces are considered; removing a
+namespace from the watched list leaves its Tournaments alone. If a sweep would
+delete or cancel more than half of those declared Tournaments, it logs an error
+with the counts and skips all removals. This also protects a namespace set with
+only one declared Tournament. Restore the missing Manifests to bring the removal
+count within the limit before retrying; normal sweeps retry automatically. No
+Kubernetes finalizers are used. Recurring schedules are still to come.
 
 ## How it fits together
 

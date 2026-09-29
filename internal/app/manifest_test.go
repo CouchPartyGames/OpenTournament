@@ -164,7 +164,6 @@ func TestManifestStatusReportsTheDeclaredTournament(t *testing.T) {
 }
 
 func TestTheExampleManifestDeclaresATournament(t *testing.T) {
-	h := apptest.MustStart(t, apptest.WatchManifests("games"))
 	b, err := os.ReadFile("../../examples/tournament.yaml")
 	if err != nil {
 		t.Fatalf("read the example: %v", err)
@@ -182,6 +181,7 @@ func TestTheExampleManifestDeclaresATournament(t *testing.T) {
 	if err := yaml.Unmarshal(b, &dates); err != nil {
 		t.Fatalf("parse the example's dates: %v", err)
 	}
+	h := apptest.MustStart(t, apptest.WatchManifests(example.Metadata.Namespace))
 	// The example's dates are in the fake clock's past; keep their spacing.
 	starts := h.FakeClock.Now().Add(24 * time.Hour)
 	example.Spec["startsAt"] = starts
