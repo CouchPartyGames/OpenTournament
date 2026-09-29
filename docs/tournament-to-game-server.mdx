@@ -1,0 +1,92 @@
+---
+title: From tournament start to game server connection
+description: How participants become match slots, receive a server endpoint, and enter a game session.
+---
+
+# From tournament start to game server connection
+
+OpenTournament schedules tournaments and assigns a Game Server to each playable Match. It also controls who can **learn** the server's address and port. The game-specific server controls who can **join** the session: it receives the assigned Player Identities and must authenticate connecting players against them. The Organizer can see the endpoint for operational purposes, but being the Organizer does not make them a Match Participant.
+
+The flow below follows a tournament's first playable Match. Other first-round Matches can go through the same steps in parallel. Later Matches become playable when their format rules determine their Participants.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Organizer
+    actor Player
+    participant API as OpenTournament API
+    participant DB as PostgreSQL and scheduler
+    participant Agones as Agones Fleet
+    participant GS as Game Server
+
+    Organizer->>API: Create tournament for a configured Game
+    API->>DB: Save Draft, stages, and registration-opening job
+    DB->>API: Registration-opening job becomes due
+    API->>DB: Open registration and schedule start
+    Player->>API: Register Player Identity
+    API->>DB: Save Participant
+    opt Check-in enabled
+        DB->>API: Check-in window opens
+        Player->>API: Check in
+        API->>DB: Mark Participant checked in
+    end
+    DB->>API: Start job becomes due
+    API->>DB: Drop absent players, activate field, seed Groups
+    API->>DB: Create Matches and slots; mark playable Match Ready
+    API->>DB: Schedule allocation and result deadline
+    DB->>API: Allocation job becomes due
+    API->>Agones: Allocate from Game Fleet with Match token
+    Agones-->>API: Server name, address, and port
+    API->>DB: Confirm allocation and emit match.changed
+    API-->>Player: Private endpoint in live event, or GET Match
+    GS->>API: GET /api/v1/game-server/match with Match token
+    API-->>GS: Match roster with Player Identities
+    Player->>GS: Connect using game's client protocol
+    GS->>GS: Authenticate identity and check Match roster
+    GS-->>Player: Admit assigned, eligible player
+    GS->>API: Report Match started and later Bout results
+```
+
+## 1. Create a scheduled tournament
+
+An authenticated person, or a Game backend trusted for the selected Game, creates a Tournament through `POST /api/v1/tournaments` and becomes its Organizer. The request identifies a configured Game, registration and start times, capacity, minimum Participant count, optional check-in settings, and one or more Stages. The Game catalog supplies the accepted Player Identity kinds and the Agones Fleet used for its servers.
+
+The service validates the settings, stores the Tournament as **Draft**, creates its Stage definitions, and schedules a persisted job to open registration. Creation does not allocate a Game Server. The scheduler runs due jobs from PostgreSQL, so a service restart does not erase the schedule. See [Tournament creation](../internal/features/tournaments/tournaments.go), [Game catalog](../internal/games/games.go), and [scheduler](../internal/scheduler/scheduler.go).
+
+## 2. Register and, if required, check in
+
+At `registrationOpensAt`, the registration job changes the Tournament to **Registration Open** and schedules its start at `startsAt`. If check-in is enabled, the service also opens a **Check-in** window near the start time. Settings are frozen once registration opens.
+
+A player registers through `POST /api/v1/tournaments/{tournamentId}/participants`. A human caller normally registers their own Keycloak identity or a linked identity carried in their token. A trusted Game backend can register a Player Identity on a player's behalf. The service verifies that the Game accepts the identity kind, registration is open, capacity remains, and the identity has not already registered. Registration during the Check-in window also checks the Participant in. When check-in is required, a previously registered player uses `POST /api/v1/tournaments/{tournamentId}/participants/{participantId}/check-in`. See [lifecycle](../internal/tournament/lifecycle.go) and [registrations](../internal/features/registrations/registrations.go).
+
+## 3. Start and build the first Matches
+
+At `startsAt`, the persisted start job runs. If check-in is enabled, the service first drops Participants who did not check in. If the remaining count is below `minimumParticipants`, it cancels the Tournament; no Match is allocated. Otherwise it activates the Participants, changes the Tournament to **Running**, randomly seeds the first Stage, distributes Participants into Groups by snake seeding, and asks the format engine to plan each Group.
+
+The plan creates Match records and assigns Participants to Match **slots**. The format determines which Matches are playable immediately. A Match with a bye or no opponent can be decided without a Game Server. When a Match is playable, it becomes **Ready**: its result deadline starts and allocation and deadline jobs are scheduled. The scheduler can process several first-round allocations concurrently. See [start and seeding](../internal/tournament/lifecycle.go) and [match progression](../internal/tournament/progress.go).
+
+## 4. Allocate a server to each Ready Match
+
+For a Ready Match, OpenTournament creates a unique allocation ID and signs a Match token scoped to that Match and allocation. The token expires at the Match's result deadline plus a short grace period. It asks Agones to allocate a warm Game Server from the configured Game's Fleet. The allocation labels the server with the Match and allocation IDs and puts the token in the `opentournament/match-token` annotation for the Game Server to read through the Agones SDK.
+
+Agones returns the server's name, address, and port. OpenTournament confirms that the Match still owns this allocation, stores the endpoint, and emits a `match.changed` event. If there is no available server, the persisted allocation job retries with backoff. A later replacement after a server failure receives a new allocation ID and Match token. See [allocation](../internal/tournament/servers.go), [Agones adapter](../internal/gameserver/agones/agones.go), and [Match tokens](../internal/matchtoken/matchtoken.go).
+
+## 5. Give eligible clients the endpoint
+
+A client can discover Matches and their Participant IDs through `GET /api/v1/tournaments/{tournamentId}/structure`; that response never contains Game Server addresses. Once a server is allocated, a Match Participant or the Organizer can call `GET /api/v1/matches/{matchId}` with a Keycloak bearer token and receive `serverAddress` and `serverPort`. The API checks whether the caller is the Organizer or owns a Player Identity in one of that Match's slots. Anonymous callers and Participants assigned to other Matches see `serverAllocated`, but not the endpoint.
+
+The same boundary applies to live updates. A client can authenticate and subscribe on `/api/v1/live`; the public `match.changed` event describes the Match and whether a server is allocated. The endpoint is a private part of that event sent only to the Match Participants' identities and the Organizer. Clients that reconnect, or detect a missed event, fetch the Match again through REST. A Game backend that registered an identity on someone's behalf may need to deliver the endpoint through its own game client flow; the API grants access according to the caller's Keycloak identities or Organizer role. See [Match read](../internal/features/matches/matches.go), [event audience](../internal/tournament/progress.go), and [live delivery](../internal/features/live/hub.go).
+
+## 6. Give the Game Server its Match roster
+
+The Game Server reads its Match token from the Agones annotation and calls `GET /api/v1/game-server/match` with `Authorization: Bearer <match token>`. OpenTournament verifies the token signature and expiry, the Match ID, and that the Match still belongs to that allocation. Keycloak user tokens do not grant access to these Game Server endpoints.
+
+The response contains the Match ID, Game ID, status, format, Bout settings, and each assigned Participant's ID, `identityKind`, `identityValue`, and forfeited state. It also includes completed Bouts so a replacement server can resume a Match. This response gives the Game Server the roster it needs to set up its session. See [Game Server API](../internal/features/gameservers/gameservers.go) and [server Match view](../internal/tournament/reports.go).
+
+## 7. Connect and admit players
+
+The game client connects to the returned address and port using the **game's own protocol**. OpenTournament does not proxy that connection or pass a player admission token to the Game Server. The Game Server implementation must authenticate the connecting player's Game or platform identity, compare its kind and value with the Match roster, and admit only assigned, eligible Participants. It should refuse other identities and handle forfeited Participants according to the game's session rules. The Organizer's right to see the endpoint is not a player admission right.
+
+**Security boundary:** hiding the address limits casual discovery, but it is not a network access control. Someone who obtains the address can attempt a connection. The actual player restriction depends on the Game Server implementing identity verification and roster checks. The repository provides the roster and Match token mechanism; it does not contain a generic game-protocol admission handler. The [specification](specs/0001-realtime-tournaments-v1.md) calls for only Match Participants to be admitted.
+
+Once the session begins, the Game Server reports `POST /api/v1/game-server/match/started` and later reports Bout results or no-shows with its Match token. Withdrawals or disqualifications during play are sent to the server through the `opentournament/forfeited` annotation; the server is expected to remove those players. These reports and notifications continue the Match lifecycle after connection. See [Game Server API](../internal/features/gameservers/gameservers.go) and [Game Server integration](../README.md#game-servers).
