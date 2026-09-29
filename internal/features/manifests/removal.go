@@ -11,28 +11,36 @@ import (
 	"github.com/couchpartygames/opentournament/internal/tournament"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
 
-// sweep runs only after every Tournament Manifest watch has synced, and
-// removes the Tournaments of Occurrences too once occurrences says the
-// Recurring Tournament watches have. Read the declared Tournaments before
-// listing Manifests so a concurrent declaration cannot look removed just
-// because it happened after the list. A failed list aborts the whole sweep.
-func (c *Controller) sweep(ctx context.Context, occurrences bool) error {
-	kinds, resources := []string{"tournament"}, []schema.GroupVersionResource{Resource}
-	if occurrences {
-		kinds, resources = append(kinds, "recurring"), append(resources, RecurringResource)
-	}
-	declared, err := c.svc.Queries.ListDeclaredTournaments(ctx, db.ListDeclaredTournamentsParams{Kinds: kinds, Namespaces: c.namespaces})
+// sweep runs only after every Tournament Manifest watch has synced. It
+// removes the Tournaments of Occurrences too when recurringSynced says the
+// Recurring Tournament watches have, and while their CRD is served. Read the
+// declared Tournaments before listing their sources so a concurrent
+// declaration cannot look removed just because it happened after the list. A
+// failed list aborts the whole sweep.
+func (c *Controller) sweep(ctx context.Context, recurringSynced bool) error {
+	declared, err := c.svc.Queries.ListDeclaredTournaments(ctx, c.namespaces)
 	if err != nil {
 		return fmt.Errorf("list declared tournaments: %w", err)
 	}
 	present := map[key]bool{}
+	sweepOccurrences := recurringSynced
 	for _, ns := range c.namespaces {
-		for _, resource := range resources {
+		for _, resource := range []schema.GroupVersionResource{Resource, RecurringResource} {
+			if resource == RecurringResource && !sweepOccurrences {
+				continue
+			}
 			list, err := c.client.Resource(resource).Namespace(ns).List(ctx, metav1.ListOptions{})
+			if resource == RecurringResource && apierrors.IsNotFound(err) {
+				// The CRD was removed after the watches synced.
+				c.Logger.WarnContext(ctx, "recurring tournaments can't be listed; the removal sweep leaves their Occurrences alone", "error", err)
+				sweepOccurrences = false
+				continue
+			}
 			if err != nil {
 				return fmt.Errorf("list %s in namespace %s for removal: %w", resource.Resource, ns, err)
 			}
@@ -45,27 +53,33 @@ func (c *Controller) sweep(ctx context.Context, occurrences bool) error {
 		t      db.Tournament
 		source key
 	}
+	var considered int
 	var removed []removal
 	for _, t := range declared {
 		source, err := sourceOf(*t.Manifest)
 		if err != nil {
 			return err
 		}
+		if source.resource == RecurringResource && !sweepOccurrences {
+			continue
+		}
+		considered++
 		if unstarted(t.Status) && !present[source] {
 			removed = append(removed, removal{t, source})
 		}
 	}
-	if len(removed) > len(declared)/2 {
+	if len(removed) > considered/2 {
 		c.Logger.ErrorContext(ctx, "skipping manifest removal sweep: more than half of declared Tournaments would be removed",
-			"removals", len(removed), "declared", len(declared), "namespaces", c.namespaces)
+			"removals", len(removed), "declared", considered, "namespaces", c.namespaces)
 		return nil
 	}
 	for _, r := range removed {
 		err = c.svc.InTournament(ctx, r.t.ID, func(tx *tournament.Tx) error {
-			// A Manifest may have been reapplied while another namespace was
-			// listed or while we waited for the Tournament lock. Only a fresh
-			// NotFound authorizes removal; any other read failure stops it.
-			_, err := c.client.Resource(r.source.resource).Namespace(r.source.name.Namespace).Get(ctx, r.source.name.Name, metav1.GetOptions{})
+			// The Manifest or Recurring Tournament may have been reapplied
+			// while another namespace was listed or while we waited for the
+			// Tournament lock. Only a fresh NotFound authorizes removal; any
+			// other read failure stops it.
+			_, err := c.get(ctx, r.source)
 			if err == nil {
 				return nil
 			}
@@ -75,14 +89,19 @@ func (c *Controller) sweep(ctx context.Context, occurrences bool) error {
 			return remove(tx)
 		})
 		if err != nil && !errors.Is(err, tournament.ErrTournamentNotFound) {
-			return fmt.Errorf("remove tournament %s after manifest removal: %w", r.t.ID, err)
+			return fmt.Errorf("remove tournament %s after %s %v was deleted: %w", r.t.ID, r.source.resource.Resource, r.source.name, err)
 		}
 	}
 	return nil
 }
 
-// sourceOf returns the manifest that declared a Tournament, from what the
-// Tournament records: tournament/<namespace>/<name> for a Tournament
+// get reads the object k names from the cluster.
+func (c *Controller) get(ctx context.Context, k key) (*unstructured.Unstructured, error) {
+	return c.client.Resource(k.resource).Namespace(k.name.Namespace).Get(ctx, k.name.Name, metav1.GetOptions{})
+}
+
+// sourceOf returns the object that declared a Tournament, from the manifest
+// the Tournament records: tournament/<namespace>/<name> for a Tournament
 // Manifest, or recurring/<namespace>/<name>/<start> for an Occurrence of a
 // Recurring Tournament.
 func sourceOf(manifest string) (key, error) {

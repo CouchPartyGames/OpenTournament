@@ -8,11 +8,10 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12, $13);
 SELECT * FROM tournaments WHERE manifest = sqlc.arg(manifest)::text;
 
 -- name: ListDeclaredTournaments :many
--- kinds are the first segments of the manifests, such as tournament for
--- tournament/<namespace>/<name> or recurring for an Occurrence.
+-- Tournament Manifests (tournament/<namespace>/<name>) and Occurrences
+-- (recurring/<namespace>/<name>/<start>) both record their namespace second.
 SELECT * FROM tournaments
-WHERE split_part(manifest, '/', 1) = ANY(sqlc.arg(kinds)::text[])
-  AND split_part(manifest, '/', 2) = ANY(sqlc.arg(namespaces)::text[])
+WHERE split_part(manifest, '/', 2) = ANY(sqlc.arg(namespaces)::text[])
 ORDER BY id;
 
 -- name: ListOccurrenceTournaments :many

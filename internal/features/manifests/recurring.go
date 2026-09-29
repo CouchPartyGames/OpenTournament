@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/couchpartygames/opentournament/internal/auth"
+	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/features/tournaments"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/problem"
@@ -17,6 +18,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
@@ -127,7 +129,7 @@ func (c *Controller) ReconcileRecurring(ctx context.Context, name cache.ObjectNa
 		return time.Time{}, err
 	}
 
-	s, err := c.schedule(ctx, name, u.GetGeneration(), spec)
+	s, err := c.schedule(ctx, u, spec)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -176,11 +178,12 @@ type scheduled struct {
 }
 
 // schedule makes the Tournaments of a Recurring Tournament's Occurrences
-// match spec, its generation: it removes those of Occurrences no longer
-// wanted, then declares one for each Occurrence in the window, unless spec is
+// match spec, the spec of u: it removes those of Occurrences no longer wanted,
+// then declares one for each Occurrence in the window, unless spec is
 // suspended, and edits those still Drafts. A spec that can't be applied
 // changes nothing.
-func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, generation int64, spec RecurringSpec) (scheduled, error) {
+func (c *Controller) schedule(ctx context.Context, u *unstructured.Unstructured, spec RecurringSpec) (scheduled, error) {
+	name := cache.ObjectName{Namespace: u.GetNamespace(), Name: u.GetName()}
 	var lookahead time.Duration
 	if spec.Lookahead != "" {
 		d, err := time.ParseDuration(spec.Lookahead)
@@ -221,26 +224,38 @@ func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, genera
 		}
 	}
 	refused := s.reason != ""
+	declared, err := c.svc.Queries.ListOccurrenceTournaments(ctx, recurringManifest(name)+"/")
+	if err != nil {
+		return scheduled{}, fmt.Errorf("list occurrences of recurring tournament %v: %w", name, err)
+	}
 	if !refused {
-		wanted := map[string]bool{}
-		if !spec.Suspend {
-			for _, start := range starts {
-				wanted[occurrence(name, start)] = true
+		// wanted are the Occurrences spec wants at now, by manifest.
+		wanted := func(now time.Time) map[string]bool {
+			out := map[string]bool{}
+			if !spec.Suspend {
+				for _, o := range sched.Occurrences(now) {
+					out[occurrenceManifest(name, o)] = true
+				}
 			}
+			return out
 		}
-		removed, err := c.removeUnwanted(ctx, name, generation, wanted)
-		if err != nil {
+		if s.changed, err = c.removeUnwanted(ctx, u, declared, wanted); err != nil {
 			return scheduled{}, err
 		}
-		s.changed = removed
 	}
 
+	cancelled := map[string]bool{}
+	for _, t := range declared {
+		cancelled[*t.Manifest] = t.Status == lifecycle.Cancelled
+	}
 	// Some Occurrences may refuse spec, such as those whose settings froze.
 	// The others are still declared.
 	var frozen []string
 	for _, start := range starts {
-		manifest := occurrence(name, start)
-		if !spec.Suspend && !refused {
+		manifest := occurrenceManifest(name, start)
+		// A cancelled Occurrence stays as it is, like any other cancelled
+		// Tournament, so it never drifts from the template.
+		if !spec.Suspend && !refused && !cancelled[manifest] {
 			tv, change, err := tournaments.Declare(ctx, c.svc, manifest, tmpl.organizer, tmpl.occurrence(start))
 			reason, message, err := refusal(err)
 			if err != nil {
@@ -277,47 +292,60 @@ func (c *Controller) schedule(ctx context.Context, name cache.ObjectName, genera
 	return s, nil
 }
 
-// removeUnwanted applies the removal policy to the Tournaments of a Recurring
-// Tournament's Occurrences that are still ahead and not wanted, by manifest,
-// in its generation. Occurrences that started are never unwanted. It reports
-// whether it removed any.
-func (c *Controller) removeUnwanted(ctx context.Context, name cache.ObjectName, generation int64, wanted map[string]bool) (bool, error) {
-	declared, err := c.svc.Queries.ListOccurrenceTournaments(ctx, "recurring/"+name.String()+"/")
-	if err != nil {
-		return false, fmt.Errorf("list occurrences of recurring tournament %v: %w", name, err)
-	}
+// removeUnwanted applies the removal policy to the declared Tournaments of
+// u's Occurrences that are still ahead and not wanted, by manifest, at the
+// time. It reports whether it removed any.
+func (c *Controller) removeUnwanted(ctx context.Context, u *unstructured.Unstructured, declared []db.Tournament, wanted func(now time.Time) map[string]bool) (bool, error) {
+	name := key{RecurringResource, cache.ObjectName{Namespace: u.GetNamespace(), Name: u.GetName()}}
+	now := c.svc.Clock.Now()
+	want := wanted(now)
 	removed := false
 	for _, t := range declared {
-		if wanted[*t.Manifest] || !unstarted(t.Status) || !t.StartsAt.After(c.svc.Clock.Now()) {
+		if want[*t.Manifest] || !removable(t, now) {
 			continue
 		}
 		err := c.svc.InTournament(ctx, t.ID, func(tx *tournament.Tx) error {
-			// A replica that read an older generation mustn't remove what a
-			// later one wants again. A deleted Recurring Tournament is the
-			// sweep's.
-			u, err := c.client.Resource(RecurringResource).Namespace(name.Namespace).Get(ctx, name.Name, metav1.GetOptions{})
+			// Only u, as it is when the lock is held, can make an Occurrence
+			// unwanted: the window may have moved on, bringing in an
+			// Occurrence another replica just declared, and that replica may
+			// have applied a newer spec, or a Recurring Tournament recreated
+			// under the same name. A deleted one is the sweep's.
+			latest, err := c.get(ctx, name)
 			if apierrors.IsNotFound(err) {
 				return nil
 			} else if err != nil {
-				return fmt.Errorf("get recurring tournament %v: %w", name, err)
+				return fmt.Errorf("get recurring tournament %v: %w", name.name, err)
 			}
-			if u.GetGeneration() != generation || !unstarted(tx.T.Status) || !tx.T.StartsAt.After(tx.Now()) {
+			sameSpec := latest.GetUID() == u.GetUID() && latest.GetGeneration() == u.GetGeneration()
+			if !sameSpec || wanted(tx.Now())[*tx.T.Manifest] || !removable(tx.T, tx.Now()) {
 				return nil
 			}
 			removed = true
 			return remove(tx)
 		})
 		if err != nil && !errors.Is(err, tournament.ErrTournamentNotFound) {
-			return removed, fmt.Errorf("remove occurrence %s of recurring tournament %v: %w", t.StartsAt.Format(time.RFC3339), name, err)
+			return removed, fmt.Errorf("remove occurrence %s of recurring tournament %v: %w", t.StartsAt.Format(time.RFC3339), name.name, err)
 		}
 	}
 	return removed, nil
 }
 
-// occurrence names the Occurrence of a Recurring Tournament at start as the
-// manifest of its Tournament.
-func occurrence(name cache.ObjectName, start time.Time) string {
-	return fmt.Sprintf("recurring/%v/%s", name, start.UTC().Format(time.RFC3339))
+// removable reports whether a change of schedule can remove an Occurrence's
+// Tournament at now: it hasn't started, and its start is still ahead.
+func removable(t db.Tournament, now time.Time) bool {
+	return unstarted(t.Status) && t.StartsAt.After(now)
+}
+
+// recurringManifest is how the Tournaments of a Recurring Tournament's
+// Occurrences record it, before their start.
+func recurringManifest(name cache.ObjectName) string {
+	return "recurring/" + name.String()
+}
+
+// occurrenceManifest is the manifest the Tournament of the Occurrence at
+// start records: recurring/<namespace>/<name>/<start>.
+func occurrenceManifest(name cache.ObjectName, start time.Time) string {
+	return recurringManifest(name) + "/" + start.UTC().Format(time.RFC3339)
 }
 
 // upcoming is the Occurrence at start, and the Tournament it declared.

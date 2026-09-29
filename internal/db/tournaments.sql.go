@@ -137,20 +137,14 @@ func (q *Queries) InsertTournament(ctx context.Context, arg InsertTournamentPara
 
 const listDeclaredTournaments = `-- name: ListDeclaredTournaments :many
 SELECT id, game_id, name, organizer, status, starts_at, registration_opens_at, capacity, minimum_participants, check_in_enabled, check_in_seconds, last_event_seq, created_at, updated_at, completed_at, manifest FROM tournaments
-WHERE split_part(manifest, '/', 1) = ANY($1::text[])
-  AND split_part(manifest, '/', 2) = ANY($2::text[])
+WHERE split_part(manifest, '/', 2) = ANY($1::text[])
 ORDER BY id
 `
 
-type ListDeclaredTournamentsParams struct {
-	Kinds      []string
-	Namespaces []string
-}
-
-// kinds are the first segments of the manifests, such as tournament for
-// tournament/<namespace>/<name> or recurring for an Occurrence.
-func (q *Queries) ListDeclaredTournaments(ctx context.Context, arg ListDeclaredTournamentsParams) ([]Tournament, error) {
-	rows, err := q.db.Query(ctx, listDeclaredTournaments, arg.Kinds, arg.Namespaces)
+// Tournament Manifests (tournament/<namespace>/<name>) and Occurrences
+// (recurring/<namespace>/<name>/<start>) both record their namespace second.
+func (q *Queries) ListDeclaredTournaments(ctx context.Context, namespaces []string) ([]Tournament, error) {
+	rows, err := q.db.Query(ctx, listDeclaredTournaments, namespaces)
 	if err != nil {
 		return nil, err
 	}

@@ -199,8 +199,7 @@ func (c *Controller) Run(ctx context.Context) {
 		var err error
 		switch {
 		case k == sweep:
-			occurrences := !slices.ContainsFunc(recurringSynced, func(synced cache.InformerSynced) bool { return !synced() })
-			err = c.sweep(ctx, occurrences)
+			err = c.sweep(ctx, allSynced(recurringSynced))
 			c.queue.AddAfter(sweep, c.Resync)
 		case k.resource == Resource:
 			err = c.Reconcile(ctx, k.name)
@@ -224,6 +223,16 @@ func (c *Controller) Run(ctx context.Context) {
 		}
 		c.queue.Done(k)
 	}
+}
+
+// allSynced reports whether every informer has synced, without waiting.
+func allSynced(informers []cache.InformerSynced) bool {
+	for _, synced := range informers {
+		if !synced() {
+			return false
+		}
+	}
+	return true
 }
 
 // key is what the queue holds: a Manifest of a resource to reconcile, or a

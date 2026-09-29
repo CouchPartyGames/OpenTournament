@@ -197,7 +197,7 @@ Git stays the source of truth for every Occurrence, as for a Tournament Manifest
 - **Editing the template** updates the Occurrences that are still Drafts. Those
   whose registration has opened keep their frozen settings: `Synced=False` with
   reason `SettingsFrozen` names them, while every other Occurrence is still
-  declared and updated. The condition clears once they start.
+  declared and updated. It clears once they have started.
 - **Editing the schedule**, time zone or lookahead, or setting `suspend: true`,
   removes the Tournaments of Occurrences no longer wanted, and declares the new
   ones unless suspended. A Draft is deleted; one in Registration Open or Check-in
@@ -209,9 +209,12 @@ Git stays the source of truth for every Occurrence, as for a Tournament Manifest
   are swept only once the Recurring Tournament watches have synced, so in a
   cluster without their CRD the sweep leaves them alone.
 
-A Recurring Tournament that can't be applied changes none of its Occurrences.
-The API refuses to edit a declared Occurrence with `409 declared-in-git`, and
-can still cancel it; a cancelled Occurrence stays cancelled.
+A Recurring Tournament whose schedule or template can't be applied changes none
+of its Occurrences. An Occurrence's Game and Organizer can't change once it is
+declared: editing them in the template reports `ValidationFailed` for the
+Occurrences already declared, and applies only to new ones. The API refuses to
+edit a declared Occurrence with `409 declared-in-git`, and can still cancel it;
+a cancelled Occurrence stays cancelled, and template edits leave it alone.
 
 ## How it fits together
 

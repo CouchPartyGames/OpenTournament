@@ -85,6 +85,17 @@ func listOccurrences(h *apptest.Harness) []occurrenceView {
 	return out.Tournaments
 }
 
+// draftStarts are the starts of the Draft Tournaments, earliest first.
+func draftStarts(h *apptest.Harness) []time.Time {
+	var out []time.Time
+	for _, o := range listOccurrences(h) {
+		if o.Status == "draft" {
+			out = append(out, o.StartsAt)
+		}
+	}
+	return out
+}
+
 // startTimes are the starts of Tournaments, in UTC.
 func startTimes(ts []occurrenceView) []time.Time {
 	var out []time.Time
@@ -288,6 +299,26 @@ func TestEditingTheTemplateReportsFrozenOccurrencesAndKeepsTheOthersInSync(t *te
 	}
 }
 
+func TestEditingTheTemplateLeavesCancelledOccurrencesAlone(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	h.Settle()
+	// The Organizer cancels Wednesday's Occurrence through the API.
+	wednesday := mustFindOccurrence(t, h, wednesdayAt20)
+	h.Do(http.MethodPost, wednesday.path("cancel"), wednesday.Organizer, nil).Expect(http.StatusOK)
+
+	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["template"].(map[string]any)["capacity"] = 8 })
+	h.Settle()
+
+	ts := listOccurrences(h)
+	if len(ts) != 2 || ts[0].Capacity != 8 || ts[1].Status != "cancelled" || ts[1].Capacity != 16 {
+		t.Errorf("GET /api/v1/tournaments lists %+v, want Tuesday's Draft with capacity 8, and Wednesday's cancelled as it was", ts)
+	}
+	if s := mustReadRecurringStatus(t, h, "games", "weeknight-cup"); s.ObservedGeneration != 2 || s.synced() != "True/Scheduled" {
+		t.Errorf("status = %+v, want generation 2, Synced=True because Scheduled", s)
+	}
+}
+
 // mustGetStatus reads a Tournament's status through the API, or "" once it
 // is deleted.
 func mustGetStatus(t *testing.T, h *apptest.Harness, id string) string {
@@ -319,14 +350,8 @@ func TestChangingTheScheduleRemovesUnwantedOccurrencesAndDeclaresTheNewOnes(t *t
 		t.Errorf("Wednesday's Occurrence at 20:00 = %q, want the Draft deleted", got)
 	}
 	tuesdayAt21, wednesdayAt21 := tuesdayAt20.Add(time.Hour), wednesdayAt20.Add(time.Hour)
-	var declared []time.Time
-	for _, o := range listOccurrences(h) {
-		if o.Status == "draft" {
-			declared = append(declared, o.StartsAt)
-		}
-	}
-	if !sameInstants(declared, []time.Time{tuesdayAt21, wednesdayAt21}) {
-		t.Errorf("Draft Occurrences start at %v, want Tuesday and Wednesday at 21:00", declared)
+	if got := draftStarts(h); !sameInstants(got, []time.Time{tuesdayAt21, wednesdayAt21}) {
+		t.Errorf("Draft Occurrences start at %v, want Tuesday and Wednesday at 21:00", got)
 	}
 	s := mustReadRecurringStatus(t, h, "games", "weeknight-cup")
 	if s.ObservedGeneration != 2 || s.synced() != "True/Scheduled" {
@@ -342,7 +367,7 @@ func TestShorteningTheLookaheadRemovesOnlyFutureOccurrencesBeyondIt(t *testing.T
 	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
 	h.Settle()
 	h.AdvanceTo(tuesdayAt20.Add(-30 * time.Minute))
-	tuesday := &scenario{Harness: h, t: t, ID: listOccurrences(h)[0].ID, Tokens: map[string]string{}, Names: map[string]string{}}
+	tuesday := mustFindOccurrence(t, h, tuesdayAt20)
 	tuesday.mustRegister("anna", "bert")
 	// Tuesday's Occurrence starts, and Thursday's enters the window.
 	h.AdvanceTo(tuesdayAt20)
@@ -473,14 +498,8 @@ func TestSuspendingARecurringTournamentRemovesItsUnstartedOccurrencesAndDeclares
 
 	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["suspend"] = false })
 	h.Settle()
-	var drafts []time.Time
-	for _, o := range listOccurrences(h) {
-		if o.Status == "draft" {
-			drafts = append(drafts, o.StartsAt)
-		}
-	}
-	if !sameInstants(drafts, []time.Time{wednesdayAt20, thursdayAt20}) {
-		t.Errorf("Draft Occurrences start at %v once resumed, want Wednesday and Thursday", drafts)
+	if got := draftStarts(h); !sameInstants(got, []time.Time{wednesdayAt20, thursdayAt20}) {
+		t.Errorf("Draft Occurrences start at %v once resumed, want Wednesday and Thursday", got)
 	}
 }
 

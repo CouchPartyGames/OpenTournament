@@ -2,7 +2,7 @@ package app_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -144,7 +144,7 @@ func TestOccurrencesAreRemovedOnlyOnceEveryRecurringTournamentWatchSynced(t *tes
 	slow.Store(true)
 	h.FakeKubernetes.PrependReactor("list", "recurringtournaments", func(action ktesting.Action) (bool, runtime.Object, error) {
 		if action.GetNamespace() == "slow" && slow.Load() {
-			return true, nil, fmt.Errorf("namespace temporarily unavailable")
+			return true, nil, errors.New("namespace temporarily unavailable")
 		}
 		return false, nil, nil
 	})
@@ -171,6 +171,38 @@ func TestOccurrencesAreRemovedOnlyOnceEveryRecurringTournamentWatchSynced(t *tes
 				t.Fatalf("Occurrence %s is still declared 30s after every watch could sync", id)
 			}
 			time.Sleep(50 * time.Millisecond)
+		}
+	}
+}
+
+func TestManifestRemovalWorksOnceTheRecurringTournamentCRDIsRemoved(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	mustApply(t, h, "games", "removed", manifestSpec(h))
+	mustApply(t, h, "games", "retained", manifestSpec(h))
+	h.Settle()
+	occurrences := []string{mustFindOccurrence(t, h, tuesdayAt20).ID, mustFindOccurrence(t, h, wednesdayAt20).ID}
+	id := mustReadStatus(t, h, "games", "removed").TournamentID
+	var removedCRD atomic.Bool
+	h.FakeKubernetes.PrependReactor("*", "recurringtournaments", func(ktesting.Action) (bool, runtime.Object, error) {
+		if removedCRD.Load() {
+			return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: "opentournament.io", Resource: "recurringtournaments"}, "")
+		}
+		return false, nil, nil
+	})
+	mustRunManifests(t, h)
+	// The watches sync, then the CRD goes away with every Recurring Tournament.
+	time.Sleep(200 * time.Millisecond)
+	removedCRD.Store(true)
+
+	mustDeleteManifest(t, h, "games", "removed")
+
+	if err := awaitTournament(h, id, ""); err != nil {
+		t.Error(err)
+	}
+	for _, id := range occurrences {
+		if got := mustGetStatus(t, h, id); got != "draft" {
+			t.Errorf("GET Occurrence %s = %q, want draft", id, got)
 		}
 	}
 }
