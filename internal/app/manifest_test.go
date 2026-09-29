@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -21,17 +22,7 @@ import (
 // Flux would after syncing it from git.
 func mustApply(t *testing.T, h *apptest.Harness, namespace, name string, spec map[string]any) {
 	t.Helper()
-	// Round-trip through JSON so the spec holds only JSON values, as it would
-	// when read from the API server.
-	b, err := json.Marshal(spec)
-	if err != nil {
-		t.Fatalf("encode spec of manifest %s/%s: %v", namespace, name, err)
-	}
-	var object map[string]any
-	if err := json.Unmarshal(b, &object); err != nil {
-		t.Fatalf("decode spec %s: %v", b, err)
-	}
-	u := &unstructured.Unstructured{Object: map[string]any{"spec": object}}
+	u := &unstructured.Unstructured{Object: map[string]any{"spec": mustJSONObject(t, spec)}}
 	u.SetAPIVersion("opentournament.io/v1alpha1")
 	u.SetKind("Tournament")
 	u.SetNamespace(namespace)
@@ -40,6 +31,39 @@ func mustApply(t *testing.T, h *apptest.Harness, namespace, name string, spec ma
 	if _, err := h.FakeKubernetes.Resource(manifests.Resource).Namespace(namespace).Create(context.Background(), u, metav1.CreateOptions{}); err != nil {
 		t.Fatalf("create manifest %s/%s: %v", namespace, name, err)
 	}
+}
+
+// mustEditManifest changes a Manifest's spec, as syncing a new commit from
+// git would, which gives the Manifest its next generation.
+func mustEditManifest(t *testing.T, h *apptest.Harness, namespace, name string, edit func(spec map[string]any)) {
+	t.Helper()
+	client := h.FakeKubernetes.Resource(manifests.Resource).Namespace(namespace)
+	u, err := client.Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("get manifest %s/%s: %v", namespace, name, err)
+	}
+	spec, _ := u.Object["spec"].(map[string]any)
+	edit(spec)
+	u.Object["spec"] = mustJSONObject(t, spec)
+	u.SetGeneration(u.GetGeneration() + 1)
+	if _, err := client.Update(context.Background(), u, metav1.UpdateOptions{}); err != nil {
+		t.Fatalf("update manifest %s/%s: %v", namespace, name, err)
+	}
+}
+
+// mustJSONObject round-trips v through JSON, so it holds only JSON values,
+// as a spec read from the API server would.
+func mustJSONObject(t *testing.T, v any) map[string]any {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("encode %v: %v", v, err)
+	}
+	var object map[string]any
+	if err := json.Unmarshal(b, &object); err != nil {
+		t.Fatalf("decode %s: %v", b, err)
+	}
+	return object
 }
 
 // manifestSpec is a valid Tournament Manifest spec for the arena Game.
@@ -60,10 +84,31 @@ type manifestStatus struct {
 	TournamentID       string `json:"tournamentId"`
 	TournamentStatus   string `json:"tournamentStatus"`
 	Conditions         []struct {
-		Type   string `json:"type"`
-		Status string `json:"status"`
-		Reason string `json:"reason"`
+		Type    string `json:"type"`
+		Status  string `json:"status"`
+		Reason  string `json:"reason"`
+		Message string `json:"message"`
 	} `json:"conditions"`
+}
+
+// synced is the Synced condition of a Manifest's status, as status/reason.
+func (s manifestStatus) synced() string {
+	for _, c := range s.Conditions {
+		if c.Type == "Synced" {
+			return c.Status + "/" + c.Reason
+		}
+	}
+	return ""
+}
+
+// syncedMessage is the message of a Manifest status's Synced condition.
+func (s manifestStatus) syncedMessage() string {
+	for _, c := range s.Conditions {
+		if c.Type == "Synced" {
+			return c.Message
+		}
+	}
+	return ""
 }
 
 // mustReadStatus reads a Manifest's status, as kubectl would show it.
@@ -169,26 +214,265 @@ func TestManifestGetsTheAPIsDefaults(t *testing.T) {
 	}
 }
 
-func TestEditingAManifestIsNotReportedAsObserved(t *testing.T) {
+type declaredTournament struct {
+	Name     string
+	Capacity int
+	Status   string
+}
+
+// mustFindDeclared reads the Tournament a Manifest's status names.
+func mustFindDeclared(t *testing.T, h *apptest.Harness, namespace, name string) declaredTournament {
+	t.Helper()
+	id := mustReadStatus(t, h, namespace, name).TournamentID
+	if id == "" {
+		t.Fatalf("manifest %s/%s names no Tournament", namespace, name)
+	}
+	var tv declaredTournament
+	h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil).Expect(http.StatusOK).Decode(&tv)
+	return tv
+}
+
+func TestEditingTheManifestOfADraftUpdatesTheTournament(t *testing.T) {
 	h := apptest.MustStart(t, apptest.WatchManifests("games"))
 	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
 	h.Settle()
 
-	// Editing a declared Tournament comes later: until then, the status must
-	// not claim the edited generation.
-	client := h.FakeKubernetes.Resource(manifests.Resource).Namespace("games")
-	u, err := client.Get(context.Background(), "friday-cup", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("get manifest games/friday-cup: %v", err)
-	}
-	u.SetGeneration(4)
-	if _, err := client.Update(context.Background(), u, metav1.UpdateOptions{}); err != nil {
-		t.Fatalf("update manifest games/friday-cup: %v", err)
-	}
+	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) {
+		spec["name"] = "Friday Night Cup"
+		spec["capacity"] = 4
+	})
 	h.Settle()
 
-	if s := mustReadStatus(t, h, "games", "friday-cup"); s.ObservedGeneration != 3 {
-		t.Errorf("mustReadStatus(games/friday-cup).ObservedGeneration = %d, want 3, the generation declared", s.ObservedGeneration)
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Name != "Friday Night Cup" || tv.Capacity != 4 {
+		t.Errorf("the declared Tournament is %+v, want Friday Night Cup with capacity 4", tv)
+	}
+	s := mustReadStatus(t, h, "games", "friday-cup")
+	if s.ObservedGeneration != 4 || s.synced() != "True/Updated" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want generation 4, Synced=True because Updated", s)
+	}
+
+	// Later reconciles find nothing to change, and keep saying why it synced.
+	h.Settle()
+	if s := mustReadStatus(t, h, "games", "friday-cup"); s.ObservedGeneration != 4 || s.synced() != "True/Updated" {
+		t.Errorf("after another reconcile, mustReadStatus(games/friday-cup) = %+v, want generation 4, Synced=True because Updated", s)
+	}
+}
+
+func TestEditingTheManifestAfterRegistrationOpensChangesNothing(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
+	h.Advance(opensIn)
+
+	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) { spec["capacity"] = 4 })
+	h.Settle()
+
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
+		t.Errorf("the declared Tournament has capacity %d, want 16, its frozen setting", tv.Capacity)
+	}
+	s := mustReadStatus(t, h, "games", "friday-cup")
+	if s.ObservedGeneration != 3 || s.TournamentStatus != "registration-open" || s.synced() != "False/SettingsFrozen" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want generation 3, registration-open, Synced=False because SettingsFrozen", s)
+	}
+}
+
+func TestRevertingAFrozenManifestSyncsItAgain(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
+	h.Advance(opensIn)
+	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) { spec["capacity"] = 4 })
+	h.Settle()
+
+	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) { spec["capacity"] = 16 })
+	h.Settle()
+
+	if s := mustReadStatus(t, h, "games", "friday-cup"); s.ObservedGeneration != 5 || s.synced() != "True/Unchanged" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want generation 5, Synced=True because Unchanged", s)
+	}
+}
+
+// invalidSettings breaks the issue's two examples: its first Stage's single
+// Group must advance more Participants than it may hold, and as a
+// free-for-all it may hold more than the arena Game's Maximum Match Size.
+func invalidSettings(h *apptest.Harness) map[string]any {
+	return settings(h,
+		stage("free-for-all", map[string]any{"groups": 1, "bouts": 1, "advancement": 3}),
+		stage("single-elimination", map[string]any{"groups": 1}))
+}
+
+// mustRefuse posts settings to the API, and returns the field messages of
+// its refusal as a Manifest would locate them.
+func mustRefuse(t *testing.T, h *apptest.Harness, settings map[string]any) []string {
+	t.Helper()
+	r := h.Do(http.MethodPost, "/api/v1/tournaments", h.Client("arena-backend"), settings).Expect(http.StatusUnprocessableEntity)
+	var p problemDetails
+	r.Decode(&p)
+	var out []string
+	for _, e := range p.Errors {
+		out = append(out, "spec."+strings.TrimPrefix(e.Location, "body.")+": "+e.Message)
+	}
+	return out
+}
+
+func TestAnInvalidManifestReportsEveryFieldMessageAndCreatesNothing(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	spec := invalidSettings(h)
+	want := mustRefuse(t, h, spec)
+	spec["organizer"] = "client:arena-backend"
+
+	mustApply(t, h, "games", "friday-cup", spec)
+	h.Settle()
+
+	if ts := listTournaments(h); len(ts) != 0 {
+		t.Errorf("GET /api/v1/tournaments lists %d Tournaments, want none", len(ts))
+	}
+	s := mustReadStatus(t, h, "games", "friday-cup")
+	if s.TournamentID != "" || s.synced() != "False/ValidationFailed" {
+		t.Fatalf("mustReadStatus(games/friday-cup) = %+v, want no Tournament, Synced=False because ValidationFailed", s)
+	}
+	if len(want) != 2 {
+		t.Errorf("the API refuses the settings with %q, want both of the issue's examples", want)
+	}
+	for _, m := range want {
+		if !strings.Contains(s.syncedMessage(), m) {
+			t.Errorf("Synced condition message = %q, want it to contain %q", s.syncedMessage(), m)
+		}
+	}
+}
+
+func TestAnInvalidEditChangesNothing(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
+	h.Settle()
+
+	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) {
+		spec["capacity"] = 4
+		spec["stages"] = invalidSettings(h)["stages"]
+	})
+	h.Settle()
+
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
+		t.Errorf("the declared Tournament has capacity %d, want 16, as declared", tv.Capacity)
+	}
+	if s := mustReadStatus(t, h, "games", "friday-cup"); s.ObservedGeneration != 3 || s.synced() != "False/ValidationFailed" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want generation 3, Synced=False because ValidationFailed", s)
+	}
+}
+
+func TestAManifestWithAMalformedOrganizerFailsValidation(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	spec := manifestSpec(h)
+	spec["organizer"] = "arena-backend"
+
+	mustApply(t, h, "games", "friday-cup", spec)
+	h.Settle()
+
+	s := mustReadStatus(t, h, "games", "friday-cup")
+	if s.synced() != "False/ValidationFailed" || !strings.Contains(s.syncedMessage(), "spec.organizer") {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Synced=False because ValidationFailed at spec.organizer", s)
+	}
+}
+
+func TestAManifestCantChangeItsGameOrOrganizer(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
+	h.Settle()
+
+	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) {
+		spec["gameId"] = "royale"
+		spec["organizer"] = "client:royale-backend"
+	})
+	h.Settle()
+
+	ts := listTournaments(h)
+	if len(ts) != 1 || ts[0].Organizer != "client:arena-backend" {
+		t.Errorf("GET /api/v1/tournaments lists %+v, want only the Tournament organized by client:arena-backend", ts)
+	}
+	s := mustReadStatus(t, h, "games", "friday-cup")
+	if s.synced() != "False/ValidationFailed" {
+		t.Fatalf("mustReadStatus(games/friday-cup) = %+v, want Synced=False because ValidationFailed", s)
+	}
+	for _, field := range []string{"spec.gameId", "spec.organizer"} {
+		if !strings.Contains(s.syncedMessage(), field) {
+			t.Errorf("Synced condition message = %q, want it to name %s", s.syncedMessage(), field)
+		}
+	}
+}
+
+func TestAnUntrustedClientOrganizerIsReported(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	spec := manifestSpec(h)
+	spec["organizer"] = "client:royale-backend" // Trusted by royale, not arena.
+
+	mustApply(t, h, "games", "friday-cup", spec)
+	h.Settle()
+
+	if ts := listTournaments(h); len(ts) != 0 {
+		t.Errorf("GET /api/v1/tournaments lists %d Tournaments, want none", len(ts))
+	}
+	if s := mustReadStatus(t, h, "games", "friday-cup"); s.synced() != "False/OrganizerNotTrusted" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Synced=False because OrganizerNotTrusted", s)
+	}
+}
+
+func TestTheAPIRefusesToEditADeclaredTournament(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
+	h.Settle()
+	id := mustReadStatus(t, h, "games", "friday-cup").TournamentID
+	edit := settings(h)
+	delete(edit, "gameId")
+	edit["capacity"] = 4
+
+	r := h.Do(http.MethodPut, "/api/v1/tournaments/"+id, h.Client("arena-backend"), edit).Expect(http.StatusConflict)
+
+	if r.Code() != "declared-in-git" || r.Header.Get("Content-Type") != "application/problem+json" {
+		t.Errorf("PUT /api/v1/tournaments/%s = %s %s, want declared-in-git Problem Details", id, r.Header.Get("Content-Type"), r.Body)
+	}
+	if tv := mustFindDeclared(t, h, "games", "friday-cup"); tv.Capacity != 16 {
+		t.Errorf("the declared Tournament has capacity %d, want 16, as declared", tv.Capacity)
+	}
+
+	// A Tournament created through the API is still edited through it.
+	tt := mustCreate(t, h, settings(h))
+	h.Do(http.MethodPut, tt.path(), tt.Organizer, edit).Expect(http.StatusOK)
+}
+
+func TestADeclaredTournamentCancelledThroughTheAPIStaysCancelled(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApply(t, h, "games", "friday-cup", manifestSpec(h))
+	h.Settle()
+	id := mustReadStatus(t, h, "games", "friday-cup").TournamentID
+
+	h.Do(http.MethodPost, "/api/v1/tournaments/"+id+"/cancel", h.Client("arena-backend"), nil).Expect(http.StatusOK)
+	h.Settle()
+	mustEditManifest(t, h, "games", "friday-cup", func(spec map[string]any) { spec["capacity"] = 4 })
+	h.Settle()
+	h.Settle()
+
+	ts := listTournaments(h)
+	if len(ts) != 1 || ts[0].ID != id || ts[0].Status != "cancelled" {
+		t.Errorf("GET /api/v1/tournaments lists %+v, want only Tournament %s, cancelled", ts, id)
+	}
+	s := mustReadStatus(t, h, "games", "friday-cup")
+	if s.TournamentID != id || s.TournamentStatus != "cancelled" || s.synced() != "False/SettingsFrozen" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Tournament %s, cancelled, Synced=False because SettingsFrozen", s, id)
+	}
+	if !strings.Contains(s.syncedMessage(), "cancelled") {
+		t.Errorf("Synced condition message = %q, want it to say the Tournament is cancelled", s.syncedMessage())
+	}
+}
+
+func TestInstantsFinerThanTheDatabaseKeepsAreApplied(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	spec := manifestSpec(h)
+	spec["startsAt"] = h.FakeClock.Now().Add(startsIn + time.Nanosecond)
+	mustApply(t, h, "games", "friday-cup", spec)
+	h.Settle()
+
+	h.Settle()
+
+	if s := mustReadStatus(t, h, "games", "friday-cup"); s.synced() != "True/Created" {
+		t.Errorf("mustReadStatus(games/friday-cup) = %+v, want Synced=True because Created, not edited again", s)
 	}
 }
 

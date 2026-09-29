@@ -37,7 +37,7 @@ A Kubernetes resource, usually kept in git, that declares one Tournament's confi
 _Avoid_: Custom resource, CR, template, spec
 
 **Declared Tournament**:
-A Tournament created from a Tournament Manifest rather than through the API. It records which Manifest it came from, and one Manifest declares at most one Tournament.
+A Tournament created from a Tournament Manifest rather than through the API. It records which Manifest it came from, and one Manifest declares at most one Tournament. Its settings are edited in git, never through the API, and freeze once registration opens like any other; the API can still cancel it.
 _Avoid_: GitOps tournament, managed tournament
 
 **Recurring Tournament**:

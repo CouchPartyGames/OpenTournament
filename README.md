@@ -101,6 +101,24 @@ a Manifest declares exactly one Tournament however often, or however many
 replicas at once, reconcile it. The status follows the Tournament's own status
 every 30 seconds.
 
+Git is the source of truth for a declared Tournament's settings. Editing its
+Manifest while the Tournament is a Draft edits the Tournament, with the same
+validation as `PUT /api/v1/tournaments/{id}`, and the status reports
+`Synced=True` with reason `Updated` and the new `observedGeneration`. When the
+Manifest can't be applied, nothing changes, `observedGeneration` stays the last
+generation applied, and `Synced=False` says why:
+
+| Reason | When |
+|---|---|
+| `SettingsFrozen` | The Manifest changed after registration opened, when settings freeze. Reverting the change syncs it again. |
+| `ValidationFailed` | The settings break a rule the API enforces, or the Manifest changes its `gameId` or `organizer`. The message lists every field. |
+| `OrganizerNotTrusted` | The `client:` Organizer isn't trusted by the Game. |
+
+`kubectl -n games get tournaments -o wide` shows the `Synced` condition and its
+reason. The API refuses to edit a declared Tournament with `409 declared-in-git`.
+Cancelling it through the API still works as an emergency lever: the Tournament
+stays cancelled, and its Manifest keeps pointing to it.
+
 Deleting a Manifest deletes its Draft Tournament, or cancels it if Registration
 or Check-in has opened, using the same cancellation path as the API (including
 Game Server release and live status updates). Running, Completed and Cancelled
@@ -114,11 +132,7 @@ delete or cancel more than half of those declared Tournaments, it logs an error
 with the counts and skips all removals. This also protects a namespace set with
 only one declared Tournament. Restore the missing Manifests to bring the removal
 count within the limit before retrying; normal sweeps retry automatically. No
-Kubernetes finalizers are used.
-
-Editing a Manifest and reporting an invalid one in its status are still to come.
-Until then, an edited Manifest keeps the `observedGeneration` that declared its Tournament,
-and an invalid Manifest is retried with backoff and logged as a warning.
+Kubernetes finalizers are used. Recurring schedules are still to come.
 
 ## How it fits together
 
