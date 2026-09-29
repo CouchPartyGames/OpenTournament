@@ -77,8 +77,9 @@ type Controller struct {
 	Logger *slog.Logger
 }
 
-// New returns a Controller for the Manifests in namespaces.
-func New(client dynamic.Interface, svc *tournament.Service, namespaces []string) *Controller {
+// New returns a Controller for the Manifests in namespaces. logger must be
+// non-nil. Set Resync and Logger before calling Run.
+func New(client dynamic.Interface, svc *tournament.Service, namespaces []string, logger *slog.Logger) *Controller {
 	return &Controller{
 		client:     client,
 		svc:        svc,
@@ -87,7 +88,7 @@ func New(client dynamic.Interface, svc *tournament.Service, namespaces []string)
 			workqueue.DefaultTypedControllerRateLimiter[cache.ObjectName](),
 			workqueue.TypedRateLimitingQueueConfig[cache.ObjectName]{Name: "manifests"}),
 		Resync: 30 * time.Second,
-		Logger: slog.Default(),
+		Logger: logger,
 	}
 }
 
@@ -95,6 +96,15 @@ func New(client dynamic.Interface, svc *tournament.Service, namespaces []string)
 // ends. The informers list every Manifest first, so each is reconciled at
 // startup. Run can only be called once.
 func (c *Controller) Run(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	var factories []dynamicinformer.DynamicSharedInformerFactory
+	defer func() {
+		// Cancel first even if watch setup fails, then join every informer.
+		cancel()
+		for _, factory := range factories {
+			factory.Shutdown()
+		}
+	}()
 	go func() {
 		<-ctx.Done()
 		c.queue.ShutDown()
@@ -122,9 +132,7 @@ func (c *Controller) Run(ctx context.Context) {
 		}
 		synced = append(synced, informer.HasSynced)
 		factory.Start(ctx.Done())
-		// Shutdown waits for the informers, which stop once ctx has ended,
-		// before the queue below lets Run return.
-		defer factory.Shutdown()
+		factories = append(factories, factory)
 	}
 	if !cache.WaitForCacheSync(ctx.Done(), synced...) {
 		return
@@ -146,7 +154,11 @@ func (c *Controller) Run(ctx context.Context) {
 			err = c.Reconcile(ctx, name)
 		}
 		if err != nil && ctx.Err() == nil {
-			c.Logger.WarnContext(ctx, "reconcile manifest failed; retrying", "manifest", name, "error", err)
+			if name == sweep {
+				c.Logger.WarnContext(ctx, "manifest removal sweep failed; retrying", "error", err)
+			} else {
+				c.Logger.WarnContext(ctx, "reconcile manifest failed; retrying", "manifest", name, "error", err)
+			}
 			c.queue.AddRateLimited(name)
 		} else {
 			c.queue.Forget(name)

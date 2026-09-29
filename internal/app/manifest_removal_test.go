@@ -28,9 +28,9 @@ func mustDeleteManifest(t *testing.T, h *apptest.Harness, namespace, name string
 	}
 }
 
-// runManifests starts the real watches and sweeps, leaving the clock and
+// mustRunManifests starts the real watches and sweeps, leaving the clock and
 // scheduled Tournament jobs under the scenario's control.
-func runManifests(t *testing.T, h *apptest.Harness) func() {
+func mustRunManifests(t *testing.T, h *apptest.Harness) {
 	t.Helper()
 	h.App.Manifests.Resync = time.Second
 	ctx, cancel := context.WithCancel(context.Background())
@@ -41,7 +41,6 @@ func runManifests(t *testing.T, h *apptest.Harness) func() {
 	}()
 	stop := sync.OnceFunc(func() { cancel(); <-done })
 	t.Cleanup(stop)
-	return stop
 }
 
 // awaitTournament observes the HTTP seam; an empty status means absent.
@@ -70,7 +69,7 @@ func TestDeletingAManifestRemovesItsDraft(t *testing.T) {
 	h := apptest.MustStart(t, apptest.WatchManifests("games"))
 	mustApply(t, h, "games", "removed", manifestSpec(h))
 	mustApply(t, h, "games", "retained", manifestSpec(h))
-	runManifests(t, h)
+	mustRunManifests(t, h)
 	// Observe a declaration made by the running controller, so deletion is
 	// exercised after watch startup rather than only on the initial sweep.
 	deadline := time.Now().Add(5 * time.Second)
@@ -89,7 +88,9 @@ func TestDeletingAManifestRemovesItsDraft(t *testing.T) {
 		t.Error(err)
 	}
 	h.Advance(startsIn)
-	h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil).Expect(http.StatusNotFound)
+	if r := h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil); r.Status != http.StatusNotFound {
+		t.Errorf("GET deleted Draft at start time = %d, want 404: %s", r.Status, r.Body)
+	}
 }
 
 func TestDeletingAManifestCancelsRegistrationAndAnnouncesItLive(t *testing.T) {
@@ -116,7 +117,7 @@ func TestDeletingAManifestCancelsRegistrationAndAnnouncesItLive(t *testing.T) {
 			}
 			ws := connect(t, h)
 			ws.subscribe(id)
-			runManifests(t, h)
+			mustRunManifests(t, h)
 
 			mustDeleteManifest(t, h, "games", "removed")
 
@@ -168,7 +169,7 @@ func TestManifestRemovalLeavesStartedAndFinishedTournamentsUntouched(t *testing.
 			mustDeleteManifest(t, h, "games", "target")
 			mustDeleteManifest(t, h, "games", "probe")
 
-			runManifests(t, h)
+			mustRunManifests(t, h)
 
 			// The removed Draft proves that the startup sweep completed.
 			if err := awaitTournament(h, probeID, ""); err != nil {
@@ -193,8 +194,8 @@ func TestManifestDeletedWhileStoppedIsRemovedOnStartup(t *testing.T) {
 	mustDeleteManifest(t, h, "games", "removed")
 
 	// A fresh controller has never seen the removed Manifest or its event.
-	h.App.Manifests = manifests.New(h.FakeKubernetes, h.App.Service, []string{"games"})
-	runManifests(t, h)
+	h.App.Manifests = manifests.New(h.FakeKubernetes, h.App.Service, []string{"games"}, h.App.Manifests.Logger)
+	mustRunManifests(t, h)
 
 	if err := awaitTournament(h, id, ""); err != nil {
 		t.Error(err)
@@ -212,8 +213,8 @@ func TestRemovingAWatchedNamespaceLeavesItsTournamentsUntouched(t *testing.T) {
 	mustDeleteManifest(t, h, "elsewhere", "unwatched")
 	mustDeleteManifest(t, h, "games", "removed")
 
-	h.App.Manifests = manifests.New(h.FakeKubernetes, h.App.Service, []string{"games"})
-	runManifests(t, h)
+	h.App.Manifests = manifests.New(h.FakeKubernetes, h.App.Service, []string{"games"}, h.App.Manifests.Logger)
+	mustRunManifests(t, h)
 
 	if err := awaitTournament(h, removedID, ""); err != nil {
 		t.Fatal(err)
@@ -243,7 +244,7 @@ func TestManifestRemovalWaitsForEveryWatchToSync(t *testing.T) {
 		}
 		return false, nil, nil
 	})
-	runManifests(t, h)
+	mustRunManifests(t, h)
 	t.Cleanup(unblock)
 	select {
 	case <-listing:
@@ -286,6 +287,17 @@ func mustCaptureManifestLogs(t *testing.T, h *apptest.Harness) func() string {
 	}
 }
 
+func awaitManifestLog(logs func() string, level string) error {
+	deadline := time.Now().Add(5 * time.Second)
+	for !strings.Contains(logs(), `"level":"`+level+`"`) {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("manifest controller produced no %s log: %s", level, logs())
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return nil
+}
+
 func TestManifestRemovalSkipsAndLogsMoreThanHalf(t *testing.T) {
 	for _, count := range []int{1, 3} {
 		t.Run(fmt.Sprintf("declared=%d", count), func(t *testing.T) {
@@ -304,16 +316,12 @@ func TestManifestRemovalSkipsAndLogsMoreThanHalf(t *testing.T) {
 			for i := range count/2 + 1 {
 				mustDeleteManifest(t, h, "games", fmt.Sprintf("cup-%d", i))
 			}
-			h.App.Manifests = manifests.New(h.FakeKubernetes, h.App.Service, []string{"games"})
+			h.App.Manifests = manifests.New(h.FakeKubernetes, h.App.Service, []string{"games"}, h.App.Manifests.Logger)
 			logs := mustCaptureManifestLogs(t, h)
-			runManifests(t, h)
+			mustRunManifests(t, h)
 
-			deadline := time.Now().Add(5 * time.Second)
-			for !strings.Contains(logs(), `"level":"ERROR"`) {
-				if time.Now().After(deadline) {
-					t.Fatalf("manifest removal produced no error log: %s", logs())
-				}
-				time.Sleep(20 * time.Millisecond)
+			if err := awaitManifestLog(logs, "ERROR"); err != nil {
+				t.Fatal(err)
 			}
 			if got := logs(); !strings.Contains(got, fmt.Sprintf(`"removals":%d`, count/2+1)) || !strings.Contains(got, fmt.Sprintf(`"declared":%d`, count)) {
 				t.Errorf("manifest removal log = %s, want removals and declared counts", got)
@@ -346,13 +354,9 @@ func TestManifestRemovalRetriesAFailedNamespaceListWithoutRemovingAnything(t *te
 		return false, nil, nil
 	})
 	logs := mustCaptureManifestLogs(t, h)
-	runManifests(t, h)
-	deadline := time.Now().Add(5 * time.Second)
-	for !strings.Contains(logs(), `"level":"WARN"`) {
-		if time.Now().After(deadline) {
-			t.Fatalf("the unavailable namespace produced no retry log: %s", logs())
-		}
-		time.Sleep(20 * time.Millisecond)
+	mustRunManifests(t, h)
+	if err := awaitManifestLog(logs, "WARN"); err != nil {
+		t.Fatal(err)
 	}
 	var tv tournamentView
 	h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil).Expect(http.StatusOK).Decode(&tv)
@@ -362,5 +366,61 @@ func TestManifestRemovalRetriesAFailedNamespaceListWithoutRemovingAnything(t *te
 	failed.Store(false)
 	if err := awaitTournament(h, id, ""); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestManifestReappliedDuringASweepKeepsItsTournament(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games", "slow"))
+	for _, name := range []string{"restored", "removed", "retained-1", "retained-2"} {
+		mustApply(t, h, "games", name, manifestSpec(h))
+	}
+	h.Settle()
+	h.Advance(opensIn)
+	id := mustReadStatus(t, h, "games", "restored").TournamentID
+	u, err := h.FakeKubernetes.Resource(manifests.Resource).Namespace("games").Get(context.Background(), "restored", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("read Manifest before removal: %v", err)
+	}
+	delete(u.Object, "status")
+	mustDeleteManifest(t, h, "games", "restored")
+	mustDeleteManifest(t, h, "games", "removed")
+	listing := make(chan struct{})
+	release := make(chan struct{})
+	unblock := sync.OnceFunc(func() { close(release) })
+	lists := 0
+	h.FakeKubernetes.PrependReactor("list", "tournaments", func(action ktesting.Action) (bool, runtime.Object, error) {
+		if action.GetNamespace() == "slow" {
+			lists++
+			if lists == 2 {
+				close(listing)
+				<-release
+			}
+		}
+		return false, nil, nil
+	})
+	mustRunManifests(t, h)
+	t.Cleanup(unblock)
+	select {
+	case <-listing:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the sweep never listed the slow namespace")
+	}
+	// The fake client serializes requests, so mutate its API-server tracker
+	// to model a reapply while an earlier list request is still in flight.
+	if err := h.FakeKubernetes.Tracker().Create(manifests.Resource, u, "games"); err != nil {
+		t.Fatalf("reapply Manifest during sweep: %v", err)
+	}
+	unblock()
+	deadline := time.Now().Add(5 * time.Second)
+	for mustReadStatus(t, h, "games", "restored").TournamentID == "" {
+		if time.Now().After(deadline) {
+			t.Fatal("the reapplied Manifest was never reconciled after the sweep")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	var tv tournamentView
+	h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil).Expect(http.StatusOK).Decode(&tv)
+	if tv.Status != "registration-open" {
+		t.Errorf("GET Tournament after its Manifest was reapplied = %s, want registration-open", tv.Status)
 	}
 }

@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/couchpartygames/opentournament/internal/db"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/tournament"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 )
 
 // sweep runs only after every watch has synced. Read the declared Tournaments
@@ -42,7 +45,21 @@ func (c *Controller) sweep(ctx context.Context) error {
 		return nil
 	}
 	for _, t := range removed {
-		err := c.svc.InTournament(ctx, t.ID, func(tx *tournament.Tx) error {
+		name, err := cache.ParseObjectName(strings.TrimPrefix(*t.Manifest, "tournament/"))
+		if err != nil {
+			return fmt.Errorf("parse manifest %s: %w", *t.Manifest, err)
+		}
+		err = c.svc.InTournament(ctx, t.ID, func(tx *tournament.Tx) error {
+			// A Manifest may have been reapplied while another namespace was
+			// listed or while we waited for the Tournament lock. Only a fresh
+			// NotFound authorizes removal; any other read failure stops it.
+			_, err := c.client.Resource(Resource).Namespace(name.Namespace).Get(ctx, name.Name, metav1.GetOptions{})
+			if err == nil {
+				return nil
+			}
+			if !apierrors.IsNotFound(err) {
+				return fmt.Errorf("check removed manifest %v: %w", name, err)
+			}
 			// The scheduler or another replica may have changed the Tournament
 			// since the sweep read it. Never remove a Tournament that started.
 			switch tx.T.Status {
