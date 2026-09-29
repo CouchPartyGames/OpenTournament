@@ -1,4 +1,4 @@
-# Open Tournament
+# Agones Tournament
 
 An MIT-licensed backend for real-time tournaments in online games, where players
 register minutes before the start. It is the source of truth for Tournaments
