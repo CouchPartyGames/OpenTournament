@@ -29,6 +29,7 @@ var (
 	tuesdayAt20   = time.Date(2030, time.January, 1, 19, 0, 0, 0, time.UTC)
 	wednesdayAt20 = tuesdayAt20.Add(24 * time.Hour)
 	thursdayAt20  = wednesdayAt20.Add(24 * time.Hour)
+	fridayAt20    = thursdayAt20.Add(24 * time.Hour)
 )
 
 // recurringSpec is a valid RecurringTournament spec for the arena Game: every
@@ -73,6 +74,7 @@ type occurrenceView struct {
 	Organizer           string    `json:"organizer"`
 	StartsAt            time.Time `json:"startsAt"`
 	RegistrationOpensAt time.Time `json:"registrationOpensAt"`
+	Capacity            int32     `json:"capacity"`
 }
 
 // listOccurrences lists every Tournament, earliest start first.
@@ -81,6 +83,17 @@ func listOccurrences(h *apptest.Harness) []occurrenceView {
 	h.Do(http.MethodGet, "/api/v1/tournaments", "", nil).Expect(http.StatusOK).Decode(&out)
 	slices.SortFunc(out.Tournaments, func(a, b occurrenceView) int { return a.StartsAt.Compare(b.StartsAt) })
 	return out.Tournaments
+}
+
+// draftStarts are the starts of the Draft Tournaments, earliest first.
+func draftStarts(h *apptest.Harness) []time.Time {
+	var out []time.Time
+	for _, o := range listOccurrences(h) {
+		if o.Status == "draft" {
+			out = append(out, o.StartsAt)
+		}
+	}
+	return out
 }
 
 // startTimes are the starts of Tournaments, in UTC.
@@ -213,33 +226,163 @@ func TestTheControllerLooksAgainWhenTheNextOccurrenceEntersTheWindow(t *testing.
 	}
 }
 
-func TestTheManifestRemovalSweepLeavesOccurrencesAlone(t *testing.T) {
+func TestEditingTheTemplateUpdatesDraftOccurrences(t *testing.T) {
 	h := apptest.MustStart(t, apptest.WatchManifests("games"))
 	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
-	// Enough Tournament Manifests that the sweep's "more than half" guard
-	// wouldn't stop it from removing the Occurrences.
-	for _, name := range []string{"monday-cup", "tuesday-cup", "wednesday-cup"} {
-		mustApply(t, h, "games", name, manifestSpec(h))
-	}
 	h.Settle()
 	before := listOccurrences(h)
-	// No Tournament Manifest names the Occurrences, and even deleting their
-	// Recurring Tournament leaves them to the rules of #11.
-	if err := h.FakeKubernetes.Resource(manifests.RecurringResource).Namespace("games").Delete(context.Background(), "weeknight-cup", metav1.DeleteOptions{}); err != nil {
-		t.Fatalf("delete recurring tournament games/weeknight-cup: %v", err)
-	}
 
-	mustRunManifests(t, h)
-	// Sweeps run at startup and then every second.
-	time.Sleep(1500 * time.Millisecond)
+	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) {
+		template := spec["template"].(map[string]any)
+		template["name"] = "Weeknight Showdown"
+		template["capacity"] = 8
+		template["registrationOpensBefore"] = "1h"
+	})
+	h.Settle()
 
 	after := listOccurrences(h)
 	if len(after) != len(before) {
-		t.Fatalf("GET /api/v1/tournaments lists %+v after sweeps, want %+v", after, before)
+		t.Fatalf("GET /api/v1/tournaments lists %+v after the edit, want the %d Occurrences declared before", after, len(before))
 	}
-	for i := range after {
-		if after[i].ID != before[i].ID || after[i].Status != "draft" {
-			t.Errorf("Tournament %d = %+v after sweeps, want the draft %s", i, after[i], before[i].ID)
+	for i, want := range []occurrenceView{
+		{Name: "Weeknight Showdown 2030-01-01 20:00", StartsAt: tuesdayAt20, RegistrationOpensAt: tuesdayAt20.Add(-time.Hour), Capacity: 8},
+		{Name: "Weeknight Showdown 2030-01-02 20:00", StartsAt: wednesdayAt20, RegistrationOpensAt: wednesdayAt20.Add(-time.Hour), Capacity: 8},
+	} {
+		got := after[i]
+		if got.ID != before[i].ID || got.Status != "draft" || got.Name != want.Name || got.Capacity != want.Capacity ||
+			!got.StartsAt.Equal(want.StartsAt) || !got.RegistrationOpensAt.Equal(want.RegistrationOpensAt) {
+			t.Errorf("Occurrence %d = %+v after the edit, want the draft %s updated to %+v", i, got, before[i].ID, want)
+		}
+	}
+	if s := mustReadRecurringStatus(t, h, "games", "weeknight-cup"); s.ObservedGeneration != 2 || s.synced() != "True/Scheduled" {
+		t.Errorf("status = %+v, want generation 2, Synced=True because Scheduled", s)
+	}
+}
+
+func TestEditingTheTemplateReportsFrozenOccurrencesAndKeepsTheOthersInSync(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	h.Settle()
+	// Tuesday's registration opens, which freezes its settings.
+	h.AdvanceTo(tuesdayAt20.Add(-30 * time.Minute))
+
+	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["template"].(map[string]any)["capacity"] = 8 })
+	h.Settle()
+
+	ts := listOccurrences(h)
+	if len(ts) != 2 {
+		t.Fatalf("GET /api/v1/tournaments lists %+v, want 2 Occurrences", ts)
+	}
+	if ts[0].Status != "registration-open" || ts[0].Capacity != 16 {
+		t.Errorf("Tuesday's Occurrence = %+v, want registration-open with its frozen capacity 16", ts[0])
+	}
+	if ts[1].Status != "draft" || ts[1].Capacity != 8 {
+		t.Errorf("Wednesday's Occurrence = %+v, want a draft with capacity 8", ts[1])
+	}
+	s := mustReadRecurringStatus(t, h, "games", "weeknight-cup")
+	if s.synced() != "False/SettingsFrozen" || !strings.Contains(s.syncedMessage(), "2030-01-01 20:00") {
+		t.Errorf("status = %+v, want Synced=False because SettingsFrozen, naming Tuesday's Occurrence", s)
+	}
+	if s.ObservedGeneration != 1 || len(s.Upcoming) != 2 {
+		t.Errorf("status = %+v, want generation 1 still observed, and both Occurrences upcoming", s)
+	}
+
+	// Thursday's Occurrence enters the window as Tuesday's starts, with the
+	// edited template, and nothing is frozen any more.
+	h.AdvanceTo(tuesdayAt20)
+	ts = listOccurrences(h)
+	if len(ts) != 3 || ts[2].Capacity != 8 {
+		t.Errorf("GET /api/v1/tournaments lists %+v, want Thursday's Occurrence with capacity 8", ts)
+	}
+	if s := mustReadRecurringStatus(t, h, "games", "weeknight-cup"); s.ObservedGeneration != 2 || s.synced() != "True/Scheduled" {
+		t.Errorf("status once Tuesday's Occurrence started = %+v, want generation 2, Synced=True because Scheduled", s)
+	}
+}
+
+func TestEditingTheTemplateLeavesCancelledOccurrencesAlone(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	h.Settle()
+	// The Organizer cancels Wednesday's Occurrence through the API.
+	wednesday := mustFindOccurrence(t, h, wednesdayAt20)
+	h.Do(http.MethodPost, wednesday.path("cancel"), wednesday.Organizer, nil).Expect(http.StatusOK)
+
+	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["template"].(map[string]any)["capacity"] = 8 })
+	h.Settle()
+
+	ts := listOccurrences(h)
+	if len(ts) != 2 || ts[0].Capacity != 8 || ts[1].Status != "cancelled" || ts[1].Capacity != 16 {
+		t.Errorf("GET /api/v1/tournaments lists %+v, want Tuesday's Draft with capacity 8, and Wednesday's cancelled as it was", ts)
+	}
+	if s := mustReadRecurringStatus(t, h, "games", "weeknight-cup"); s.ObservedGeneration != 2 || s.synced() != "True/Scheduled" {
+		t.Errorf("status = %+v, want generation 2, Synced=True because Scheduled", s)
+	}
+}
+
+// mustGetStatus reads a Tournament's status through the API, or "" once it
+// is deleted.
+func mustGetStatus(t *testing.T, h *apptest.Harness, id string) string {
+	t.Helper()
+	r := h.Do(http.MethodGet, "/api/v1/tournaments/"+id, "", nil)
+	if r.Status == http.StatusNotFound {
+		return ""
+	}
+	var tv occurrenceView
+	r.Expect(http.StatusOK).Decode(&tv)
+	return tv.Status
+}
+
+func TestChangingTheScheduleRemovesUnwantedOccurrencesAndDeclaresTheNewOnes(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	h.Settle()
+	// Tuesday's registration opens; Wednesday's Occurrence is still a Draft.
+	h.AdvanceTo(tuesdayAt20.Add(-30 * time.Minute))
+	before := listOccurrences(h)
+
+	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["schedule"] = "0 21 * * 1-5" })
+	h.Settle()
+
+	if got := mustGetStatus(t, h, before[0].ID); got != "cancelled" {
+		t.Errorf("Tuesday's Occurrence at 20:00 = %q, want cancelled since its registration had opened", got)
+	}
+	if got := mustGetStatus(t, h, before[1].ID); got != "" {
+		t.Errorf("Wednesday's Occurrence at 20:00 = %q, want the Draft deleted", got)
+	}
+	tuesdayAt21, wednesdayAt21 := tuesdayAt20.Add(time.Hour), wednesdayAt20.Add(time.Hour)
+	if got := draftStarts(h); !sameInstants(got, []time.Time{tuesdayAt21, wednesdayAt21}) {
+		t.Errorf("Draft Occurrences start at %v, want Tuesday and Wednesday at 21:00", got)
+	}
+	s := mustReadRecurringStatus(t, h, "games", "weeknight-cup")
+	if s.ObservedGeneration != 2 || s.synced() != "True/Scheduled" {
+		t.Errorf("status = %+v, want generation 2, Synced=True because Scheduled", s)
+	}
+	if got := s.upcomingStarts(); !sameInstants(got, []time.Time{tuesdayAt21, wednesdayAt21}) {
+		t.Errorf("status.upcoming starts at %v, want Tuesday and Wednesday at 21:00", got)
+	}
+}
+
+func TestShorteningTheLookaheadRemovesOnlyFutureOccurrencesBeyondIt(t *testing.T) {
+	h := apptest.MustStart(t, apptest.WatchManifests("games"))
+	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
+	h.Settle()
+	h.AdvanceTo(tuesdayAt20.Add(-30 * time.Minute))
+	tuesday := mustFindOccurrence(t, h, tuesdayAt20)
+	tuesday.mustRegister("anna", "bert")
+	// Tuesday's Occurrence starts, and Thursday's enters the window.
+	h.AdvanceTo(tuesdayAt20)
+	before := listOccurrences(h)
+	if len(before) != 3 || before[0].Status != "running" {
+		t.Fatalf("GET /api/v1/tournaments lists %+v, want Tuesday's Occurrence running, then Wednesday's and Thursday's", before)
+	}
+
+	// Thursday's Occurrence is 48 hours away, Wednesday's 24.
+	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["lookahead"] = "24h" })
+	h.Settle()
+
+	for i, want := range []string{"running", "draft", ""} {
+		if got := mustGetStatus(t, h, before[i].ID); got != want {
+			t.Errorf("Occurrence %v = %q after shortening the lookahead, want %q (empty means deleted)", before[i].StartsAt, got, want)
 		}
 	}
 }
@@ -326,39 +469,37 @@ func TestASuspendedRecurringTournamentDeclaresNothing(t *testing.T) {
 	}
 }
 
-func TestSuspendingARecurringTournamentStopsNewOccurrencesAndKeepsExistingOnes(t *testing.T) {
+func TestSuspendingARecurringTournamentRemovesItsUnstartedOccurrencesAndDeclaresNoNewOnes(t *testing.T) {
 	h := apptest.MustStart(t, apptest.WatchManifests("games"))
 	mustApplyRecurring(t, h, "games", "weeknight-cup", recurringSpec())
 	h.Settle()
+	// Tuesday's registration opens; Wednesday's Occurrence is still a Draft.
+	h.AdvanceTo(tuesdayAt20.Add(-30 * time.Minute))
 	before := listOccurrences(h)
 
 	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["suspend"] = true })
 	h.Settle()
-	// Thursday's Occurrence enters the window while Tuesday's registration
-	// opens and it starts as usual.
-	h.AdvanceTo(tuesdayAt20)
 
-	after := listOccurrences(h)
-	if got := startTimes(after); !sameInstants(got, []time.Time{tuesdayAt20, wednesdayAt20}) {
-		t.Errorf("Tournaments start at %v while suspended, want only the Tuesday and Wednesday declared before", got)
+	if got := mustGetStatus(t, h, before[0].ID); got != "cancelled" {
+		t.Errorf("Tuesday's Occurrence while suspended = %q, want cancelled since its registration had opened", got)
 	}
-	for i := range min(len(before), len(after)) {
-		if after[i].ID != before[i].ID || after[i].Name != before[i].Name {
-			t.Errorf("Tournament %d = %+v while suspended, want %+v", i, after[i], before[i])
-		}
+	if got := mustGetStatus(t, h, before[1].ID); got != "" {
+		t.Errorf("Wednesday's Occurrence while suspended = %q, want the Draft deleted", got)
 	}
 	s := mustReadRecurringStatus(t, h, "games", "weeknight-cup")
 	if s.ObservedGeneration != 2 || s.synced() != "True/Suspended" {
 		t.Errorf("status = %+v, want generation 2, Synced=True because Suspended", s)
 	}
-	if len(s.Upcoming) != 1 || s.Upcoming[0].TournamentID != before[1].ID {
-		t.Errorf("status.upcoming = %+v, want only Wednesday's Tournament %s", s.Upcoming, before[1].ID)
+	// Thursday's Occurrence enters the window as Tuesday's would have started.
+	h.AdvanceTo(tuesdayAt20)
+	if ts := listOccurrences(h); len(ts) != 1 || ts[0].ID != before[0].ID {
+		t.Errorf("GET /api/v1/tournaments lists %+v while suspended, want only Tuesday's cancelled Occurrence", ts)
 	}
 
 	mustEditRecurring(t, h, "games", "weeknight-cup", func(spec map[string]any) { spec["suspend"] = false })
 	h.Settle()
-	if got := startTimes(listOccurrences(h)); !sameInstants(got, []time.Time{tuesdayAt20, wednesdayAt20, thursdayAt20}) {
-		t.Errorf("Tournaments start at %v once resumed, want Tuesday to Thursday", got)
+	if got := draftStarts(h); !sameInstants(got, []time.Time{wednesdayAt20, thursdayAt20}) {
+		t.Errorf("Draft Occurrences start at %v once resumed, want Wednesday and Thursday", got)
 	}
 }
 

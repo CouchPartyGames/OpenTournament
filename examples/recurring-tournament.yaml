@@ -13,7 +13,7 @@ spec:
   timeZone: Europe/Berlin
   # Declare the Tournaments starting within this window (default 24h).
   lookahead: 48h
-  # Like a CronJob: true stops declaring new Tournaments and keeps existing ones.
+  # True stops declaring Tournaments, and removes those not yet started.
   suspend: false
   # The Tournament settings, minus the two absolute times.
   template:

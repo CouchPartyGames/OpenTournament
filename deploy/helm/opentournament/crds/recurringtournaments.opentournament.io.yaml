@@ -75,7 +75,7 @@ spec:
                 suspend:
                   type: boolean
                   default: false
-                  description: Stops declaring new Tournaments, like a suspended CronJob. Those already declared are kept.
+                  description: Stops declaring Tournaments. Those not yet started are removed, as if their Occurrences left the schedule.
                 template:
                   type: object
                   required: [organizer, gameId, name, registrationOpensBefore, capacity, minimumParticipants, stages]
