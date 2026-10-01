@@ -132,3 +132,13 @@ metadata, then write the complete Allocated snapshot after the app reports Ready
 Local mode may update state after Ready; set Allocated in the watched file after
 that log even when using the initial Allocated fixture. This simulates Agones
 only; the API and its Match token validation remain real.
+
+## Verification of this slice
+
+Verified on an isolated kind cluster with Agones 1.61.0, the local Open Tournament
+chart, PostgreSQL, and Keycloak. A two-Participant Tournament started and allocated
+Match `01a0f8be-b467-7889-9bb3-b55477716b0d`; the container logged
+`Format=single-elimination, Best-of=3` and the registered `roster-one` and
+`roster-two` identities with `forfeited=false`. Both GameServers remained healthy.
+The .NET build, container build, existing C# SDK suite (100 tests), and full Go
+suite/vet passed. 
