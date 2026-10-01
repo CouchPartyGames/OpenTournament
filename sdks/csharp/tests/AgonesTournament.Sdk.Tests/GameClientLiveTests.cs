@@ -19,8 +19,8 @@ public class GameClientLiveTests
         => $$"""{"matchId":"{{Match}}","stageId":"{{Stage}}","groupId":"{{Group}}","key":"R1-M1","round":1,"status":"{{status}}","participants":["{{participant}}"],"serverAllocated":{{(address is null ? "false" : "true")}},"aborts":{{aborts}}"""
             + (address is null ? "}" : ",\"serverAddress\":\"" + address + "\",\"serverPort\":7777}");
 
-    private static string MatchDetails(string? address = null, string status = "allocating")
-        => $$"""{"id":"{{Match}}","tournamentId":"{{Tournament}}","groupId":"{{Group}}","key":"R1-M1","round":1,"status":"{{status}}","participants":["{{Participant}}"],"serverAllocated":{{(address is null ? "false" : "true")}},"aborts":0,"bouts":null"""
+    private static string MatchDetails(string? address = null, string status = "allocating", int aborts = 0)
+        => $$"""{"id":"{{Match}}","tournamentId":"{{Tournament}}","groupId":"{{Group}}","key":"R1-M1","round":1,"status":"{{status}}","participants":["{{Participant}}"],"serverAllocated":{{(address is null ? "false" : "true")}},"aborts":{{aborts}},"bouts":null"""
             + (address is null ? "}" : ",\"serverAddress\":\"" + address + "\",\"serverPort\":7777}");
 
     private static string Structure(string status = "running")
@@ -179,5 +179,36 @@ public class GameClientLiveTests
         var client = new TournamentGameClient(new TournamentHttpClient(http, new Uri("https://tournament.example")));
         var error = await Assert.ThrowsAsync<InvalidOperationException>(() => client.WaitForNextMatchEndpointAsync(Id));
         Assert.Contains("Keycloak access token provider", error.Message);
+    }
+
+    [Theory]
+    [InlineData("allocating", 2)]
+    [InlineData("completed", 1)]
+    public async Task RestSnapshotAheadOfBufferedEventsNeverRegressesToAnOldEndpoint(string snapshotStatus, int expectedUpdates)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await using var server = await WebSocketServer.StartAsync(async (socket, ct) =>
+        {
+            await AuthenticateAndSubscribe(socket, ct);
+            await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Tournament, 11, "match.changed", MatchData(address: "192.0.2.1")), ct);
+            await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Tournament, 12, "match.changed", MatchData(aborts: 1)), ct);
+            await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Tournament, 13, "match.changed", MatchData(address: "192.0.2.2", aborts: 1)), ct);
+            await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Tournament, 14, "match.changed", MatchData(status: "in-progress", address: "192.0.2.2", aborts: 1)), ct);
+            await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Tournament, 15, "tournament.completed", "{\"status\":\"completed\",\"placements\":[]}"), ct);
+            await Task.Delay(Timeout.Infinite, ct);
+        });
+        using var handler = Http(() => MatchDetails("192.0.2.2", snapshotStatus, aborts: 1));
+        using var http = new HttpClient(handler);
+        var client = new TournamentGameClient(new TournamentHttpClient(http, server.ServiceRoot), _ => Task.FromResult("token"));
+        var updates = new List<PlayerMatch>();
+        await foreach (var update in client.MyMatchesAsync(Id, timeout.Token)) updates.Add(update);
+        Assert.Equal(expectedUpdates, updates.Count);
+        Assert.All(updates, update => Assert.Equal(1, update.Aborts));
+        if (snapshotStatus == "completed")
+        {
+            Assert.Equal(MatchStatus.Completed, updates[0].Status);
+            Assert.Null(updates[0].Endpoint);
+        }
+        else Assert.All(updates, update => Assert.Equal("192.0.2.2", update.Endpoint!.Address));
     }
 }
