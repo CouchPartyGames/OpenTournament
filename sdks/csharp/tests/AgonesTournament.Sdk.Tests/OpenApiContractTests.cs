@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using AgonesTournament.Sdk.Core;
@@ -39,7 +40,15 @@ public class OpenApiContractTests
             Assert.Equal(schema.GetProperty("required").EnumerateArray().Select(p => p.GetString()).Order(),
                 metadata.Properties.Where(p => p.IsRequired).Select(p => p.Name).Order());
             foreach (var property in metadata.Properties)
-                AssertPropertyType(property.PropertyType, properties.GetProperty(property.Name));
+            {
+                var propertySchema = properties.GetProperty(property.Name);
+                AssertPropertyType(property.PropertyType, propertySchema);
+                if (property.IsRequired && propertySchema.TryGetProperty("type", out _))
+                {
+                    var nullability = new NullabilityInfoContext().Create((PropertyInfo)property.AttributeProvider!);
+                    Assert.Equal(SchemaTypes(propertySchema).Contains("null"), nullability.ReadState == NullabilityState.Nullable);
+                }
+            }
         }
     }
 

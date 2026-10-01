@@ -40,7 +40,8 @@ func Register(api huma.API, svc *tournament.Service) {
 		Summary: "Report a Bout result", Tags: []string{"Game Servers"}, Security: matchToken,
 		DefaultStatus: http.StatusNoContent,
 		Description: "Head-to-head: the winner. Free-for-all: a strict placement and points for every Participant still playing. " +
-			"Repeating an identical report is harmless; a different one conflicts. A Bout already forfeited can't be reported.",
+			"Repeating an identical report is harmless; a different one conflicts. A Bout already forfeited can't be reported. " +
+			"Recorded Bouts can be retried after the Match completes while the token remains valid for the latest allocation.",
 	}, h.bout)
 	problem.Register(api, huma.Operation{
 		OperationID: "game-server-report-no-shows", Method: http.MethodPost, Path: PathPrefix + "/match/bouts/{bout}/no-shows",
@@ -113,7 +114,8 @@ func (h handlers) bout(ctx context.Context, in *boutInput) (*struct{}, error) {
 	if (in.Body.Winner == nil) == (len(in.Body.Placements) == 0) {
 		return nil, problem.Fields{{Location: "body", Message: "give a winner (head-to-head) or placements (free-for-all)"}}.Err()
 	}
-	return nil, h.as(ctx, in.MatchToken, func(tx *tournament.Tx, m db.Match) error { return tx.ReportBout(m, r) })
+	token, _ := auth.BearerToken(in.Authorization)
+	return nil, h.svc.ReportBout(ctx, token, r)
 }
 
 func (h handlers) noShows(ctx context.Context, in *noShowInput) (*struct{}, error) {

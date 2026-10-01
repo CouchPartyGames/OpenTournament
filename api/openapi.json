@@ -1546,7 +1546,7 @@
     },
     "/api/v1/game-server/match/bouts/{bout}": {
       "put": {
-        "description": "Head-to-head: the winner. Free-for-all: a strict placement and points for every Participant still playing. Repeating an identical report is harmless; a different one conflicts. A Bout already forfeited can't be reported.",
+        "description": "Head-to-head: the winner. Free-for-all: a strict placement and points for every Participant still playing. Repeating an identical report is harmless; a different one conflicts. A Bout already forfeited can't be reported. Recorded Bouts can be retried after the Match completes while the token remains valid for the latest allocation.",
         "operationId": "game-server-report-bout",
         "parameters": [
           {

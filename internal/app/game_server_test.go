@@ -239,3 +239,57 @@ func TestRepeatedNoShowIDCountsOnce(t *testing.T) {
 		t.Fatalf("match = %+v, want won by %s", m, b)
 	}
 }
+
+func TestDecidingBoutCanBeRetriedUntilTheMatchTokenExpires(t *testing.T) {
+	tt := mustRun(t, 2)
+	final := tt.matches("allocating")[0]
+	a, b := final.Participants[0], final.Participants[1]
+	token := tt.server(final.ID)
+
+	tt.reportBout(token, 1, map[string]any{"winner": a}).Expect(http.StatusNoContent)
+	tt.reportBout(token, 1, map[string]any{"winner": a}).Expect(http.StatusNoContent)
+	if r := tt.reportBout(token, 1, map[string]any{"winner": b}).Expect(http.StatusConflict); r.Code() != "bout-conflict" {
+		t.Fatalf("different deciding Bout code = %s, want bout-conflict", r.Code())
+	}
+	tt.Do(http.MethodGet, "/api/v1/game-server/match", token, nil).Expect(http.StatusUnauthorized)
+	tt.Do(http.MethodPost, "/api/v1/game-server/match/started", token, nil).Expect(http.StatusUnauthorized)
+	tt.Do(http.MethodPost, "/api/v1/game-server/match/bouts/2/no-shows", token,
+		map[string]any{"participantIds": []string{b}}).Expect(http.StatusUnauthorized)
+	if r := tt.reportBout(token, 2, map[string]any{"winner": a}).Expect(http.StatusConflict); r.Code() != "wrong-status" {
+		t.Fatalf("new Bout code = %s, want wrong-status", r.Code())
+	}
+	if got := tt.match(final.ID); got.Status != "completed" || len(got.Bouts) != 1 || got.WinnerID != a {
+		t.Fatalf("Match after retries = %+v, want completed with one Bout won by %s", got, a)
+	}
+	tt.Advance(13 * time.Minute) // Result Deadline is 10 minutes, with a 2-minute token grace period.
+	if r := tt.reportBout(token, 1, map[string]any{"winner": a}).Expect(http.StatusUnauthorized); r.Code() != "match-token-invalid" {
+		t.Fatalf("expired token code = %s, want match-token-invalid", r.Code())
+	}
+}
+
+func TestFinalFreeForAllPlacementsCanBeRetriedButNotChanged(t *testing.T) {
+	h := apptest.MustStart(t)
+	body := settings(h, stage("free-for-all", map[string]any{"bouts": 1}))
+	body["gameId"] = "royale"
+	body["capacity"] = 8
+	tt := mustCreate(t, h, body)
+	tt.openRegistration()
+	ps := tt.mustRegister("anna", "bert", "cleo")
+	tt.start()
+	m := tt.matches("allocating")[0]
+	token := tt.server(m.ID)
+	report := map[string]any{"placements": []map[string]any{
+		{"participantId": ps[0], "placement": 1, "points": 10},
+		{"participantId": ps[1], "placement": 2, "points": 5},
+		{"participantId": ps[2], "placement": 3, "points": 1},
+	}}
+	tt.reportBout(token, 1, report).Expect(http.StatusNoContent)
+	tt.reportBout(token, 1, report).Expect(http.StatusNoContent)
+	report["placements"].([]map[string]any)[0]["points"] = 20
+	if r := tt.reportBout(token, 1, report).Expect(http.StatusConflict); r.Code() != "bout-conflict" {
+		t.Fatalf("changed final placements code = %s, want bout-conflict", r.Code())
+	}
+	if got := tt.match(m.ID); got.Status != "completed" || len(got.Bouts) != 1 {
+		t.Fatalf("Match after retries = %+v, want completed with one Bout", got)
+	}
+}

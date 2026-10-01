@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Description>HTTP transport, typed problem errors, IDs and shared models for Agones Tournament.</Description>
   </PropertyGroup>
 </Project>

@@ -4,23 +4,29 @@ using System.Text.Json.Serialization;
 namespace AgonesTournament.Sdk.Core;
 
 /// <summary>The UUID of one Match.</summary>
+/// <param name="Value">The UUID stored by the service.</param>
 [JsonConverter(typeof(MatchIdConverter))]
 public readonly record struct MatchId(Guid Value)
 {
+    /// <summary>Returns the UUID in its canonical hyphenated form.</summary>
     public override string ToString() => Value.ToString("D");
 }
 
 /// <summary>The UUID of one Tournament.</summary>
+/// <param name="Value">The UUID stored by the service.</param>
 [JsonConverter(typeof(TournamentIdConverter))]
 public readonly record struct TournamentId(Guid Value)
 {
+    /// <summary>Returns the UUID in its canonical hyphenated form.</summary>
     public override string ToString() => Value.ToString("D");
 }
 
 /// <summary>The UUID of one Participant in a Tournament.</summary>
+/// <param name="Value">The UUID stored by the service.</param>
 [JsonConverter(typeof(ParticipantIdConverter))]
 public readonly record struct ParticipantId(Guid Value)
 {
+    /// <summary>Returns the UUID in its canonical hyphenated form.</summary>
     public override string ToString() => Value.ToString("D");
 }
 

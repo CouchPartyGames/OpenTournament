@@ -50,6 +50,9 @@ func TestCrashedGameServerAbortsTheMatchAndKeepsCompletedBouts(t *testing.T) {
 		t.Fatalf("new server sees %d completed bouts, want 1", len(sm.CompletedBouts))
 	}
 	tt.reportBout(newToken, 2, map[string]any{"winner": a}).Expect(http.StatusNoContent)
+	tt.reportBout(newToken, 2, map[string]any{"winner": a}).Expect(http.StatusNoContent)
+	// The replay exception still belongs to the latest allocation only.
+	tt.reportBout(oldToken, 2, map[string]any{"winner": a}).Expect(http.StatusUnauthorized)
 	if got := tt.match(final.ID); got.Status != "completed" || got.WinnerID != a {
 		t.Fatalf("match = %+v", got)
 	}

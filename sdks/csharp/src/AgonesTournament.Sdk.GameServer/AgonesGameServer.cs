@@ -7,16 +7,22 @@ namespace AgonesTournament.Sdk.GameServer;
 /// <summary>An allocation's credentials. MatchToken is a secret and is excluded from ToString.</summary>
 public sealed class MatchAssignment(MatchId matchId, string matchToken)
 {
+    /// <summary>The Match named by the allocation label.</summary>
     public MatchId MatchId { get; } = matchId;
+    /// <summary>The secret Bearer token for this allocation.</summary>
     public string MatchToken { get; } = matchToken;
+    /// <summary>Returns the Match ID, excluding its secret token.</summary>
     public override string ToString() => $"Match {MatchId}";
 }
 
 /// <summary>Reads Tournament metadata through the Agones C# SDK. The caller owns and disposes the SDK.</summary>
 public sealed class AgonesGameServer(IAgonesSDK agones)
 {
+    /// <summary>Agones label holding the allocated Match UUID.</summary>
     public const string MatchIdLabel = "opentournament/match-id";
+    /// <summary>Agones annotation holding the secret Match token.</summary>
     public const string MatchTokenAnnotation = "opentournament/match-token";
+    /// <summary>Agones annotation containing comma-separated forfeited Participant UUIDs.</summary>
     public const string ForfeitedAnnotation = "opentournament/forfeited";
 
     /// <summary>Reads credentials after allocation. Cancellation stops waiting; the Agones SDK controls the RPC lifetime.</summary>

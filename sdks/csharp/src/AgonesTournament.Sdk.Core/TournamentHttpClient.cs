@@ -11,6 +11,7 @@ public sealed class TournamentHttpClient
     private readonly HttpClient http;
     private readonly Uri baseUrl;
 
+    /// <summary>Creates a transport for a service root URL, preserving any deployment prefix.</summary>
     public TournamentHttpClient(HttpClient http, Uri baseUrl)
     {
         ArgumentNullException.ThrowIfNull(http);
