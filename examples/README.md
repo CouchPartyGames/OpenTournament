@@ -123,3 +123,6 @@ console at <http://localhost:8081> (`admin` / `admin`).
 ```sh
 kind delete cluster --name ot
 ```
+
+The [C# reference Game Server](csharp-game-server/README.md) is a .NET 10 single-file
+application that becomes Ready in Agones and logs an allocated Match roster.
