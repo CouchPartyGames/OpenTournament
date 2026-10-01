@@ -31,22 +31,39 @@ using var agones = new AgonesSDK(requestTimeoutSec: 5);
 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
 var healthFailed = false;
 var health = KeepHealthyAsync();
+var operation = "mark GameServer Ready";
 try
 {
     CheckStatus(await agones.ReadyAsync().WaitAsync(stopping.Token), "mark GameServer Ready");
     Console.WriteLine("Agones Ready; waiting for allocation.");
     // Poll the Agones state: Ready and allocation are asynchronous sidecar operations.
+    operation = "wait for Agones allocation";
     while ((await agones.GetGameServerAsync().WaitAsync(stopping.Token)).Status.State != "Allocated")
         await Task.Delay(TimeSpan.FromSeconds(1), stopping.Token);
 
-    var assignment = await new AgonesGameServer(agones).AssignmentAsync(stopping.Token);
+    operation = "read allocation metadata";
+    MatchAssignment assignment;
+    try
+    {
+        assignment = await new AgonesGameServer(agones).AssignmentAsync(stopping.Token);
+    }
+    catch (InvalidOperationException error)
+    {
+        // AssignmentAsync validation messages name only the missing label/annotation, never its value.
+        Console.Error.WriteLine(error.Message);
+        return 1;
+    }
     Console.WriteLine($"Allocated to Match {assignment.MatchId}.");
     var client = new GameServerClient(new TournamentHttpClient(http, apiUrl), assignment.MatchToken);
+    operation = "fetch and log Match roster";
     try
     {
         var match = await client.MatchAsync(stopping.Token);
         if (match.MatchId != assignment.MatchId)
-            throw new InvalidOperationException("The fetched Match ID does not match the Agones allocation.");
+        {
+            Console.Error.WriteLine("The fetched Match ID does not match the Agones allocation.");
+            return 1;
+        }
         var format = JsonSerializer.Serialize(match.Format).Trim('"');
         Console.WriteLine($"Match {match.MatchId}: Format={format}, Best-of={match.BestOf?.ToString() ?? "n/a"}, Bouts={match.Bouts?.ToString() ?? "n/a"}.");
         foreach (var participant in match.Participants ?? [])
@@ -76,7 +93,8 @@ catch (OperationCanceledException) when (stopping.IsCancellationRequested) { }
 catch (Exception error)
 {
     // Do not print arbitrary exception messages or response bodies: they may contain the token.
-    Console.Error.WriteLine($"Game Server stopped because of {error.GetType().Name}. Check Agones connectivity and allocation metadata.");
+    var status = error is RpcException rpc ? $", gRPC {rpc.StatusCode}" : "";
+    Console.Error.WriteLine($"Cannot {operation}: {error.GetType().Name}{status}.");
     return 1;
 }
 finally
@@ -108,5 +126,8 @@ async Task KeepHealthyAsync()
 static void CheckStatus(Status status, string operation)
 {
     if (status.StatusCode != StatusCode.OK)
-        throw new InvalidOperationException($"Unable to {operation} ({status.StatusCode}).");
+    {
+        Console.Error.WriteLine($"Unable to {operation}: gRPC {status.StatusCode}.");
+        throw new InvalidOperationException("Agones operation failed.");
+    }
 }
