@@ -90,3 +90,95 @@ The game client connects to the returned address and port using the **game's own
 **Security boundary:** hiding the address limits casual discovery, but it is not a network access control. Someone who obtains the address can attempt a connection. The actual player restriction depends on the Game Server implementing identity verification and roster checks. The repository provides the roster and Match token mechanism; it does not contain a generic game-protocol admission handler. The [specification](specs/0001-realtime-tournaments-v1.md) calls for only Match Participants to be admitted.
 
 Once the session begins, the Game Server reports `POST /api/v1/game-server/match/started` and later reports Bout results or no-shows with its Match token. Withdrawals or disqualifications during play are sent to the server through the `opentournament/forfeited` annotation; the server is expected to remove those players. These reports and notifications continue the Match lifecycle after connection. See [Game Server API](../internal/features/gameservers/gameservers.go) and [Game Server integration](../README.md#game-servers).
+
+## Tournament lifecycle
+
+The steps above follow one Match from tournament start to connection. A Tournament as a whole moves through the stages below. Each change to the Tournament status emits a `tournament.status-changed` live event. The Organizer can cancel the Tournament at any point before it completes.
+
+```mermaid
+flowchart TD
+    create["Tournament Creation<br/>status: draft"]
+    publish["Tournament Published<br/>visible in GET /tournaments"]
+    regOpen["Registration Window Opened<br/>status: registration-open"]
+    checkIn{"Check-in enabled?"}
+    ciOpen["Check-in Window<br/>status: check-in"]
+    regClose["Registration Window Closed<br/>at startsAt"]
+    enough{"Minimum Participants reached?"}
+    draw["Draw Creation/Published<br/>status: running"]
+    matches[["Start Match Lifecycle<br/>for each playable Match"]]
+    stageDone{"Stage complete?"}
+    nextStage["Seed next Stage<br/>from Standings"]
+    done["Tournament Completion/<br/>Final Results Published<br/>status: completed"]
+    cancelled["status: cancelled"]
+
+    create --> publish --> regOpen --> checkIn
+    checkIn -- yes --> ciOpen --> regClose
+    checkIn -- no --> regClose
+    regClose --> enough
+    enough -- no --> cancelled
+    enough -- yes --> draw --> matches --> stageDone
+    stageDone -- "no: later Matches become playable" --> matches
+    stageDone -- "yes, more Stages" --> nextStage --> matches
+    stageDone -- "yes, last Stage" --> done
+    create & regOpen & ciOpen & matches -.->|Organizer cancels| cancelled
+```
+
+**Tournament Creation.** The Organizer or a trusted Game backend calls `POST /api/v1/tournaments`, or a Tournament Manifest declares the Tournament in git. The Tournament is stored as **Draft**, and a job is scheduled to open registration at `registrationOpensAt`. While the Tournament is a Draft, its settings can be changed through `PUT /api/v1/tournaments/{tournamentId}`.
+
+**Tournament Published.** Publishing is not a separate action. A Draft is visible through `GET /api/v1/tournaments` and `GET /api/v1/tournaments/{tournamentId}` as soon as it is created. Draft means only that its settings can still change.
+
+**Registration Window Opened.** At `registrationOpensAt` the Tournament becomes **Registration Open**, its settings freeze, and the start job is scheduled for `startsAt`. If check-in is enabled, the Tournament later becomes **Check-in** at `startsAt` minus the check-in duration. Registration stays open during check-in, and a player who registers in that window is checked in at the same time.
+
+**Registration Window Closed.** Registration has no separate close time; it closes when the start job runs at `startsAt`. If check-in is enabled, Participants who did not check in are dropped. If the remaining count is below `minimumParticipants`, the Tournament is cancelled and no Match is created.
+
+**Draw Creation/Published.** In the same transaction, the remaining Participants become Active and the Tournament becomes **Running**. The first Stage is seeded randomly, Participants are distributed into Groups by snake seeding, and lots are drawn within each Group. The format engine then creates the Matches and fills their slots. The draw is published through `stage.started` and `match.changed` events and through `GET /api/v1/tournaments/{tournamentId}/structure`. See [start and seeding](../internal/tournament/lifecycle.go).
+
+**Start Match Lifecycle.** Every playable Match enters the [Match lifecycle](#match-lifecycle). Byes and empty Matches complete immediately, without a Game Server. Each completed Match updates its Group's Standings (`standings.changed`), and the format engine may then make later Matches playable. When every Group in a Stage completes, the top Participants advance and are seeded into the next Stage. Participants who do not advance become Eliminated. See [Stage completion](../internal/tournament/lifecycle.go) and [match progression](../internal/tournament/progress.go).
+
+**Tournament Completion/Final Results Published.** When the last Stage completes, the service calculates Final Placements for every Participant who played. It then marks the Tournament **Completed** and emits `tournament.completed` with the placements. The placements can also be fetched from `GET /api/v1/tournaments/{tournamentId}/placements`, which returns an empty list until the Tournament completes.
+
+## Match lifecycle
+
+A Match that needs a Game Server goes through the stages below. Its Result Deadline starts when it becomes **Ready**. Every status change emits `match.changed`. Only Match Participants and the Organizer receive the server endpoint, as a private part of that event.
+
+```mermaid
+flowchart TD
+    ready["Match Ready<br/>Result Deadline starts"]
+    alloc["Game Server Allocated<br/>status: allocating"]
+    direct["Direct Players to Game Server<br/>private endpoint in match.changed"]
+    joined["Player Joined<br/>Game Server checks roster"]
+    started["Match Started<br/>status: in-progress"]
+    bout["Bout Completed and Results Reported<br/>PUT .../match/bouts/{bout}"]
+    decided{"Match decided?"}
+    completed["Match Completed and Results Reported<br/>status: completed"]
+    release["Game Server Deallocated<br/>GameServer deleted, Fleet replaces it"]
+    stalled["status: stalled<br/>Organizer resolves"]
+
+    ready --> alloc --> direct --> joined --> started --> bout --> decided
+    decided -- no --> bout
+    decided -- yes --> completed --> release
+    alloc -. "server fails: Abort, new allocation" .-> alloc
+    started -. "server fails: Abort, new allocation" .-> alloc
+    started -. "Result Deadline passes" .-> stalled
+    stalled -. "late result or Organizer resolution" .-> completed
+    stalled -. "server released" .-> release
+```
+
+**Game Server Allocated.** The allocation job signs a Match token and asks Agones for a warm Game Server from the Game's Fleet. The Match becomes **Allocating**. Agones returns a name, address, and port, and OpenTournament stores them if the Match still owns that allocation. If no server is available, the job retries with backoff. See [section 4](#4-allocate-a-server-to-each-ready-match).
+
+**Direct Players to Game Server.** The endpoint is sent only to the Match Participants and the Organizer, as a private part of `match.changed`, and returned by `GET /api/v1/matches/{matchId}`. Before players connect, the Game Server reads its token from the `opentournament/match-token` annotation and fetches the Match roster. See [section 5](#5-give-eligible-clients-the-endpoint) and [section 6](#6-give-the-game-server-its-match-roster).
+
+**Player Joined.** Players connect over the game's own protocol. The Game Server authenticates each identity and admits only Participants on the roster who have not forfeited. OpenTournament is not told about individual joins. A Participant who never arrives is reported as a No-show through `POST /api/v1/game-server/match/bouts/{bout}/no-shows`, which forfeits that Bout. See [section 7](#7-connect-and-admit-players).
+
+**Match Started.** The Game Server calls `POST /api/v1/game-server/match/started`, and the Match becomes **In Progress**. Repeated calls have no further effect.
+
+**Bout Completed and Results Reported.** After each Bout, the Game Server calls `PUT /api/v1/game-server/match/bouts/{bout}`. A head-to-head report names the winner. A free-for-all report gives a placement and points for every Participant still playing. Bouts must be reported in order. Sending the same report again has no effect, and sending a different result for a recorded Bout is rejected as a conflict. Each recorded Bout emits `bout.recorded`. See [Bout reports](../internal/tournament/reports.go).
+
+**Match Completed and Results Reported.** The Game Server does not report that a Match has finished. After each Bout, OpenTournament checks the result against the Stage's format: a head-to-head Match ends when one side has won the majority of a Best-of, and a free-for-all Match ends after its last Bout. The Match then becomes **Completed** with a result and, for head-to-head, a winner. Standings are updated, and the format engine may make later Matches playable. See [match progression](../internal/tournament/progress.go).
+
+**Game Server Deallocated (or recycled).** After the Match completes, OpenTournament releases its Game Server by deleting the Agones GameServer. A server is never reused for another Match. The Fleet replaces it with a new warm server, and the old Match token stops working. If a release fails, the reconciler finds the server later and releases it, along with any other server that no active Match references. See [release](../internal/tournament/progress.go), [reconciliation](../internal/tournament/servers.go), and [Agones adapter](../internal/gameserver/agones/agones.go).
+
+Two other paths can interrupt the flow:
+
+- **Abort:** If the reconciler finds that a Match's server failed or disappeared, it aborts the Match and returns it to **Allocating** with a new allocation ID and Match token. Completed Bouts are kept, so the replacement server can resume from them. The Result Deadline continues to run.
+- **Stalled:** If the Result Deadline passes before the Match is decided, the Match becomes **Stalled** and its server is released. A deciding result the server sends just before the deadline is still accepted until its token's grace period ends. Otherwise, the Organizer settles the Match through `POST /api/v1/matches/{matchId}/resolve`. See [deadline handling](../internal/tournament/matches.go).
