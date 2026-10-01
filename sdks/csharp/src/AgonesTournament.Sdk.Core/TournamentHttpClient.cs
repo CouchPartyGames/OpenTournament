@@ -23,6 +23,10 @@ public sealed class TournamentHttpClient
         this.baseUrl = new Uri(baseUrl.AbsoluteUri.TrimEnd('/') + "/");
     }
 
+    /// <summary>Creates an independently owned live connection to this service root.</summary>
+    public LiveConnection CreateLiveConnection(Func<CancellationToken, Task<string>>? accessTokenProvider = null)
+        => new(baseUrl, accessTokenProvider);
+
     /// <summary>Reads a JSON response. API failures throw an ApiException carrying the problem code.</summary>
     public async Task<T> ReadAsync<T>(string path, string? token, CancellationToken cancellationToken = default)
         => await SendReadAsync<T>(HttpMethod.Get, path, token, cancellationToken: cancellationToken).ConfigureAwait(false);

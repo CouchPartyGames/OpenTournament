@@ -5,7 +5,7 @@ using AgonesTournament.Sdk.Core;
 namespace AgonesTournament.Sdk.GameClient;
 
 /// <summary>Tournament discovery and registration. The caller owns sign-in and supplies fresh Keycloak access tokens.</summary>
-public sealed class GameClient(TournamentHttpClient http, Func<CancellationToken, Task<string>>? accessTokenProvider = null)
+public sealed partial class GameClient(TournamentHttpClient http, Func<CancellationToken, Task<string>>? accessTokenProvider = null)
 {
     /// <summary>Lists Tournaments with optional Game/status filters and pagination.</summary>
     public async Task<TournamentPage> ListTournamentsAsync(string? gameId = null, TournamentStatus? status = null,
