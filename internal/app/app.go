@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"math/rand/v2"
 	"net/http"
-	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,22 +17,14 @@ import (
 	"github.com/couchpartygames/opentournament/internal/features/gameservers"
 	"github.com/couchpartygames/opentournament/internal/features/live"
 	"github.com/couchpartygames/opentournament/internal/features/manifests"
-	"github.com/couchpartygames/opentournament/internal/features/matches"
-	"github.com/couchpartygames/opentournament/internal/features/participants"
-	"github.com/couchpartygames/opentournament/internal/features/registrations"
-	"github.com/couchpartygames/opentournament/internal/features/structure"
-	"github.com/couchpartygames/opentournament/internal/features/tournaments"
-	"github.com/couchpartygames/opentournament/internal/format"
 	"github.com/couchpartygames/opentournament/internal/games"
 	"github.com/couchpartygames/opentournament/internal/gameserver"
 	"github.com/couchpartygames/opentournament/internal/lifecycle"
 	"github.com/couchpartygames/opentournament/internal/matchtoken"
-	"github.com/couchpartygames/opentournament/internal/problem"
 	"github.com/couchpartygames/opentournament/internal/reconciler"
 	"github.com/couchpartygames/opentournament/internal/scheduler"
 	"github.com/couchpartygames/opentournament/internal/tournament"
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"k8s.io/client-go/dynamic"
 )
@@ -82,7 +73,6 @@ const APIPrefix = "/api/v1"
 
 // New composes the service.
 func New(cfg Config) (*App, error) {
-	problem.Install()
 	tokens, err := matchtoken.NewIssuer(cfg.MatchTokenKey, cfg.Clock)
 	if err != nil {
 		return nil, err
@@ -111,29 +101,7 @@ func New(cfg Config) (*App, error) {
 	}
 
 	mux := http.NewServeMux()
-	hc := huma.DefaultConfig("Open Tournament API", cfg.Version)
-	hc.Info.Description = "Real-time tournaments for online games, played on Agones Game Servers."
-	hc.OpenAPIPath = APIPrefix + "/openapi"
-	hc.DocsPath = ""
-	if cfg.Docs {
-		hc.DocsPath = APIPrefix + "/docs"
-		hc.DocsRenderer = huma.DocsRendererScalar
-	}
-	hc.SchemasPath = APIPrefix + "/schemas"
-	hc.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
-		"keycloak":   {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "A Keycloak-issued access token."},
-		"matchToken": {Type: "http", Scheme: "bearer", BearerFormat: "JWT", Description: "The per-Match token a Game Server receives when it is allocated."},
-	}
-	hc.Components.Schemas.RegisterTypeAlias(reflect.TypeFor[format.Kind](), reflect.TypeFor[formatSchema]())
-	api := humago.New(mux, hc)
-	a.API = api
-
-	tournaments.Register(api, svc)
-	registrations.Register(api, svc)
-	participants.Register(api, svc)
-	structure.Register(api, svc)
-	matches.Register(api, svc)
-	gameservers.Register(api, svc)
+	a.API = newAPI(mux, svc, cfg)
 	mux.Handle("GET "+APIPrefix+"/live", a.Hub)
 
 	mux.HandleFunc("GET /livez", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
@@ -156,20 +124,6 @@ func New(cfg Config) (*App, error) {
 
 	a.Handler = auth.Middleware(cfg.Verifier, gameservers.PathPrefix)(mux)
 	return a, nil
-}
-
-// formatSchema stands in for a Stage's Format in the OpenAPI document, which
-// lists every Format as an enum and so rejects any other in a request. It
-// lives here to keep the Format engine free of the HTTP framework.
-type formatSchema format.Kind
-
-// Schema lists the Formats as an enum.
-func (formatSchema) Schema(huma.Registry) *huma.Schema {
-	s := &huma.Schema{Type: huma.TypeString}
-	for _, k := range format.Kinds {
-		s.Enum = append(s.Enum, string(k))
-	}
-	return s
 }
 
 // Run starts the background workers and blocks until ctx ends and they

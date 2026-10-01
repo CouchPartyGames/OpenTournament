@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Check OpenAPI document for drift
+        run: make openapi-check
       # The integration tests start PostgreSQL through testcontainers,
       # using the runner's Docker daemon.
       - run: make vet test
