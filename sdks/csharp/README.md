@@ -11,7 +11,8 @@ The solution contains four NuGet packages:
   allocation metadata through the official [Agones C# SDK](https://agones.dev/site/docs/guides/client-sdks/csharp/).
 
 - `AgonesTournament.Sdk.Organizer`: Tournament creation and management for Organizers
-  and trusted Game backends using caller-supplied access tokens.
+  and trusted Game backends, live Tournament updates, and Stalled Match resolution
+  using caller-supplied access tokens.
 Packages are built as CI artifacts; they are not published to a NuGet feed yet.
 
 ## Build and install locally
@@ -153,6 +154,102 @@ locations in `ValidationException.Problem.Errors`. The constraints are:
   Participants than its Advancement, including when only Minimum Participants
   register. Later Stages receive exactly the preceding Groups × Advancement.
   Free-for-all Groups must fit the Game's Maximum Match Size at Capacity.
+
+## Watching a Tournament as Organizer
+
+`WatchTournamentAsync` opens an authenticated live subscription and streams
+`LiveNotification` records for one Tournament. `MatchChanged` carries every
+Match's disclosed `ServerAddress` and `ServerPort`; filter `Status` for Stalled
+Matches. Bout results, Standings, status changes, registration/Participant/Stage
+changes and completion events use the shared Core types. Unknown events keep
+their name and JSON data.
+
+```csharp
+// organizer and tournament come from the management example above.
+// cancellationToken belongs to your application.
+await foreach (var notification in organizer.WatchTournamentAsync(tournament.Id, cancellationToken))
+{
+    switch (notification)
+    {
+        case LiveResync:
+            // Refresh state after subscribing, reconnecting, or a sequence gap.
+            var structure = await organizer.StructureAsync(tournament.Id, cancellationToken);
+            foreach (var match in (structure.Stages ?? []).SelectMany(s => s.Groups ?? [])
+                .SelectMany(g => g.Rounds ?? []).SelectMany(r => r.Matches ?? []))
+            {
+                // Structure omits endpoints; the authenticated Match read includes them.
+                var details = await organizer.MatchAsync(match.Id, cancellationToken);
+                Console.WriteLine($"{details.Id}: {details.Status}, {details.ServerAddress}:{details.ServerPort}");
+                // Include already Stalled Matches in your application's resolution queue.
+            }
+            if (structure.Status == TournamentStatus.Completed)
+            {
+                var final = await organizer.FinalPlacementsAsync(tournament.Id, cancellationToken);
+                foreach (var placement in final.Placements ?? [])
+                    Console.WriteLine($"{placement.ParticipantId}: {placement.From}–{placement.To}");
+                return; // The completion event may have happened while disconnected.
+            }
+            if (structure.Status == TournamentStatus.Cancelled) return;
+            break;
+        case LiveEvent { Payload: MatchChanged { Status: MatchStatus.Stalled } stalled }:
+            // Your UI asks the Organizer to choose a Participant, or null for a double Forfeit.
+            ParticipantId? winner = await ChooseResolutionAsync(stalled, cancellationToken);
+            try
+            {
+                var resolved = winner is { } participantId
+                    ? await organizer.ResolveWinnerAsync(stalled.MatchId, participantId, cancellationToken)
+                    : await organizer.ResolveDoubleForfeitAsync(stalled.MatchId, cancellationToken);
+                Console.WriteLine($"{resolved.Id}: {resolved.Result}");
+            }
+            catch (MatchNotStalledException)
+            {
+                // A late Game Server result or another Organizer session settled it first.
+                var current = await organizer.MatchAsync(stalled.MatchId, cancellationToken);
+                Console.WriteLine($"{current.Id}: {current.Status}");
+            }
+            catch (NotOrganizerException)
+            {
+                // The supplied identity is not this Tournament's Organizer.
+                throw;
+            }
+            break;
+        case LiveEvent { Payload: MatchChanged match }:
+            Console.WriteLine($"{match.MatchId}: {match.Status}, {match.ServerAddress}:{match.ServerPort}");
+            break;
+        case LiveEvent { Payload: BoutRecorded bout }:
+            Console.WriteLine($"{bout.MatchId}: {(bout.Bouts ?? []).Count} recorded Bouts");
+            break;
+        case LiveEvent { Payload: StandingsChanged standings }:
+            Console.WriteLine($"{standings.GroupId}: {(standings.Standings ?? []).Count} Standings");
+            break;
+        case LiveEvent { Payload: TournamentCompleted completed }:
+            foreach (var placement in completed.Placements ?? [])
+                Console.WriteLine($"{placement.ParticipantId}: {placement.From}–{placement.To}");
+            return;
+        case LiveEvent { Payload: TournamentStatusChanged status }:
+            Console.WriteLine(status.Status);
+            if (status.Status == TournamentStatus.Cancelled) return;
+            break;
+    }
+}
+```
+
+`ChooseResolutionAsync` is supplied by your application and represents a manual
+Organizer decision. Resolution is the only manual result operation; it returns
+updated `MatchDetails`. The API rejects a non-Stalled Match, a caller who is not
+the Organizer, or a winner outside that Match. Winner and double Forfeit use
+separate methods so a request cannot accidentally specify both.
+
+The stream forwards each `LiveResync` before subsequent events. Refresh your
+application's state over REST inside that branch; events buffer while you read.
+REST remains authoritative and may already contain buffered changes, so reconcile
+those changes rather than blindly replacing newer state with older events.
+Completion events have `LiveFinalPlacement` ranges without Player Identities;
+`FinalPlacementsAsync` includes identities and also recovers completion missed
+while disconnected. A completed status change can precede the completion event:
+keep reading for its placements. The stream stays open until its reader is
+disposed or cancelled; leaving the loop closes the socket. Each enumeration owns
+one connection, and reconnects obtain a fresh token from the provider.
 
 ## Waiting for the player's Game Server
 
@@ -303,6 +400,8 @@ field values). Specific problem codes have these subclasses:
 | `bout-conflict` | `BoutConflictException` |
 | `bout-already-forfeited` | `BoutAlreadyForfeitedException` |
 | `bout-out-of-order` | `BoutOutOfOrderException` |
+| `match-not-stalled` | `MatchNotStalledException` |
+| `not-organizer` | `NotOrganizerException` |
 | `settings-frozen` | `SettingsFrozenException` |
 | `declared-in-git` | `DeclaredInGitException` |
 | `not-trusted-for-game` | `NotTrustedForGameException` |

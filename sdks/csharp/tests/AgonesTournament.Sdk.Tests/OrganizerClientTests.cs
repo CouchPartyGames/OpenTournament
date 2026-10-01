@@ -21,6 +21,62 @@ public class OrganizerClientTests
          "status":"registered","registeredAt":"2026-10-02T11:30:00Z"}
         """;
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ResolvesStalledMatchWithWinnerOrDoubleForfeit(bool doubleForfeit)
+    {
+        var matchId = new MatchId(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        using var fakeHttp = new HttpHandler(async (request, ct) =>
+        {
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("https://tournament.example/prefix/api/v1/matches/" + matchId + "/resolve", request.RequestUri!.AbsoluteUri);
+            Assert.Equal("Bearer organizer-token", request.Headers.Authorization!.ToString());
+            Assert.Equal(doubleForfeit ? "{\"doubleForfeit\":true}" : "{\"winner\":\"33333333-3333-3333-3333-333333333333\"}",
+                await request.Content!.ReadAsStringAsync(ct));
+            return HttpHandler.Json($$"""
+                {"id":"{{matchId}}","tournamentId":"{{TournamentId}}","groupId":"44444444-4444-4444-4444-444444444444",
+                 "key":"R1-M1","round":1,"status":"completed","participants":["{{ParticipantId}}"],
+                 "bouts":null,"aborts":0,"serverAllocated":false,"result":"{{(doubleForfeit ? "double-forfeit" : "win")}}"}
+                """);
+        });
+        using var http = new HttpClient(fakeHttp);
+        var client = new OrganizerClient(new TournamentHttpClient(http, new Uri("https://tournament.example/prefix")),
+            _ => Task.FromResult("organizer-token"));
+        var resolved = doubleForfeit
+            ? await client.ResolveDoubleForfeitAsync(matchId)
+            : await client.ResolveWinnerAsync(matchId, ParticipantId);
+        Assert.Equal(matchId, resolved.Id);
+        Assert.Equal(MatchStatus.Completed, resolved.Status);
+        Assert.Equal(doubleForfeit ? MatchResult.DoubleForfeit : MatchResult.Win, resolved.Result);
+    }
+
+    [Theory]
+    [InlineData("match-not-stalled", 409, typeof(MatchNotStalledException))]
+    [InlineData("not-organizer", 403, typeof(NotOrganizerException))]
+    public async Task ResolutionErrorsAreTypedForEitherResolution(string code, int status, Type exceptionType)
+    {
+        using var fakeHttp = new HttpHandler((_, _) => Task.FromResult(HttpHandler.Json($$"""
+            {"title":"Problem","status":{{status}},"code":"{{code}}","detail":"explanation"}
+            """, (HttpStatusCode)status)));
+        using var http = new HttpClient(fakeHttp);
+        var client = new OrganizerClient(new TournamentHttpClient(http, new Uri("https://tournament.example")),
+            _ => Task.FromResult("token"));
+        var matchId = new MatchId(Guid.Parse("11111111-1111-1111-1111-111111111111"));
+        foreach (var call in new Func<Task>[]
+        {
+            () => client.ResolveWinnerAsync(matchId, ParticipantId),
+            () => client.ResolveDoubleForfeitAsync(matchId)
+        })
+        {
+            var problem = await Assert.ThrowsAnyAsync<ApiException>(call);
+            Assert.Equal(exceptionType, problem.GetType());
+            Assert.Equal(code, problem.Code);
+            Assert.Equal("explanation", problem.Detail);
+            Assert.Equal((HttpStatusCode)status, problem.StatusCode);
+        }
+    }
+
     [Fact]
     public async Task CreatesTournamentWithSettingsAndReturnsItsAssignedId()
     {
@@ -170,7 +226,11 @@ public class OrganizerClientTests
             () => client.TournamentAsync(TournamentId), () => client.ListTournamentsAsync(), () => client.CancelTournamentAsync(TournamentId),
             () => client.ListParticipantsAsync(TournamentId),
             () => client.RegisterAsync(TournamentId, new PlayerIdentity { Kind = "steam", Value = "external-id" }),
-            () => client.CheckInAsync(TournamentId, ParticipantId), () => client.DisqualifyAsync(TournamentId, ParticipantId)
+            () => client.CheckInAsync(TournamentId, ParticipantId), () => client.DisqualifyAsync(TournamentId, ParticipantId),
+            () => client.StructureAsync(TournamentId), () => client.FinalPlacementsAsync(TournamentId),
+            () => client.MatchAsync(new MatchId(Guid.NewGuid())),
+            () => client.ResolveWinnerAsync(new MatchId(Guid.NewGuid()), ParticipantId),
+            () => client.ResolveDoubleForfeitAsync(new MatchId(Guid.NewGuid()))
         })
             Assert.Contains("empty token", (await Assert.ThrowsAsync<InvalidOperationException>(call)).Message);
     }
@@ -193,9 +253,14 @@ public class OrganizerClientTests
             return Task.FromResult("token");
         });
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.CancelTournamentAsync(TournamentId, cancelled.Token));
+        var matchId = new MatchId(Guid.NewGuid());
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.ResolveWinnerAsync(matchId, ParticipantId, cancelled.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.ResolveDoubleForfeitAsync(matchId, cancelled.Token));
         var uncancelledProvider = new OrganizerClient(new TournamentHttpClient(http, new Uri("https://tournament.example")),
             _ => Task.FromResult("token"));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => uncancelledProvider.CheckInAsync(TournamentId, ParticipantId, cancelled.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => uncancelledProvider.ResolveWinnerAsync(matchId, ParticipantId, cancelled.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => uncancelledProvider.ResolveDoubleForfeitAsync(matchId, cancelled.Token));
     }
 
     [Theory]
