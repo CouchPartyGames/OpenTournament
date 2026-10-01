@@ -211,4 +211,30 @@ public class GameClientLiveTests
         }
         else Assert.All(updates, update => Assert.Equal("192.0.2.2", update.Endpoint!.Address));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StalledMatchClearsConnectableEndpointWithoutAnAbort(bool allocatedFlag)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await using var server = await WebSocketServer.StartAsync(async (socket, ct) =>
+        {
+            await AuthenticateAndSubscribe(socket, ct);
+            await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Tournament, 11, "match.changed",
+                MatchData(status: "stalled", address: allocatedFlag ? "192.0.2.1" : null)), ct);
+            await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Tournament, 12, "tournament.completed", "{\"status\":\"completed\",\"placements\":[]}"), ct);
+            await Task.Delay(Timeout.Infinite, ct);
+        });
+        using var handler = Http(() => MatchDetails("192.0.2.1", "in-progress"));
+        using var http = new HttpClient(handler);
+        var client = new TournamentGameClient(new TournamentHttpClient(http, server.ServiceRoot), _ => Task.FromResult("token"));
+        var updates = new List<PlayerMatch>();
+        await foreach (var update in client.MyMatchesAsync(Id, timeout.Token)) updates.Add(update);
+        Assert.Equal(2, updates.Count);
+        Assert.Equal("192.0.2.1", updates[0].Endpoint!.Address);
+        Assert.Equal(MatchStatus.Stalled, updates[1].Status);
+        Assert.Equal(0, updates[1].Aborts);
+        Assert.Null(updates[1].Endpoint);
+    }
 }

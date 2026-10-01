@@ -87,8 +87,13 @@ public sealed partial class GameClient
         if (Terminal(previous.Status)) return true;
         if (update.Aborts != previous.Aborts) return update.Aborts < previous.Aborts;
         if (Progress(update.Status) < Progress(previous.Status)) return true;
-        return previous.ServerAllocated && !update.ServerAllocated && !Terminal(update.Status);
+        // Allocation cannot disappear within one playing status/generation. A Stalled
+        // Match releases its server at the Result Deadline without recording an Abort.
+        return previous.ServerAllocated && !update.ServerAllocated && update.Status == previous.Status
+            && Connectable(update.Status);
     }
+
+    private static bool Connectable(MatchStatus status) => status is MatchStatus.Allocating or MatchStatus.InProgress;
 
     private static bool Terminal(MatchStatus status) => status is MatchStatus.Completed or MatchStatus.Cancelled;
 
@@ -106,7 +111,7 @@ public sealed partial class GameClient
     private static bool Ended(TournamentStatus status) => status is TournamentStatus.Completed or TournamentStatus.Cancelled;
 
     private static GameServerEndpoint? Endpoint(MatchId matchId, MatchStatus status, bool allocated, string? address, int? port)
-        => allocated && status is not (MatchStatus.Completed or MatchStatus.Cancelled)
+        => allocated && Connectable(status)
             && !string.IsNullOrWhiteSpace(address) && port is > 0
                 ? new GameServerEndpoint(matchId, address, port.Value) : null;
 }

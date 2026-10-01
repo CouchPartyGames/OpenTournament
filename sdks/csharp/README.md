@@ -107,7 +107,7 @@ REST Match read after resync. An Abort clears the old endpoint; the replacement
 allocation yields a new one even for the same Match. Snapshot reconciliation
 uses Abort counts and lifecycle/allocation progression to suppress buffered events
 that would restore an older server or reopen a completed Match. Keep consuming the stream
-when your game needs to follow replacement servers. Completed and cancelled
+when your game needs to follow replacement servers. Stalled, completed and cancelled
 Matches have no connectable endpoint. The stream ends when the Tournament ends;
 the helper throws `TournamentEndedException` if it ends before an endpoint arrives.
 Both APIs require a token provider and honour cancellation.
