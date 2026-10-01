@@ -129,8 +129,16 @@ a made-up token should produce the clear 401 diagnostic. Keep the YAML private.
 Run the application with the API URL above. The local SDK watches the file for
 changes: to exercise waiting, start with `status.state: Ready` and no allocation
 metadata, then write the complete Allocated snapshot after the app reports Ready.
-Local mode may update state after Ready; set Allocated in the watched file after
-that log even when using the initial Allocated fixture. This simulates Agones
+Local mode updates state after Ready. With the credentials already in the fixture,
+allocate it after that log using the local HTTP gateway:
+
+```sh
+curl -fsS -X POST http://localhost:9358/allocate \
+  -H 'Content-Type: application/json' -d '{}'
+```
+
+Alternatively set Allocated in the watched file after the Ready log. Save changes
+in place so the SDK's file watch remains attached to the same file. This simulates Agones
 only; the API and its Match token validation remain real.
 
 ## Verification of this slice
