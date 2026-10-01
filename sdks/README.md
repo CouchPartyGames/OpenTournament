@@ -5,12 +5,12 @@ and TypeScript. These libraries will wrap the service's HTTP API so game clients
 Game backends, and Game Servers can work with typed requests and responses.
 
 **Status:** The [C# SDK](csharp/README.md) implements Tournament discovery and Participant registration
-for game clients, and the Game Server Match lifecycle on .NET 10 LTS. CI keeps its NuGet packages as build artifacts; no
+for game clients, Organizer management for Game backends, and the Game Server Match lifecycle on .NET 10 LTS. CI keeps its NuGet packages as build artifacts; no
 packages are published yet. Go and TypeScript clients are planned.
 
 | Language | Planned directory | Intended use |
 |---|---|---|
-| C# | [`csharp/`](csharp/README.md) | Game Client and Game Server APIs on .NET 10 LTS. |
+| C# | [`csharp/`](csharp/README.md) | Game Client, Organizer and Game Server APIs on .NET 10 LTS. |
 | Go | `go/` | Game backends, services, and Go Game Servers. |
 | TypeScript | `typescript/` | Browser tournament interfaces and Node.js applications. |
 
