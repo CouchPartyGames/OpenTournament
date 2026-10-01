@@ -4,13 +4,13 @@ Hand-written clients for **.NET 10 LTS only**, with nullable reference types ena
 The solution contains three NuGet packages:
 
 - `AgonesTournament.Sdk.Core`: caller-configured HTTP transport, UUID-backed Match,
-  Tournament and Participant IDs, shared models, and typed problem errors.
+  Tournament and Participant IDs, shared models, typed problem errors, and a live WebSocket connection.
 - `AgonesTournament.Sdk.GameClient`: Tournament discovery, structure, Final Placements,
   and Participant registration using caller-supplied Keycloak access tokens.
 - `AgonesTournament.Sdk.GameServer`: the full `/api/v1/game-server/*` API and
   allocation metadata through the official [Agones C# SDK](https://agones.dev/site/docs/guides/client-sdks/csharp/).
 
-Organizer and live-update clients are planned for later tickets.
+Organizer clients are planned for later tickets.
 Packages are built as CI artifacts; they are not published to a NuGet feed yet.
 
 ## Build and install locally
@@ -82,6 +82,70 @@ Registration, unregistration, Check-in and `MyRegistrationsAsync` require a
 provider and fail with `InvalidOperationException` before HTTP if it is missing
 or returns an empty token. Registering during the Check-in Window also checks in.
 Registration and Check-in problem errors use the typed exceptions listed below.
+
+## Waiting for the player's Game Server
+
+After registering, wait for a Match allocation with the signed-in Game Client:
+
+```csharp
+using var waiting = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+try
+{
+    var endpoint = await client.WaitForNextMatchEndpointAsync(selected.Id, waiting.Token);
+    await game.ConnectAsync(endpoint.Address, endpoint.Port);
+}
+catch (TournamentEndedException)
+{
+    // Completed or cancelled before a server became available.
+}
+```
+
+`MyMatchesAsync(tournamentId, cancellationToken)` is an async stream of
+`PlayerMatch` snapshots and changes for all of the caller's registered identities.
+Its nullable `Endpoint` comes from private `match.changed` fields, or an authorized
+REST Match read after resync. An Abort clears the old endpoint; the replacement
+allocation yields a new one even for the same Match. Keep consuming the stream
+when your game needs to follow replacement servers. Completed and cancelled
+Matches have no connectable endpoint. The stream ends when the Tournament ends;
+the helper throws `TournamentEndedException` if it ends before an endpoint arrives.
+Both APIs require a token provider and honour cancellation.
+
+For lower-level live updates, Core supports multiple subscriptions on one socket:
+
+```csharp
+await using var live = transport.CreateLiveConnection(GetCurrentAccessTokenAsync);
+live.Subscribe(selected.Id);
+await foreach (var notification in live.NotificationsAsync(cancellationToken))
+{
+    switch (notification)
+    {
+        case LiveResync resync:
+            // Fetch state over REST now, before applying subsequent events.
+            // resync.Sequence is the server's per-Tournament subscription baseline.
+            break;
+        case LiveEvent { Payload: MatchChanged match }:
+            Console.WriteLine($"{match.MatchId}: {match.Status}");
+            break;
+        case LiveEvent { Payload: null } unknown:
+            Console.WriteLine($"{unknown.Type}: {unknown.Data}");
+            break;
+    }
+}
+// live.Unsubscribe(selected.Id) queues removal while the reader is active.
+```
+
+Connections start when their single notification reader starts. Subscribe and
+unsubscribe queue commands, and disposal or reader cancellation closes the socket.
+Anonymous connections omit the provider; authenticated connections fetch a fresh
+token on every reconnect and authenticate before subscribing. Each acknowledged
+subscription emits `LiveResync`, including after a sequence gap or disconnection.
+The offending gap event is discarded, duplicate/older events are suppressed, and
+reconnect attempts back off from 250ms to 30s. Events received while REST is being
+fetched are buffered in order; REST remains the source of truth. Server protocol
+errors throw `LiveProtocolException` with the server's code; these errors require
+caller action rather than automatic reconnects. Known events have typed `Payload`
+records; every event retains its original `Type`, `Data`, Tournament and sequence,
+including unknown event types.
 
 ## Minimal Game Server loop
 
@@ -200,7 +264,7 @@ controls the underlying RPC's lifetime.
 
 ## Contract checks
 
-Tests use fake HTTP handlers and the real Agones SDK over an in-memory gRPC
+Tests use fake HTTP handlers, a local fake WebSocket server, and the real Agones SDK over an in-memory gRPC
 transport. They verify all operation paths, methods, Bearer authentication,
 request shapes, problem mapping, metadata, and callback lifetime. The contract
 test reads the committed [`api/openapi.json`](../../api/openapi.json), checks
