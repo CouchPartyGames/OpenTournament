@@ -234,6 +234,8 @@ internal/db                migrations and sqlc-generated queries
 
 ### Game Servers
 
+C# Game Servers can use the [.NET 10 SDK](sdks/csharp/README.md) for this lifecycle.
+
 When a Match becomes Ready the service allocates a GameServer from the Game's
 Fleet. The allocation carries these labels and annotations, which the Game
 Server reads through the Agones SDK:
@@ -247,8 +249,11 @@ Server reads through the Agones SDK:
 The Game Server fetches its Match (`GET /api/v1/game-server/match`), reports it
 started, then reports each Bout (`PUT /api/v1/game-server/match/bouts/{n}`) and any
 No-shows. The token only works for that Match, on that allocation, until the Match
-ends or its Result Deadline (plus a short grace) passes. After an Abort the
-replacement server gets a new token and resumes after the Bouts already completed.
+ends or its Result Deadline (plus a short grace) passes. Completed Matches allow
+one exception: a still-valid token from the latest allocation can replay recorded
+Bout reports, including the deciding Bout. Identical reports succeed and different
+results conflict; additional Bouts are rejected. After an Abort the replacement
+server gets a new token and resumes after the Bouts already completed.
 
 ### Live updates
 

@@ -21,12 +21,26 @@ var errTokenInvalid = problem.New(problem.Unauthenticated, CodeMatchTokenInvalid
 // is only good for its own Match, on its own allocation, while the Match is
 // being played.
 func (s *Service) AsGameServer(ctx context.Context, raw string, fn func(tx *Tx, m db.Match) error) error {
+	return s.asGameServer(ctx, raw, false, fn)
+}
+
+// ReportBout authenticates a Game Server's report. After completion it still
+// permits replaying recorded Bouts until the token expires, so a lost response
+// to the deciding report can be retried. ReportBout on Tx prevents new Bouts.
+func (s *Service) ReportBout(ctx context.Context, raw string, report BoutReport) error {
+	return s.asGameServer(ctx, raw, true, func(tx *Tx, m db.Match) error {
+		return tx.ReportBout(m, report)
+	})
+}
+
+func (s *Service) asGameServer(ctx context.Context, raw string, allowCompleted bool, fn func(tx *Tx, m db.Match) error) error {
 	claims, err := s.Tokens.Verify(raw)
 	if err != nil {
 		return errTokenInvalid
 	}
 	err = s.InMatch(ctx, claims.MatchID, func(tx *Tx, m db.Match) error {
-		if !servedBy(m, claims, tx.now) {
+		recordedReportRetry := allowCompleted && m.Status == lifecycle.MatchCompleted && m.AllocationID == claims.AllocationID
+		if !servedBy(m, claims, tx.now) && !recordedReportRetry {
 			return errTokenInvalid
 		}
 		return fn(tx, m)
@@ -152,6 +166,9 @@ func (tx *Tx) ReportBout(m db.Match, r BoutReport) error {
 	}
 	slots := gs.slots[m.ID]
 	have := gs.boutResults(m, r.Bout)
+	if m.Status == lifecycle.MatchCompleted && len(have) == 0 {
+		return problem.New(problem.Conflict, problem.CodeWrongStatus, "the match is already completed")
+	}
 	next := gs.playedBouts(m) + 1
 
 	if gs.headToHead() {

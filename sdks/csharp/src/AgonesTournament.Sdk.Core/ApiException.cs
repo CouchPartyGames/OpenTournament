@@ -6,19 +6,28 @@ namespace AgonesTournament.Sdk.Core;
 /// <summary>RFC 9457 problem details, including the API's stable code and validation fields.</summary>
 public sealed record ProblemDetails
 {
+    /// <summary>The URI reference identifying the problem type.</summary>
     public string? Type { get; init; }
+    /// <summary>The short summary of the problem.</summary>
     public required string Title { get; init; }
+    /// <summary>The status supplied in the problem response.</summary>
     public required long Status { get; init; }
+    /// <summary>The explanation of this occurrence, when supplied.</summary>
     public string? Detail { get; init; }
+    /// <summary>The stable problem code, preserved for unknown codes as well.</summary>
     public required string Code { get; init; }
+    /// <summary>Every invalid field, when supplied by the API; the collection may be null.</summary>
     public IReadOnlyList<FieldError>? Errors { get; init; }
 }
 
 /// <summary>An invalid input field; Value preserves arbitrary JSON supplied by the API.</summary>
 public sealed record FieldError
 {
+    /// <summary>The input location, such as body.winner, when supplied.</summary>
     public string? Location { get; init; }
+    /// <summary>What is wrong with the input field.</summary>
     public required string Message { get; init; }
+    /// <summary>The offending value as arbitrary JSON, when supplied.</summary>
     public JsonElement? Value { get; init; }
 }
 
@@ -26,9 +35,13 @@ public sealed record FieldError
 public class ApiException(HttpStatusCode statusCode, ProblemDetails problem)
     : Exception(problem.Code + ": " + (problem.Detail ?? problem.Title))
 {
+    /// <summary>The actual HTTP response status.</summary>
     public HttpStatusCode StatusCode { get; } = statusCode;
+    /// <summary>The complete problem details supplied by the API.</summary>
     public ProblemDetails Problem { get; } = problem;
+    /// <summary>The stable problem code, preserved for unknown codes as well.</summary>
     public string Code => Problem.Code;
+    /// <summary>The explanation of this occurrence, when supplied.</summary>
     public string? Detail => Problem.Detail;
 
     internal static ApiException From(HttpStatusCode status, ProblemDetails problem) => problem.Code switch

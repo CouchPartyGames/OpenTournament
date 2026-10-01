@@ -130,10 +130,12 @@ catch (BoutConflictException error)
 
 While the allocation's token remains valid, identical repeated Bout reports
 succeed through the API; reporting a different result throws a typed conflict.
-The current API rejects Match tokens once a Match completes, including reads
-and retries after the deciding report. Stop the loop after that report; a
-`MatchTokenInvalidException` alone cannot establish whether a lost final report
-was recorded. No automatic retries or local result cache are
+Recorded Bout reports can also be retried after the Match completes, including
+the deciding report, while the token remains valid for the latest allocation.
+New Bouts are rejected after completion. Other operations (including fetching
+the Match) reject the token after completion, so stop the loop after the deciding
+report. A `MatchTokenInvalidException` alone cannot establish whether a lost
+report was recorded. No automatic retries or local result cache are
 used. If a request's outcome is unknown after a transport failure, retry the same
 report. Pass a `CancellationToken` to HTTP operations to cancel the request;
 `AssignmentAsync` cancellation stops waiting, while the caller's Agones SDK
