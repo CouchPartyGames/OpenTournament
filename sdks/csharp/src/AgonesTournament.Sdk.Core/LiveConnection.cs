@@ -5,7 +5,8 @@ using System.Threading.Channels;
 
 namespace AgonesTournament.Sdk.Core;
 
-/// <summary>One WebSocket for any number of Tournaments. Consume NotificationsAsync once; disposal closes the connection.</summary>
+/// <summary>One WebSocket for any number of Tournaments. Consume NotificationsAsync once; disposal closes the connection.
+/// Subscribe, Unsubscribe and DisposeAsync may run concurrently with the notification reader.</summary>
 public sealed class LiveConnection : IAsyncDisposable
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

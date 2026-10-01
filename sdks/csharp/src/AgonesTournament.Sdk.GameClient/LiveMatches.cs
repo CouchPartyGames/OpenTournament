@@ -45,11 +45,7 @@ public sealed partial class GameClient
                     var details = await MatchAsync(match.Id, cancellationToken).ConfigureAwait(false);
                     var update = new PlayerMatch(details.Id, details.Status, details.ServerAllocated, details.Aborts,
                         Endpoint(details.Id, details.Status, details.ServerAllocated, details.ServerAddress, details.ServerPort));
-                    if (!known.TryGetValue(update.MatchId, out var previous) || previous != update)
-                    {
-                        known[update.MatchId] = update;
-                        yield return update;
-                    }
+                    if (Remember(known, update)) yield return update;
                 }
             }
             else if (notification is LiveEvent { Payload: TournamentCompleted }
@@ -60,11 +56,7 @@ public sealed partial class GameClient
             {
                 var update = new PlayerMatch(match.MatchId, match.Status, match.ServerAllocated, match.Aborts,
                     Endpoint(match.MatchId, match.Status, match.ServerAllocated, match.ServerAddress, match.ServerPort));
-                if (!known.TryGetValue(update.MatchId, out var previous) || previous != update)
-                {
-                    known[update.MatchId] = update;
-                    yield return update;
-                }
+                if (Remember(known, update)) yield return update;
             }
         }
     }
@@ -77,6 +69,39 @@ public sealed partial class GameClient
             if (match.Endpoint is not null) return match.Endpoint;
         throw new TournamentEndedException(tournamentId);
     }
+
+    private static bool Remember(Dictionary<MatchId, PlayerMatch> known, PlayerMatch update)
+    {
+        if (known.TryGetValue(update.MatchId, out var previous))
+        {
+            if (previous == update || IsOlder(update, previous)) return false;
+        }
+        known[update.MatchId] = update;
+        return true;
+    }
+
+    private static bool IsOlder(PlayerMatch update, PlayerMatch previous)
+    {
+        // REST has no sequence watermark and can already include buffered events.
+        // An Abort is the only way to return a Match to allocation or replace its server.
+        if (Terminal(previous.Status)) return true;
+        if (update.Aborts != previous.Aborts) return update.Aborts < previous.Aborts;
+        if (Progress(update.Status) < Progress(previous.Status)) return true;
+        return previous.ServerAllocated && !update.ServerAllocated && !Terminal(update.Status);
+    }
+
+    private static bool Terminal(MatchStatus status) => status is MatchStatus.Completed or MatchStatus.Cancelled;
+
+    private static int Progress(MatchStatus status) => status switch
+    {
+        MatchStatus.Pending => 0,
+        MatchStatus.Ready => 1,
+        MatchStatus.Allocating => 2,
+        MatchStatus.InProgress => 3,
+        MatchStatus.Stalled => 4,
+        MatchStatus.Completed or MatchStatus.Cancelled => 5,
+        _ => throw new ArgumentOutOfRangeException(nameof(status))
+    };
 
     private static bool Ended(TournamentStatus status) => status is TournamentStatus.Completed or TournamentStatus.Cancelled;
 
