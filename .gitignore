@@ -5,3 +5,8 @@
 .idea/
 .vscode/
 coverage.out
+
+# .NET SDK builds and NuGet artifacts
+**/bin/
+**/obj/
+sdks/csharp/artifacts/

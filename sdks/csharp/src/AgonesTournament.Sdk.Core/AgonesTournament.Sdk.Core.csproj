@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>HTTP transport, typed problem errors, IDs and shared models for Agones Tournament.</Description>
+  </PropertyGroup>
+</Project>

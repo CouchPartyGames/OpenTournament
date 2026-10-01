@@ -4,18 +4,19 @@ This directory is reserved for Agones Tournament client libraries for C#, Go,
 and TypeScript. These libraries will wrap the service's HTTP API so game clients,
 Game backends, and Game Servers can work with typed requests and responses.
 
-**Status:** No SDK implementations or published packages are available in this
-repository yet. The language directories below describe the intended layout.
+**Status:** The [C# SDK](csharp/README.md) implements the Game Server Match
+lifecycle on .NET 10 LTS. CI keeps its NuGet packages as build artifacts; no
+packages are published yet. Go and TypeScript clients are planned.
 
 | Language | Planned directory | Intended use |
 |---|---|---|
-| C# | `csharp/` | .NET applications and C# game clients or Game Servers. |
+| C# | [`csharp/`](csharp/README.md) | Game Server Match lifecycle on .NET 10 LTS. |
 | Go | `go/` | Game backends, services, and Go Game Servers. |
 | TypeScript | `typescript/` | Browser tournament interfaces and Node.js applications. |
 
 ## API coverage
 
-The clients should provide typed access to the same API:
+Over time, the clients will provide typed access to the same API:
 
 - Create, edit, list, inspect, and cancel Tournaments.
 - Register Participants, check in, and inspect registrations.

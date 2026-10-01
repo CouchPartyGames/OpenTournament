@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Match lifecycle reporting and Agones metadata integration for Game Servers.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../AgonesTournament.Sdk.Core/AgonesTournament.Sdk.Core.csproj" />
+    <PackageReference Include="AgonesSDK" Version="1.61.0" />
+  </ItemGroup>
+</Project>

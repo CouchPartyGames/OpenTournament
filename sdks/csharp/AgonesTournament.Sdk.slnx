@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/MatchLoop/MatchLoop.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/AgonesTournament.Sdk.Core/AgonesTournament.Sdk.Core.csproj" />
+    <Project Path="src/AgonesTournament.Sdk.GameServer/AgonesTournament.Sdk.GameServer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AgonesTournament.Sdk.Tests/AgonesTournament.Sdk.Tests.csproj" />
+  </Folder>
+</Solution>
