@@ -3,11 +3,11 @@ namespace AgonesTournament.Sdk.Core;
 /// <summary>The Final Placements and status of one Tournament.</summary>
 public sealed record FinalPlacements
 {
-    /// <summary>Placements.</summary>
+    /// <summary>The Participants’ Final Placement ranges; the API may return null.</summary>
     public required IReadOnlyList<FinalPlacement>? Placements { get; init; }
-    /// <summary>Status.</summary>
+    /// <summary>The current lifecycle state.</summary>
     public required TournamentStatus Status { get; init; }
-    /// <summary>TournamentId.</summary>
+    /// <summary>The Tournament containing this data.</summary>
     public required TournamentId TournamentId { get; init; }
 }
 
@@ -16,9 +16,9 @@ public sealed record FinalPlacement
 {
     /// <summary>Best place of the shared range.</summary>
     public required int From { get; init; }
-    /// <summary>Identity.</summary>
+    /// <summary>The Player Identity identifying this Participant.</summary>
     public required PlayerIdentity Identity { get; init; }
-    /// <summary>ParticipantId.</summary>
+    /// <summary>The Participant this entry belongs to.</summary>
     public required ParticipantId ParticipantId { get; init; }
     /// <summary>Worst place of the shared range.</summary>
     public required int To { get; init; }

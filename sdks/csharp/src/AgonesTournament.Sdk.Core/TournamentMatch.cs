@@ -5,37 +5,37 @@ public record TournamentMatch
 {
     /// <summary>How often its Game Server failed mid-play.</summary>
     public required int Aborts { get; init; }
-    /// <summary>Bouts.</summary>
+    /// <summary>Recorded Bouts in this Match; the API may return null.</summary>
     public required IReadOnlyList<Bout>? Bouts { get; init; }
-    /// <summary>Bracket.</summary>
+    /// <summary>The double-elimination bracket, when supplied.</summary>
     public string? Bracket { get; init; }
-    /// <summary>CompletedAt.</summary>
+    /// <summary>When play completed; absent until completion.</summary>
     public DateTimeOffset? CompletedAt { get; init; }
-    /// <summary>GroupId.</summary>
+    /// <summary>The Group containing this Match.</summary>
     public required GroupId GroupId { get; init; }
-    /// <summary>Id.</summary>
+    /// <summary>The UUID of this domain object.</summary>
     public required MatchId Id { get; init; }
     /// <summary>Stable position of the Match in its Group, e.g. R2-M1.</summary>
     public required string Key { get; init; }
-    /// <summary>Participants.</summary>
+    /// <summary>The Participants in this response; the API may return null.</summary>
     public required IReadOnlyList<ParticipantId>? Participants { get; init; }
-    /// <summary>ReadyAt.</summary>
+    /// <summary>When this Match became Ready; absent until it is Ready.</summary>
     public DateTimeOffset? ReadyAt { get; init; }
-    /// <summary>Result.</summary>
+    /// <summary>The Match outcome; absent until the Match is decided.</summary>
     public MatchResult? Result { get; init; }
-    /// <summary>ResultDeadline.</summary>
+    /// <summary>When the Match becomes Stalled if it has no result; absent before it is Ready.</summary>
     public DateTimeOffset? ResultDeadline { get; init; }
-    /// <summary>Round.</summary>
+    /// <summary>The one-based Round number within the Group.</summary>
     public required int Round { get; init; }
-    /// <summary>ServerAllocated.</summary>
+    /// <summary>Whether a Game Server is allocated; this does not imply its endpoint is disclosed.</summary>
     public required bool ServerAllocated { get; init; }
-    /// <summary>StartedAt.</summary>
+    /// <summary>When the Game Server reported play started; absent before that report.</summary>
     public DateTimeOffset? StartedAt { get; init; }
-    /// <summary>Status.</summary>
+    /// <summary>The current lifecycle state.</summary>
     public required MatchStatus Status { get; init; }
-    /// <summary>TournamentId.</summary>
+    /// <summary>The Tournament containing this data.</summary>
     public required TournamentId TournamentId { get; init; }
-    /// <summary>WinnerId.</summary>
+    /// <summary>The winning Participant; absent for outcomes without a single winner.</summary>
     public ParticipantId? WinnerId { get; init; }
 }
 
