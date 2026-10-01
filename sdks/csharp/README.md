@@ -27,7 +27,8 @@ above as a NuGet source. Add `AgonesTournament.Sdk.GameServer` version `0.1.0`
 to your application; Core and AgonesSDK are transitive dependencies:
 
 ```sh
-dotnet add package AgonesTournament.Sdk.GameServer --version 0.1.0 --source /absolute/path/to/packages
+dotnet nuget add source /absolute/path/to/packages --name agones-tournament-local
+dotnet add package AgonesTournament.Sdk.GameServer --version 0.1.0
 ```
 
 NuGet must also have nuget.org configured to restore the Agones dependencies.
