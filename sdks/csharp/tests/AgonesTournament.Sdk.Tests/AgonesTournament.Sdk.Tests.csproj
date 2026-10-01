@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/AgonesTournament.Sdk.GameClient/AgonesTournament.Sdk.GameClient.csproj" />
     <ProjectReference Include="../../src/AgonesTournament.Sdk.GameServer/AgonesTournament.Sdk.GameServer.csproj" />
     <None Include="../../../../api/openapi.json" Link="openapi.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

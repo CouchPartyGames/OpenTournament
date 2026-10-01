@@ -24,9 +24,14 @@ public sealed class TournamentHttpClient
     }
 
     /// <summary>Reads a JSON response. API failures throw an ApiException carrying the problem code.</summary>
-    public async Task<T> ReadAsync<T>(string path, string token, CancellationToken cancellationToken = default)
+    public async Task<T> ReadAsync<T>(string path, string? token, CancellationToken cancellationToken = default)
+        => await SendReadAsync<T>(HttpMethod.Get, path, token, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    /// <summary>Sends a request and reads its JSON response. A null token sends an anonymous request.</summary>
+    public async Task<T> SendReadAsync<T>(HttpMethod method, string path, string? token, object? body = null,
+        CancellationToken cancellationToken = default)
     {
-        using var request = Request(HttpMethod.Get, path, token, null);
+        using var request = Request(method, path, token, body);
         using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
         await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
         return await response.Content.ReadFromJsonAsync<T>(Json, cancellationToken).ConfigureAwait(false)
@@ -34,7 +39,7 @@ public sealed class TournamentHttpClient
     }
 
     /// <summary>Sends a mutation with an optional JSON body.</summary>
-    public async Task SendAsync(HttpMethod method, string path, string token, object? body = null,
+    public async Task SendAsync(HttpMethod method, string path, string? token, object? body = null,
         CancellationToken cancellationToken = default)
     {
         using var request = Request(method, path, token, body);
@@ -66,15 +71,17 @@ public sealed class TournamentHttpClient
         throw ApiException.From(response.StatusCode, problem);
     }
 
-    private HttpRequestMessage Request(HttpMethod method, string path, string token, object? body)
+    private HttpRequestMessage Request(HttpMethod method, string path, string? token, object? body)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+        if (token is not null)
+            ArgumentException.ThrowIfNullOrWhiteSpace(token);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var uri = new Uri(baseUrl, path.TrimStart('/'));
         if (path.StartsWith("//", StringComparison.Ordinal) || !baseUrl.IsBaseOf(uri))
             throw new ArgumentException("The API path must stay within the configured service root.", nameof(path));
         var request = new HttpRequestMessage(method, uri);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (token is not null)
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         if (body is not null)
             request.Content = JsonContent.Create(body, options: Json);

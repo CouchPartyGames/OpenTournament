@@ -46,6 +46,12 @@ public class ApiException(HttpStatusCode statusCode, ProblemDetails problem)
 
     internal static ApiException From(HttpStatusCode status, ProblemDetails problem) => problem.Code switch
     {
+        "registration-closed" => new RegistrationClosedException(status, problem),
+        "tournament-full" => new TournamentFullException(status, problem),
+        "already-registered" => new AlreadyRegisteredException(status, problem),
+        "identity-kind-not-accepted" => new PlayerIdentityKindNotAcceptedException(status, problem),
+        "identity-not-owned" => new PlayerIdentityNotOwnedException(status, problem),
+        "check-in-closed" => new CheckInClosedException(status, problem),
         "match-token-invalid" => new MatchTokenInvalidException(status, problem),
         "bout-conflict" => new BoutConflictException(status, problem),
         "bout-already-forfeited" => new BoutAlreadyForfeitedException(status, problem),
@@ -65,3 +71,21 @@ public sealed class BoutAlreadyForfeitedException(HttpStatusCode statusCode, Pro
 public sealed class BoutOutOfOrderException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
 /// <summary>The request is invalid; Problem.Errors describes invalid fields when supplied by the API.</summary>
 public sealed class ValidationException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The Registration Window is closed.</summary>
+public sealed class RegistrationClosedException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The Tournament has reached Capacity.</summary>
+public sealed class TournamentFullException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The Player Identity is already registered in this Tournament.</summary>
+public sealed class AlreadyRegisteredException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The Game does not accept this Player Identity kind.</summary>
+public sealed class PlayerIdentityKindNotAcceptedException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The caller does not own the requested Player Identity.</summary>
+public sealed class PlayerIdentityNotOwnedException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The Check-in Window is closed.</summary>
+public sealed class CheckInClosedException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);

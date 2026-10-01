@@ -80,10 +80,14 @@ type tournamentInput struct {
 
 type participantOutput struct{ Body ParticipantView }
 
+// ParticipantRegistrations lists a caller's or a Tournament's Participants.
+// A named body prevents schema-name collisions with other slices' list outputs.
+type ParticipantRegistrations struct {
+	Participants []ParticipantView `json:"participants"`
+}
+
 type listOutput struct {
-	Body struct {
-		Participants []ParticipantView `json:"participants"`
-	}
+	Body ParticipantRegistrations
 }
 
 func (h handlers) register(ctx context.Context, in *registerInput) (*participantOutput, error) {
