@@ -8,6 +8,7 @@ cd "$(dirname "$0")"
 OPENTOURNAMENT_VERSION=${OPENTOURNAMENT_VERSION:-0.0.4}
 NAMESPACE=opentournament
 
+# Requires the opentournament-game-server:dev image in the cluster; see README.md.
 echo "==> Agones"
 helm upgrade --install agones agones --repo https://agones.dev/chart/stable --version 1.61.0 \
   -n agones-system --create-namespace --wait

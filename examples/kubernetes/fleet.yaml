@@ -1,4 +1,4 @@
-# Two warm Game Servers from the Agones example image.
+# Two warm C# reference Game Servers. Build and load the image first; see README.md.
 apiVersion: agones.dev/v1
 kind: Fleet
 metadata:
@@ -8,18 +8,28 @@ spec:
   replicas: 2
   template:
     spec:
+      health:
+        initialDelaySeconds: 10
+        periodSeconds: 5
+        failureThreshold: 3
       ports:
         - name: default
           containerPort: 7654
       template:
         spec:
           containers:
-            - name: simple-game-server
-              image: us-docker.pkg.dev/agones-images/examples/simple-game-server:0.43
+            - name: game-server
+              image: opentournament-game-server:dev
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: OPENTOURNAMENT_API_URL
+                  value: http://ot-opentournament.opentournament.svc.cluster.local
+                - name: BOUT_DURATION_SECONDS
+                  value: "5"
               resources:
                 requests:
                   memory: 64Mi
                   cpu: 20m
                 limits:
-                  memory: 64Mi
-                  cpu: 20m
+                  memory: 128Mi
+                  cpu: 200m

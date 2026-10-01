@@ -25,6 +25,17 @@ kubectl cluster-info --context kind-ot
 
 ### 2. Agones and a Fleet
 
+Build the [C# reference Game Server](csharp-game-server/README.md) and load it into
+kind. It plays each Match by simulation, so a whole Tournament runs without manual steps.
+
+```sh
+docker build -t opentournament-game-server:dev -f csharp-game-server/Dockerfile ..
+kind load docker-image opentournament-game-server:dev --name ot
+```
+
+With Podman, `kind load docker-image` needs `KIND_EXPERIMENTAL_PROVIDER=podman`,
+or save the image with `podman save` and use `kind load image-archive`.
+
 ```sh
 helm install agones agones --repo https://agones.dev/chart/stable --version 1.61.0 \
   -n agones-system --create-namespace --wait
@@ -32,8 +43,9 @@ kubectl apply -f kubernetes/fleet.yaml
 kubectl get fleet arena
 ```
 
-[`fleet.yaml`](kubernetes/fleet.yaml) keeps two `simple-game-server`s warm in the
-`default` namespace, the one Agones manages out of the box.
+[`fleet.yaml`](kubernetes/fleet.yaml) keeps two of these Game Servers warm in the
+`default` namespace. Each reports Match started, plays Bouts for
+`BOUT_DURATION_SECONDS` (5) each with random winners, then shuts itself down.
 
 ### 3. PostgreSQL
 
@@ -125,4 +137,4 @@ kind delete cluster --name ot
 ```
 
 The [C# reference Game Server](csharp-game-server/README.md) is a .NET 10 single-file
-application that becomes Ready in Agones and logs an allocated Match roster.
+application that plays an allocated head-to-head Match by simulation.

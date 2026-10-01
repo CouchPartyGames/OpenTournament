@@ -11,14 +11,22 @@ steps 1 to 4 in one go (`OPENTOURNAMENT_VERSION` picks the chart version).
 
 ## 1. Agones and a Fleet
 
+Build the [C# reference Game Server](../csharp-game-server/README.md) image and make
+it available to the cluster (for kind, `kind load docker-image`):
+
+```sh
+docker build -t opentournament-game-server:dev -f ../csharp-game-server/Dockerfile ../..
+kind load docker-image opentournament-game-server:dev --name ot
+```
+
 ```sh
 helm install agones agones --repo https://agones.dev/chart/stable --version 1.61.0 \
   -n agones-system --create-namespace --wait
 kubectl apply -f fleet.yaml
 ```
 
-[`fleet.yaml`](fleet.yaml) keeps two `simple-game-server`s warm in the `default`
-namespace, the one Agones manages out of the box.
+[`fleet.yaml`](fleet.yaml) keeps two of these Game Servers warm in the `default`
+namespace. Each plays its Match by simulation and shuts itself down.
 
 ## 2. PostgreSQL
 

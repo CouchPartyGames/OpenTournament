@@ -9,6 +9,7 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Agones;
+using AgonesTournament.ReferenceGameServer;
 using AgonesTournament.Sdk.Core;
 using AgonesTournament.Sdk.GameServer;
 using Grpc.Core;
@@ -20,6 +21,16 @@ if (!Uri.TryCreate(configuredUrl, UriKind.Absolute, out var apiUrl)
     || !string.IsNullOrEmpty(apiUrl.Fragment))
 {
     Console.Error.WriteLine("Set OPENTOURNAMENT_API_URL to the HTTP(S) service root URL, e.g. http://localhost:8080.");
+    return 1;
+}
+
+var boutSeconds = 5.0;
+var configuredBout = Environment.GetEnvironmentVariable("BOUT_DURATION_SECONDS");
+if (!string.IsNullOrEmpty(configuredBout)
+    && (!double.TryParse(configuredBout, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out boutSeconds)
+        || boutSeconds < 0 || boutSeconds > 3600))
+{
+    Console.Error.WriteLine("Set BOUT_DURATION_SECONDS to a number of seconds between 0 and 3600.");
     return 1;
 }
 
@@ -68,23 +79,33 @@ try
         Console.WriteLine($"Match {match.MatchId}: Format={format}, Best-of={match.BestOf?.ToString() ?? "n/a"}, Bouts={match.Bouts?.ToString() ?? "n/a"}.");
         foreach (var participant in match.Participants ?? [])
             Console.WriteLine($"Participant {participant.ParticipantId}: Player Identity={JsonSerializer.Serialize(participant.IdentityKind)}:{JsonSerializer.Serialize(participant.IdentityValue)}, forfeited={participant.Forfeited.ToString().ToLowerInvariant()}.");
-        Console.WriteLine("Roster fetched. This skeleton does not play or report Bouts; waiting for shutdown.");
+        operation = "play the Match";
+        await new MatchSimulation(new Reports(client), Random.Shared, TimeSpan.FromSeconds(boutSeconds))
+            .PlayAsync(match, Console.WriteLine, stopping.Token);
+        operation = "shut down the GameServer";
+        CheckStatus(await agones.ShutDownAsync().WaitAsync(stopping.Token), "shut down the GameServer");
+        Console.WriteLine("Match decided; shut down through Agones.");
+        return 0;
+    }
+    catch (InvalidOperationException error) when (error.Message.StartsWith("The simulation", StringComparison.Ordinal))
+    {
+        Console.Error.WriteLine(error.Message + " Waiting for shutdown.");
     }
     catch (ApiException error) when (error.StatusCode == HttpStatusCode.Unauthorized)
     {
-        Console.Error.WriteLine("Match fetch rejected (401): the allocation's Match token is invalid, expired, or superseded. Waiting for shutdown.");
+        Console.Error.WriteLine("Match request rejected (401): the allocation's Match token is invalid, expired, or superseded. Waiting for shutdown.");
     }
     catch (ApiException error)
     {
-        Console.Error.WriteLine($"Match fetch failed (HTTP {(int)error.StatusCode}). Waiting for shutdown.");
+        Console.Error.WriteLine($"Match request failed (HTTP {(int)error.StatusCode}). Waiting for shutdown.");
     }
     catch (HttpRequestException)
     {
-        Console.Error.WriteLine("Match fetch failed: Open Tournament API is unreachable. Check OPENTOURNAMENT_API_URL and networking. Waiting for shutdown.");
+        Console.Error.WriteLine("Match request failed: Open Tournament API is unreachable. Check OPENTOURNAMENT_API_URL and networking. Waiting for shutdown.");
     }
     catch (OperationCanceledException) when (!stopping.IsCancellationRequested)
     {
-        Console.Error.WriteLine("Match fetch timed out after 10 seconds. Check API availability. Waiting for shutdown.");
+        Console.Error.WriteLine("Match request timed out after 10 seconds. Check API availability. Waiting for shutdown.");
     }
     // Keep the allocated server healthy and its diagnostic logs available, including on API failure.
     await Task.Delay(Timeout.InfiniteTimeSpan, stopping.Token);
@@ -130,4 +151,11 @@ static void CheckStatus(Status status, string operation)
         Console.Error.WriteLine($"Unable to {operation}: gRPC {status.StatusCode}.");
         throw new InvalidOperationException("Agones operation failed.");
     }
+}
+
+sealed class Reports(GameServerClient client) : IMatchReports
+{
+    public Task ReportStartedAsync(CancellationToken cancellationToken) => client.ReportStartedAsync(cancellationToken);
+    public Task ReportWinnerAsync(int bout, ParticipantId winner, CancellationToken cancellationToken)
+        => client.ReportWinnerAsync(bout, winner, cancellationToken);
 }
