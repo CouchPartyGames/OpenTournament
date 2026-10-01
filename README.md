@@ -270,7 +270,15 @@ string; each test gets its own database).
 make test          # everything; with Podman: systemctl --user start podman.socket first
 make test-engine   # just the Format engine, no database needed
 make generate      # regenerate internal/db from the SQL in internal/db/queries (needs sqlc)
+make openapi       # regenerate api/openapi.json; no PostgreSQL, Keycloak or Agones needed
+make openapi-check # fail if the committed OpenAPI document differs from the code
 ```
+
+Commit [`api/openapi.json`](api/openapi.json) alongside API changes; CI checks it
+for drift. The export uses the same route and schema registration as
+`/api/v1/openapi.json`, formatted for readable diffs. Its `info.version` is fixed
+to `dev`; a deployed service uses its build version. To export matching release
+metadata, run `go run ./cmd/openapi -version <build-version>`.
 
 Tests sit at two seams. The HTTP API tests host the real app in-process with a
 fake clock, a fake Game Server port, a seeded random source and a test JWT issuer

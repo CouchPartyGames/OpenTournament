@@ -1,0 +1,2523 @@
+{
+  "components": {
+    "schemas": {
+      "BoutInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/BoutInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "placements": {
+            "description": "Free-for-all: every Participant still playing",
+            "items": {
+              "$ref": "#/components/schemas/BoutPlacement"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "winner": {
+            "description": "Head-to-head: the Participant who won the Bout",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BoutPlacement": {
+        "additionalProperties": false,
+        "properties": {
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "placement": {
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "points": {
+            "description": "Computed by the Game Server; the platform only sums them",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "participantId",
+          "placement",
+          "points"
+        ],
+        "type": "object"
+      },
+      "BoutResultView": {
+        "additionalProperties": false,
+        "properties": {
+          "forfeited": {
+            "type": "boolean"
+          },
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "placement": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "points": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "won": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "participantId"
+        ],
+        "type": "object"
+      },
+      "BoutView": {
+        "additionalProperties": false,
+        "properties": {
+          "bout": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BoutResultView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "bout",
+          "results"
+        ],
+        "type": "object"
+      },
+      "CheckInSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "description": "Participants must check in or are dropped at the start",
+            "type": "boolean"
+          },
+          "windowSeconds": {
+            "description": "Length of the Check-in Window, ending at the start",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "ConfiguredStageView": {
+        "additionalProperties": false,
+        "properties": {
+          "advancement": {
+            "description": "Participants per Group who advance to the next Stage; 0 on the last Stage",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "bestOf": {
+            "description": "Head-to-head Formats: Bouts per Match",
+            "enum": [
+              1,
+              3
+            ],
+            "format": "int32",
+            "type": "integer"
+          },
+          "bouts": {
+            "description": "Free-for-all: Bouts per Match",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "format": {
+            "enum": [
+              "single-elimination",
+              "double-elimination",
+              "round-robin",
+              "swiss",
+              "free-for-all"
+            ],
+            "type": "string"
+          },
+          "groups": {
+            "default": 1,
+            "description": "Groups the Stage is split into",
+            "format": "int32",
+            "maximum": 1024,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "resultDeadlineSeconds": {
+            "description": "Time a Match has to complete, from when it is Ready",
+            "format": "int32",
+            "maximum": 604800,
+            "minimum": 60,
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "completed"
+            ],
+            "type": "string"
+          },
+          "swissRounds": {
+            "description": "Swiss: overrides the default ⌈log₂ N⌉ Rounds",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "status",
+          "format",
+          "resultDeadlineSeconds"
+        ],
+        "type": "object"
+      },
+      "Details": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/Details.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "code": {
+            "description": "A stable, specific error code",
+            "type": "string"
+          },
+          "detail": {
+            "description": "An explanation specific to this occurrence",
+            "type": "string"
+          },
+          "errors": {
+            "description": "Every invalid field, for validation failures",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "The HTTP status code",
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "description": "A short summary of the problem type",
+            "type": "string"
+          },
+          "type": {
+            "description": "A URI reference identifying the problem type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "status",
+          "code"
+        ],
+        "type": "object"
+      },
+      "FieldError": {
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "description": "Where the error occurred, e.g. body.stages[0].advancement",
+            "type": "string"
+          },
+          "message": {
+            "description": "What is wrong with it",
+            "type": "string"
+          },
+          "value": {
+            "description": "The offending value"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "GroupParticipantView": {
+        "additionalProperties": false,
+        "properties": {
+          "advanced": {
+            "type": "boolean"
+          },
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "seed": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "participantId",
+          "seed"
+        ],
+        "type": "object"
+      },
+      "GroupView": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/GroupParticipantView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "rounds": {
+            "items": {
+              "$ref": "#/components/schemas/RoundView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "standings": {
+            "items": {
+              "$ref": "#/components/schemas/StandingView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "completed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "status",
+          "participants",
+          "standings",
+          "rounds"
+        ],
+        "type": "object"
+      },
+      "Identity": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "description": "The Player Identity kind, e.g. keycloak or steam",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "description": "The identity's value, e.g. a Steam ID",
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "type": "object"
+      },
+      "ListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/ListOutputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "tournaments": {
+            "items": {
+              "$ref": "#/components/schemas/TournamentView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "tournaments"
+        ],
+        "type": "object"
+      },
+      "ListOutputBody1": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/ListOutputBody1.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/ParticipantView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "participants"
+        ],
+        "type": "object"
+      },
+      "MatchDetailView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/MatchDetailView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "aborts": {
+            "description": "How often its Game Server failed mid-play",
+            "format": "int32",
+            "type": "integer"
+          },
+          "bouts": {
+            "items": {
+              "$ref": "#/components/schemas/BoutView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "bracket": {
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "groupId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "key": {
+            "description": "Stable position of the Match in its Group, e.g. R2-M1",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "readyAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "win",
+              "double-forfeit",
+              "bye",
+              "empty",
+              "free-for-all"
+            ],
+            "type": "string"
+          },
+          "resultDeadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "round": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "serverAddress": {
+            "description": "Only for the Match's Participants and the Organizer",
+            "type": "string"
+          },
+          "serverAllocated": {
+            "type": "boolean"
+          },
+          "serverPort": {
+            "description": "Only for the Match's Participants and the Organizer",
+            "format": "int32",
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "ready",
+              "allocating",
+              "in-progress",
+              "stalled",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "tournamentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "winnerId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tournamentId",
+          "groupId",
+          "key",
+          "round",
+          "status",
+          "participants",
+          "bouts",
+          "aborts",
+          "serverAllocated"
+        ],
+        "type": "object"
+      },
+      "MatchView": {
+        "additionalProperties": false,
+        "properties": {
+          "aborts": {
+            "description": "How often its Game Server failed mid-play",
+            "format": "int32",
+            "type": "integer"
+          },
+          "bouts": {
+            "items": {
+              "$ref": "#/components/schemas/BoutView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "bracket": {
+            "type": "string"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "groupId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "key": {
+            "description": "Stable position of the Match in its Group, e.g. R2-M1",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "readyAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "result": {
+            "enum": [
+              "win",
+              "double-forfeit",
+              "bye",
+              "empty",
+              "free-for-all"
+            ],
+            "type": "string"
+          },
+          "resultDeadline": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "round": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "serverAllocated": {
+            "type": "boolean"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "ready",
+              "allocating",
+              "in-progress",
+              "stalled",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "tournamentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "winnerId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "tournamentId",
+          "groupId",
+          "key",
+          "round",
+          "status",
+          "participants",
+          "bouts",
+          "aborts",
+          "serverAllocated"
+        ],
+        "type": "object"
+      },
+      "NewTournament": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/NewTournament.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "capacity": {
+            "description": "The most Participants accepted, first come, first served",
+            "format": "int32",
+            "maximum": 100000,
+            "minimum": 2,
+            "type": "integer"
+          },
+          "checkIn": {
+            "$ref": "#/components/schemas/CheckInSettings"
+          },
+          "gameId": {
+            "description": "The Game the Tournament is played in",
+            "minLength": 1,
+            "type": "string"
+          },
+          "minimumParticipants": {
+            "description": "Below this many at the start, the Tournament is cancelled",
+            "format": "int32",
+            "minimum": 2,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "registrationOpensAt": {
+            "description": "When the Registration Window opens; it closes at the start",
+            "format": "date-time",
+            "type": "string"
+          },
+          "stages": {
+            "description": "The Stages, played in order",
+            "items": {
+              "$ref": "#/components/schemas/StageSettings"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "startsAt": {
+            "description": "When the Tournament starts, automatically",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "gameId",
+          "name",
+          "startsAt",
+          "registrationOpensAt",
+          "capacity",
+          "minimumParticipants",
+          "stages"
+        ],
+        "type": "object"
+      },
+      "NoShowInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/NoShowInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "participantIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ],
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "participantIds"
+        ],
+        "type": "object"
+      },
+      "ParticipantView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/ParticipantView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "checkedInAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity"
+          },
+          "registeredAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "registered",
+              "checked-in",
+              "not-checked-in",
+              "active",
+              "withdrawn",
+              "disqualified",
+              "eliminated"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identity",
+          "status",
+          "registeredAt"
+        ],
+        "type": "object"
+      },
+      "PlacementView": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "description": "Best place of the shared range",
+            "format": "int32",
+            "type": "integer"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity"
+          },
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "to": {
+            "description": "Worst place of the shared range",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "participantId",
+          "identity",
+          "from",
+          "to"
+        ],
+        "type": "object"
+      },
+      "PlacementsView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/PlacementsView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "placements": {
+            "items": {
+              "$ref": "#/components/schemas/PlacementView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "registration-open",
+              "check-in",
+              "running",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "tournamentId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tournamentId",
+          "status",
+          "placements"
+        ],
+        "type": "object"
+      },
+      "RegisterInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/RegisterInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/Identity",
+            "description": "Defaults to the caller's own Keycloak identity"
+          }
+        },
+        "type": "object"
+      },
+      "ResolveInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/ResolveInputBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "doubleForfeit": {
+            "description": "Every Participant forfeits",
+            "type": "boolean"
+          },
+          "winner": {
+            "description": "The Participant awarded the win",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RoundView": {
+        "additionalProperties": false,
+        "properties": {
+          "bracket": {
+            "enum": [
+              "upper",
+              "lower",
+              "grand-final"
+            ],
+            "type": "string"
+          },
+          "matches": {
+            "items": {
+              "$ref": "#/components/schemas/MatchView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "round": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "round",
+          "matches"
+        ],
+        "type": "object"
+      },
+      "ServerMatchView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/ServerMatchView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "bestOf": {
+            "description": "Head-to-head only: 1 or 3",
+            "format": "int32",
+            "type": "integer"
+          },
+          "bouts": {
+            "description": "Free-for-all only: the number of Bouts",
+            "format": "int32",
+            "type": "integer"
+          },
+          "completedBouts": {
+            "items": {
+              "$ref": "#/components/schemas/BoutView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "format": {
+            "enum": [
+              "single-elimination",
+              "double-elimination",
+              "round-robin",
+              "swiss",
+              "free-for-all"
+            ],
+            "type": "string"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "matchId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/ServerParticipantView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "ready",
+              "allocating",
+              "in-progress",
+              "stalled",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "tournamentId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "matchId",
+          "tournamentId",
+          "gameId",
+          "status",
+          "format",
+          "participants",
+          "completedBouts"
+        ],
+        "type": "object"
+      },
+      "ServerParticipantView": {
+        "additionalProperties": false,
+        "properties": {
+          "forfeited": {
+            "description": "Withdrew or was disqualified: kick them and don't wait for them",
+            "type": "boolean"
+          },
+          "identityKind": {
+            "type": "string"
+          },
+          "identityValue": {
+            "type": "string"
+          },
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "participantId",
+          "identityKind",
+          "identityValue",
+          "forfeited"
+        ],
+        "type": "object"
+      },
+      "StageSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "advancement": {
+            "description": "Participants per Group who advance to the next Stage; 0 on the last Stage",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "bestOf": {
+            "description": "Head-to-head Formats: Bouts per Match",
+            "enum": [
+              1,
+              3
+            ],
+            "format": "int32",
+            "type": "integer"
+          },
+          "bouts": {
+            "description": "Free-for-all: Bouts per Match",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "format": {
+            "enum": [
+              "single-elimination",
+              "double-elimination",
+              "round-robin",
+              "swiss",
+              "free-for-all"
+            ],
+            "type": "string"
+          },
+          "groups": {
+            "default": 1,
+            "description": "Groups the Stage is split into",
+            "format": "int32",
+            "maximum": 1024,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "resultDeadlineSeconds": {
+            "description": "Time a Match has to complete, from when it is Ready",
+            "format": "int32",
+            "maximum": 604800,
+            "minimum": 60,
+            "type": "integer"
+          },
+          "swissRounds": {
+            "description": "Swiss: overrides the default ⌈log₂ N⌉ Rounds",
+            "format": "int32",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "format",
+          "resultDeadlineSeconds"
+        ],
+        "type": "object"
+      },
+      "StageView": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "single-elimination",
+              "double-elimination",
+              "round-robin",
+              "swiss",
+              "free-for-all"
+            ],
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "running",
+              "completed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "format",
+          "status",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "StandingView": {
+        "additionalProperties": false,
+        "properties": {
+          "bestPlacement": {
+            "description": "Free-for-all only",
+            "format": "int64",
+            "type": "integer"
+          },
+          "boutDifferential": {
+            "description": "Round robin only",
+            "format": "int64",
+            "type": "integer"
+          },
+          "buchholz": {
+            "description": "Swiss only",
+            "format": "int64",
+            "type": "integer"
+          },
+          "dropped": {
+            "description": "Withdrew or was disqualified",
+            "type": "boolean"
+          },
+          "eliminated": {
+            "description": "Elimination formats only",
+            "type": "boolean"
+          },
+          "losses": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "participantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "played": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "points": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "position": {
+            "description": "1-based position in the Group",
+            "format": "int64",
+            "type": "integer"
+          },
+          "wins": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "participantId",
+          "position",
+          "played",
+          "wins",
+          "losses",
+          "points"
+        ],
+        "type": "object"
+      },
+      "StructureView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/StructureView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "registration-open",
+              "check-in",
+              "running",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "tournamentId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tournamentId",
+          "status",
+          "stages"
+        ],
+        "type": "object"
+      },
+      "TournamentSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/TournamentSettings.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "capacity": {
+            "description": "The most Participants accepted, first come, first served",
+            "format": "int32",
+            "maximum": 100000,
+            "minimum": 2,
+            "type": "integer"
+          },
+          "checkIn": {
+            "$ref": "#/components/schemas/CheckInSettings"
+          },
+          "minimumParticipants": {
+            "description": "Below this many at the start, the Tournament is cancelled",
+            "format": "int32",
+            "minimum": 2,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "registrationOpensAt": {
+            "description": "When the Registration Window opens; it closes at the start",
+            "format": "date-time",
+            "type": "string"
+          },
+          "stages": {
+            "description": "The Stages, played in order",
+            "items": {
+              "$ref": "#/components/schemas/StageSettings"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "startsAt": {
+            "description": "When the Tournament starts, automatically",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "startsAt",
+          "registrationOpensAt",
+          "capacity",
+          "minimumParticipants",
+          "stages"
+        ],
+        "type": "object"
+      },
+      "TournamentView": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/TournamentView.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "capacity": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "checkIn": {
+            "$ref": "#/components/schemas/CheckInSettings"
+          },
+          "checkInOpensAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "checkedIn": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "completedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minimumParticipants": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organizer": {
+            "description": "The Organizer: user:\u003ckeycloak subject\u003e or client:\u003ckeycloak client id\u003e",
+            "type": "string"
+          },
+          "registered": {
+            "description": "Participants registered, checked in or playing",
+            "format": "int32",
+            "type": "integer"
+          },
+          "registrationOpensAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/ConfiguredStageView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "startsAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "registration-open",
+              "check-in",
+              "running",
+              "completed",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "gameId",
+          "name",
+          "organizer",
+          "status",
+          "startsAt",
+          "registrationOpensAt",
+          "capacity",
+          "minimumParticipants",
+          "checkIn",
+          "stages",
+          "registered",
+          "checkedIn",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "keycloak": {
+        "bearerFormat": "JWT",
+        "description": "A Keycloak-issued access token.",
+        "scheme": "bearer",
+        "type": "http"
+      },
+      "matchToken": {
+        "bearerFormat": "JWT",
+        "description": "The per-Match token a Game Server receives when it is allocated.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Real-time tournaments for online games, played on Agones Game Servers.",
+    "title": "Open Tournament API",
+    "version": "dev"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/game-server/match": {
+      "get": {
+        "description": "Participants and their Player Identities, the Best-of or Bout count, Bouts already completed (to resume after an Abort) and which Participants have forfeited.",
+        "operationId": "game-server-get-match",
+        "parameters": [
+          {
+            "description": "Bearer \u003cmatch token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cmatch token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerMatchView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "matchToken": []
+          }
+        ],
+        "summary": "Get my Match",
+        "tags": [
+          "Game Servers"
+        ]
+      }
+    },
+    "/api/v1/game-server/match/bouts/{bout}": {
+      "put": {
+        "description": "Head-to-head: the winner. Free-for-all: a strict placement and points for every Participant still playing. Repeating an identical report is harmless; a different one conflicts. A Bout already forfeited can't be reported.",
+        "operationId": "game-server-report-bout",
+        "parameters": [
+          {
+            "description": "Bearer \u003cmatch token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cmatch token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "bout",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoutInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "matchToken": []
+          }
+        ],
+        "summary": "Report a Bout result",
+        "tags": [
+          "Game Servers"
+        ]
+      }
+    },
+    "/api/v1/game-server/match/bouts/{bout}/no-shows": {
+      "post": {
+        "description": "Each No-show forfeits the Bout. Both head-to-head Participants missing is a double Forfeit.",
+        "operationId": "game-server-report-no-shows",
+        "parameters": [
+          {
+            "description": "Bearer \u003cmatch token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cmatch token\u003e",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "bout",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoShowInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "matchToken": []
+          }
+        ],
+        "summary": "Report No-shows for a Bout",
+        "tags": [
+          "Game Servers"
+        ]
+      }
+    },
+    "/api/v1/game-server/match/started": {
+      "post": {
+        "operationId": "game-server-report-started",
+        "parameters": [
+          {
+            "description": "Bearer \u003cmatch token\u003e",
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "description": "Bearer \u003cmatch token\u003e",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "matchToken": []
+          }
+        ],
+        "summary": "Report the Match started",
+        "tags": [
+          "Game Servers"
+        ]
+      }
+    },
+    "/api/v1/matches/{matchId}": {
+      "get": {
+        "description": "The Game Server address and port are included only for the Match's Participants and the Organizer.",
+        "operationId": "get-match",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "matchId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchDetailView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a Match",
+        "tags": [
+          "Matches"
+        ]
+      }
+    },
+    "/api/v1/matches/{matchId}/resolve": {
+      "post": {
+        "description": "The Organizer awards a win, or a double Forfeit. This is the only manual way to set a result.",
+        "operationId": "resolve-stalled-match",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "matchId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MatchDetailView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Resolve a Stalled Match",
+        "tags": [
+          "Matches"
+        ]
+      }
+    },
+    "/api/v1/tournaments": {
+      "get": {
+        "operationId": "list-tournaments",
+        "parameters": [
+          {
+            "description": "Only Tournaments in this status",
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "description": "Only Tournaments in this status",
+              "enum": [
+                "draft",
+                "registration-open",
+                "check-in",
+                "running",
+                "completed",
+                "cancelled"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only Tournaments of this Game",
+            "explode": false,
+            "in": "query",
+            "name": "gameId",
+            "schema": {
+              "description": "Only Tournaments of this Game",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "format": "int32",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Tournaments",
+        "tags": [
+          "Tournaments"
+        ]
+      },
+      "post": {
+        "description": "Any authenticated user can create a Tournament and becomes its Organizer. A Game backend can create Tournaments for the Games that trust its client.",
+        "operationId": "create-tournament",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTournament"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentView"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Create a Tournament",
+        "tags": [
+          "Tournaments"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}": {
+      "get": {
+        "operationId": "get-tournament",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a Tournament",
+        "tags": [
+          "Tournaments"
+        ]
+      },
+      "put": {
+        "description": "TournamentSettings can only change while the Tournament is a Draft; they freeze once registration opens. A Tournament declared by a Tournament Manifest is edited in git instead, and refused here with declared-in-git.",
+        "operationId": "edit-tournament",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TournamentSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Edit a draft Tournament",
+        "tags": [
+          "Tournaments"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/cancel": {
+      "post": {
+        "description": "The Organizer can cancel at any point before completion. Pending Matches stop and their Game Servers are released.",
+        "operationId": "cancel-tournament",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Cancel a Tournament",
+        "tags": [
+          "Tournaments"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/participants": {
+      "get": {
+        "operationId": "list-participants",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutputBody1"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "List Participants",
+        "tags": [
+          "Registrations"
+        ]
+      },
+      "post": {
+        "description": "A person registers their own Keycloak identity (the default), or a linked identity exposed as a claim. A trusted Game backend can register any Player Identity of a kind the Game accepts. First come, first served up to the Capacity, only during the Registration Window. Registering during the Check-in Window checks in too.",
+        "operationId": "register",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantView"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Register a Participant",
+        "tags": [
+          "Registrations"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/participants/me": {
+      "get": {
+        "description": "The caller's Participants in the Tournament, one per Player Identity they own: whether they are registered and checked in.",
+        "operationId": "my-registrations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "See my registration",
+        "tags": [
+          "Registrations"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/participants/{participantId}": {
+      "delete": {
+        "operationId": "unregister",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "participantId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Unregister before the start",
+        "tags": [
+          "Registrations"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/participants/{participantId}/check-in": {
+      "post": {
+        "operationId": "check-in",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "participantId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Check in during the Check-in Window",
+        "tags": [
+          "Registrations"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/participants/{participantId}/disqualify": {
+      "post": {
+        "description": "The Organizer removes a Participant, who forfeits every Bout they haven't completed.",
+        "operationId": "disqualify",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "participantId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Disqualify a Participant",
+        "tags": [
+          "Participants"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/participants/{participantId}/withdraw": {
+      "post": {
+        "description": "The Participant forfeits every Bout they haven't completed, including in a Match already In Progress.",
+        "operationId": "withdraw",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "participantId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "keycloak": []
+          }
+        ],
+        "summary": "Withdraw from a running Tournament",
+        "tags": [
+          "Participants"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/placements": {
+      "get": {
+        "description": "Empty until the Tournament completes. Participants knocked out in the same elimination Round share a range.",
+        "operationId": "get-placements",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementsView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get Final Placements",
+        "tags": [
+          "Structure"
+        ]
+      }
+    },
+    "/api/v1/tournaments/{tournamentId}/structure": {
+      "get": {
+        "description": "Everything a frontend needs to draw brackets and tables. Game Server addresses are never included; a Match's Participants get theirs from the Match itself.",
+        "operationId": "get-structure",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournamentId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructureView"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Details"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get a Tournament's Stages, Groups, Rounds, Matches, Bouts and Standings",
+        "tags": [
+          "Structure"
+        ]
+      }
+    }
+  }
+}
