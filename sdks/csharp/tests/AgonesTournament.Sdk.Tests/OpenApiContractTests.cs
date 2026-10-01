@@ -253,6 +253,24 @@ public class OpenApiContractTests
         var seen = new HashSet<string>();
         var fixtures = new Dictionary<string, string>
         {
+            ["get-structure"] = """
+                {"tournamentId":"22222222-2222-2222-2222-222222222222","status":"running","stages":null}
+                """,
+            ["get-placements"] = """
+                {"tournamentId":"22222222-2222-2222-2222-222222222222","status":"completed",
+                 "placements":[{"participantId":"33333333-3333-3333-3333-333333333333","identity":{"kind":"steam","value":"external-id"},"from":5,"to":8}]}
+                """,
+            ["get-match"] = """
+                {"id":"11111111-1111-1111-1111-111111111111","tournamentId":"22222222-2222-2222-2222-222222222222",
+                 "groupId":"44444444-4444-4444-4444-444444444444","key":"R1-M1","round":1,"status":"allocating",
+                 "participants":["33333333-3333-3333-3333-333333333333"],"bouts":null,"aborts":0,"serverAllocated":true,
+                 "serverAddress":"192.0.2.1","serverPort":7777}
+                """,
+            ["resolve-stalled-match"] = """
+                {"id":"11111111-1111-1111-1111-111111111111","tournamentId":"22222222-2222-2222-2222-222222222222",
+                 "groupId":"44444444-4444-4444-4444-444444444444","key":"R1-M1","round":1,"status":"completed",
+                 "participants":["33333333-3333-3333-3333-333333333333"],"bouts":null,"aborts":0,"serverAllocated":false,"result":"win"}
+                """,
             ["create-tournament"] = OrganizerClientTests.TournamentJson,
             ["edit-tournament"] = OrganizerClientTests.TournamentJson,
             ["get-tournament"] = OrganizerClientTests.TournamentJson,
@@ -266,7 +284,8 @@ public class OpenApiContractTests
         {
             var path = request.RequestUri!.AbsolutePath
                 .Replace("22222222-2222-2222-2222-222222222222", "{tournamentId}")
-                .Replace("33333333-3333-3333-3333-333333333333", "{participantId}");
+                .Replace("33333333-3333-3333-3333-333333333333", "{participantId}")
+                .Replace("11111111-1111-1111-1111-111111111111", "{matchId}");
             var operation = root.GetProperty("paths").GetProperty(path).GetProperty(request.Method.Method.ToLowerInvariant());
             var name = operation.GetProperty("operationId").GetString()!;
             seen.Add(name);
@@ -306,6 +325,7 @@ public class OpenApiContractTests
             _ => Task.FromResult("backend-token"));
         var tournamentId = new TournamentId(Guid.Parse("22222222-2222-2222-2222-222222222222"));
         var participantId = new ParticipantId(Guid.Parse("33333333-3333-3333-3333-333333333333"));
+        var matchId = new MatchId(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var settings = OrganizerClientTests.NewTournament() with
         {
             CheckIn = new CheckInSettings { Enabled = true, WindowSeconds = 300 },
@@ -323,9 +343,18 @@ public class OpenApiContractTests
         await client.RegisterAsync(tournamentId, new PlayerIdentity { Kind = "steam", Value = "external-id" });
         Assert.Equal(ParticipantStatus.CheckedIn, (await client.CheckInAsync(tournamentId, participantId)).Status);
         await client.DisqualifyAsync(tournamentId, participantId);
+        Assert.Equal(TournamentStatus.Running, (await client.StructureAsync(tournamentId)).Status);
+        var placements = Assert.Single((await client.FinalPlacementsAsync(tournamentId)).Placements!);
+        Assert.Equal(5, placements.From);
+        Assert.Equal(8, placements.To);
+        var match = await client.MatchAsync(matchId);
+        Assert.Equal("192.0.2.1", match.ServerAddress);
+        Assert.Equal(7777, match.ServerPort);
+        Assert.Equal(MatchStatus.Completed, (await client.ResolveWinnerAsync(matchId, participantId)).Status);
+        Assert.Equal(MatchStatus.Completed, (await client.ResolveDoubleForfeitAsync(matchId)).Status);
         Assert.Equal(TournamentStatus.Cancelled, (await client.CancelTournamentAsync(tournamentId)).Status);
         Assert.Equal(new[] { "create-tournament", "edit-tournament", "get-tournament", "list-tournaments", "cancel-tournament",
-            "list-participants", "register", "check-in", "disqualify" }.Order(), seen.Order());
+            "list-participants", "register", "check-in", "disqualify", "get-structure", "get-placements", "get-match", "resolve-stalled-match" }.Order(), seen.Order());
     }
 
     private static void AssertPropertyType(Type type, JsonElement schema)

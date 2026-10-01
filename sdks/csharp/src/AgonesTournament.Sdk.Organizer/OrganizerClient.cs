@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using AgonesTournament.Sdk.Core;
 
@@ -74,6 +75,46 @@ public sealed class OrganizerClient(TournamentHttpClient http, Func<Cancellation
     public async Task DisqualifyAsync(TournamentId tournamentId, ParticipantId participantId, CancellationToken cancellationToken = default)
         => await http.SendAsync(HttpMethod.Post, ParticipantPath(tournamentId, participantId) + "/disqualify",
             await TokenAsync(cancellationToken).ConfigureAwait(false), cancellationToken: cancellationToken).ConfigureAwait(false);
+
+    /// <summary>Reads Stages, Groups, Rounds, Matches, Bouts and Standings for resync. Use MatchAsync for endpoint fields.</summary>
+    public async Task<TournamentStructure> StructureAsync(TournamentId tournamentId, CancellationToken cancellationToken = default)
+        => await http.ReadAsync<TournamentStructure>(TournamentPath(tournamentId) + "/structure",
+            await TokenAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>Reads a Match with its authorized Game Server endpoint, including after a live resync.</summary>
+    public async Task<MatchDetails> MatchAsync(MatchId matchId, CancellationToken cancellationToken = default)
+        => await http.ReadAsync<MatchDetails>(MatchPath(matchId),
+            await TokenAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>Reads Final Placements, including shared ranges; use after resync if the Tournament already completed.</summary>
+    public async Task<FinalPlacements> FinalPlacementsAsync(TournamentId tournamentId, CancellationToken cancellationToken = default)
+        => await http.ReadAsync<FinalPlacements>(TournamentPath(tournamentId) + "/placements",
+            await TokenAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>Streams all Tournament events, including every Match's authorized endpoint, Bouts, Standings and Final Placements.
+    /// On each LiveResync, fetch current state over REST before consuming subsequent events. Cancel or dispose the reader to close its connection.</summary>
+    public async IAsyncEnumerable<LiveNotification> WatchTournamentAsync(TournamentId tournamentId,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(accessTokenProvider);
+        await using var live = http.CreateLiveConnection(TokenAsync);
+        live.Subscribe(tournamentId);
+        await foreach (var notification in live.NotificationsAsync(cancellationToken).ConfigureAwait(false))
+            yield return notification;
+    }
+
+    /// <summary>Resolves a Stalled Match by awarding a win to one Participant. Throws MatchNotStalledException or NotOrganizerException when forbidden.</summary>
+    public async Task<MatchDetails> ResolveWinnerAsync(MatchId matchId, ParticipantId winner,
+        CancellationToken cancellationToken = default)
+        => await http.SendReadAsync<MatchDetails>(HttpMethod.Post, MatchPath(matchId) + "/resolve",
+            await TokenAsync(cancellationToken).ConfigureAwait(false), new { winner }, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>Resolves a Stalled Match with a double Forfeit. Throws MatchNotStalledException or NotOrganizerException when forbidden.</summary>
+    public async Task<MatchDetails> ResolveDoubleForfeitAsync(MatchId matchId, CancellationToken cancellationToken = default)
+        => await http.SendReadAsync<MatchDetails>(HttpMethod.Post, MatchPath(matchId) + "/resolve",
+            await TokenAsync(cancellationToken).ConfigureAwait(false), new { doubleForfeit = true }, cancellationToken).ConfigureAwait(false);
+
+    private static string MatchPath(MatchId id) => "api/v1/matches/" + id;
 
     private static string ParticipantPath(TournamentId tournamentId, ParticipantId participantId)
         => TournamentPath(tournamentId) + "/participants/" + participantId;

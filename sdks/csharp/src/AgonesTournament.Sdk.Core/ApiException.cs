@@ -46,6 +46,8 @@ public class ApiException(HttpStatusCode statusCode, ProblemDetails problem)
 
     internal static ApiException From(HttpStatusCode status, ProblemDetails problem) => problem.Code switch
     {
+        "match-not-stalled" => new MatchNotStalledException(status, problem),
+        "not-organizer" => new NotOrganizerException(status, problem),
         "settings-frozen" => new SettingsFrozenException(status, problem),
         "declared-in-git" => new DeclaredInGitException(status, problem),
         "not-trusted-for-game" => new NotTrustedForGameException(status, problem),
@@ -101,3 +103,9 @@ public sealed class DeclaredInGitException(HttpStatusCode statusCode, ProblemDet
 
 /// <summary>The Game does not trust this backend to create Tournaments or act for Player Identities.</summary>
 public sealed class NotTrustedForGameException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>Only a Stalled Match can be manually resolved.</summary>
+public sealed class MatchNotStalledException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The caller is not the Tournament's Organizer.</summary>
+public sealed class NotOrganizerException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
