@@ -87,7 +87,7 @@ try
         Console.WriteLine("Match decided; shut down through Agones.");
         return 0;
     }
-    catch (InvalidOperationException error) when (error.Message.StartsWith("The simulation", StringComparison.Ordinal))
+    catch (UnsupportedMatchException error)
     {
         Console.Error.WriteLine(error.Message + " Waiting for shutdown.");
     }

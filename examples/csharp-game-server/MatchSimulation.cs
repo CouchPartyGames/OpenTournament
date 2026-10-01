@@ -10,6 +10,9 @@ public interface IMatchReports
     Task ReportWinnerAsync(int bout, ParticipantId winner, CancellationToken cancellationToken);
 }
 
+/// <summary>The Match is not one the simulation can play.</summary>
+public sealed class UnsupportedMatchException(string message) : Exception(message);
+
 /// <summary>Plays a head-to-head Match by picking each Bout's winner at random.</summary>
 public sealed class MatchSimulation(
     IMatchReports reports,
@@ -18,13 +21,14 @@ public sealed class MatchSimulation(
     Func<TimeSpan, CancellationToken, Task>? delay = null,
     int maxAttempts = 5)
 {
+    private const int MaxBackoffSeconds = 5;
     private readonly Func<TimeSpan, CancellationToken, Task> _delay = delay ?? Task.Delay;
 
     /// <summary>Reports Match started, then Bouts in order until a Participant has the majority. Resumes after completed Bouts.</summary>
     public async Task PlayAsync(Match match, Action<string> log, CancellationToken cancellationToken)
     {
         if (match.BestOf is not (1 or 3) || match.Participants is not { Count: 2 } participants)
-            throw new InvalidOperationException("The simulation plays only head-to-head Matches with two Participants and a best-of of 1 or 3.");
+            throw new UnsupportedMatchException("The simulation plays only head-to-head Matches with two Participants and a best-of of 1 or 3.");
 
         var wins = participants.ToDictionary(p => p.ParticipantId, _ => 0);
         var bout = 0;
@@ -62,7 +66,7 @@ public sealed class MatchSimulation(
             catch (Exception error) when (attempt < maxAttempts && IsTransient(error, cancellationToken))
             {
                 // Identical reports are a no-op in the API, so repeating one is safe.
-                await _delay(TimeSpan.FromSeconds(Math.Min(attempt, 5)), cancellationToken);
+                await _delay(TimeSpan.FromSeconds(Math.Min(attempt, MaxBackoffSeconds)), cancellationToken);
             }
         }
     }
