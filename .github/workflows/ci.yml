@@ -28,6 +28,26 @@ jobs:
       # using the runner's Docker daemon.
       - run: make vet test
 
+  csharp-sdk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdks/csharp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore AgonesTournament.Sdk.slnx
+      - run: dotnet build AgonesTournament.Sdk.slnx -c Release --no-restore
+      - run: dotnet test AgonesTournament.Sdk.slnx -c Release --no-build
+      - run: dotnet pack AgonesTournament.Sdk.slnx -c Release --no-build -o artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: csharp-sdk-packages
+          path: sdks/csharp/artifacts/*.nupkg
+          if-no-files-found: error
+
   chart:
     runs-on: ubuntu-latest
     steps:
