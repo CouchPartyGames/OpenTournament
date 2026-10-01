@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AgonesTournament.Sdk.Core;
 
 /// <summary>One Tournament with settings, configured Stages and registration counts.</summary>
@@ -52,6 +54,7 @@ public sealed record CheckInSettings
     /// <summary>Participants must check in or are dropped at the start.</summary>
     public required bool Enabled { get; init; }
     /// <summary>Length of the Check-in Window, ending at the start.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? WindowSeconds { get; init; }
 }
 

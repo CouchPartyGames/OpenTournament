@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using AgonesTournament.Sdk.Core;
 using AgonesTournament.Sdk.GameServer;
+using AgonesTournament.Sdk.Organizer;
 
 namespace AgonesTournament.Sdk.Tests;
 
@@ -16,6 +17,9 @@ public class OpenApiContractTests
 
     private static readonly Dictionary<Type, string> Schemas = new()
     {
+        [typeof(NewTournament)] = "NewTournament",
+        [typeof(TournamentSettings)] = "TournamentSettings",
+        [typeof(StageSettings)] = "StageSettings",
         [typeof(Match)] = "ServerMatchView",
         [typeof(Tournament)] = "TournamentView",
         [typeof(TournamentPage)] = "ListOutputBody",
@@ -241,6 +245,89 @@ public class OpenApiContractTests
             "list-tournaments", "my-registrations", "register", "unregister" }.Order(), seen.Order());
     }
 
+    [Fact]
+    public async Task EveryOrganizerOperationMatchesContractPathsSecurityBodiesAndResponses()
+    {
+        using var contract = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "openapi.json")));
+        var root = contract.RootElement;
+        var seen = new HashSet<string>();
+        var fixtures = new Dictionary<string, string>
+        {
+            ["create-tournament"] = OrganizerClientTests.TournamentJson,
+            ["edit-tournament"] = OrganizerClientTests.TournamentJson,
+            ["get-tournament"] = OrganizerClientTests.TournamentJson,
+            ["cancel-tournament"] = OrganizerClientTests.TournamentJson.Replace("draft", "cancelled"),
+            ["list-tournaments"] = "{\"tournaments\":[" + OrganizerClientTests.TournamentJson + "]}",
+            ["list-participants"] = "{\"participants\":[" + OrganizerClientTests.ParticipantJson + "]}",
+            ["register"] = OrganizerClientTests.ParticipantJson,
+            ["check-in"] = OrganizerClientTests.ParticipantJson.Replace("registered\"", "checked-in\"")
+        };
+        using var fakeHttp = new HttpHandler(async (request, ct) =>
+        {
+            var path = request.RequestUri!.AbsolutePath
+                .Replace("22222222-2222-2222-2222-222222222222", "{tournamentId}")
+                .Replace("33333333-3333-3333-3333-333333333333", "{participantId}");
+            var operation = root.GetProperty("paths").GetProperty(path).GetProperty(request.Method.Method.ToLowerInvariant());
+            var name = operation.GetProperty("operationId").GetString()!;
+            seen.Add(name);
+            Assert.Equal("Bearer backend-token", request.Headers.Authorization!.ToString());
+            if (operation.TryGetProperty("security", out var security))
+                Assert.True(security[0].TryGetProperty("keycloak", out _));
+            Assert.Equal("#/components/schemas/Details", operation.GetProperty("responses").GetProperty("default")
+                .GetProperty("content").GetProperty("application/problem+json").GetProperty("schema").GetProperty("$ref").GetString());
+            if (operation.TryGetProperty("parameters", out var parameters))
+                foreach (var query in request.RequestUri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var parts = query.Split('=');
+                    var parameter = Assert.Single(parameters.EnumerateArray(), p => p.GetProperty("name").GetString() == parts[0]);
+                    var schema = parameter.GetProperty("schema");
+                    using var value = JsonDocument.Parse(schema.GetProperty("type").GetString() == "integer"
+                        ? parts[1] : JsonSerializer.Serialize(Uri.UnescapeDataString(parts[1])));
+                    ValidateJson(value.RootElement, schema, root);
+                }
+            if (operation.TryGetProperty("requestBody", out var requestBody))
+            {
+                Assert.Equal("application/json", request.Content!.Headers.ContentType!.MediaType);
+                using var body = JsonDocument.Parse(await request.Content.ReadAsStringAsync(ct));
+                ValidateJson(body.RootElement, requestBody.GetProperty("content").GetProperty("application/json").GetProperty("schema"), root);
+            }
+            else
+                Assert.Null(request.Content);
+            var response = Assert.Single(operation.GetProperty("responses").EnumerateObject(), p => p.Name.StartsWith('2'));
+            if (response.Name == "204")
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            var fixture = fixtures[name];
+            using var fixtureJson = JsonDocument.Parse(fixture);
+            ValidateJson(fixtureJson.RootElement, response.Value.GetProperty("content").GetProperty("application/json").GetProperty("schema"), root);
+            return HttpHandler.Json(fixture, (HttpStatusCode)int.Parse(response.Name));
+        });
+        using var http = new HttpClient(fakeHttp);
+        var client = new OrganizerClient(new TournamentHttpClient(http, new Uri("https://tournament.example")),
+            _ => Task.FromResult("backend-token"));
+        var tournamentId = new TournamentId(Guid.Parse("22222222-2222-2222-2222-222222222222"));
+        var participantId = new ParticipantId(Guid.Parse("33333333-3333-3333-3333-333333333333"));
+        var settings = OrganizerClientTests.NewTournament() with
+        {
+            CheckIn = new CheckInSettings { Enabled = true, WindowSeconds = 300 },
+            MinimumParticipants = 8,
+            Stages = [
+                new StageSettings { Format = MatchFormat.FreeForAll, Bouts = 2, Groups = 2, Advancement = 2, ResultDeadlineSeconds = 600 },
+                new StageSettings { Format = MatchFormat.Swiss, BestOf = 3, SwissRounds = 3, Advancement = 2, ResultDeadlineSeconds = 600 },
+                new StageSettings { Format = MatchFormat.SingleElimination, BestOf = 1, ResultDeadlineSeconds = 600 }]
+        };
+        Assert.Equal(tournamentId, (await client.CreateTournamentAsync(settings)).Id);
+        await client.EditTournamentAsync(tournamentId, settings);
+        Assert.Equal(tournamentId, (await client.TournamentAsync(tournamentId)).Id);
+        Assert.Single((await client.ListTournamentsAsync("marbles", TournamentStatus.Draft)).Tournaments!);
+        Assert.Equal(participantId, Assert.Single((await client.ListParticipantsAsync(tournamentId)).Participants!).Id);
+        await client.RegisterAsync(tournamentId, new PlayerIdentity { Kind = "steam", Value = "external-id" });
+        Assert.Equal(ParticipantStatus.CheckedIn, (await client.CheckInAsync(tournamentId, participantId)).Status);
+        await client.DisqualifyAsync(tournamentId, participantId);
+        Assert.Equal(TournamentStatus.Cancelled, (await client.CancelTournamentAsync(tournamentId)).Status);
+        Assert.Equal(new[] { "create-tournament", "edit-tournament", "get-tournament", "list-tournaments", "cancel-tournament",
+            "list-participants", "register", "check-in", "disqualify" }.Order(), seen.Order());
+    }
+
     private static void AssertPropertyType(Type type, JsonElement schema)
     {
         type = Nullable.GetUnderlyingType(type) ?? type;
@@ -308,18 +395,35 @@ public class OpenApiContractTests
         {
             if (schema.TryGetProperty("minItems", out var minimum))
                 Assert.True(value.GetArrayLength() >= minimum.GetInt32());
+            if (schema.TryGetProperty("maxItems", out var maximum))
+                Assert.True(value.GetArrayLength() <= maximum.GetInt32());
             if (schema.TryGetProperty("uniqueItems", out var unique) && unique.GetBoolean())
                 Assert.Equal(value.GetArrayLength(), value.EnumerateArray().Select(v => v.GetRawText()).Distinct().Count());
             foreach (var item in value.EnumerateArray())
                 ValidateJson(item, schema.GetProperty("items"), root);
         }
-        else if (type == "string" && schema.TryGetProperty("format", out var format) && format.GetString() == "uuid")
-            Assert.True(Guid.TryParse(value.GetString(), out _));
+        else if (type == "string")
+        {
+            var text = value.GetString()!;
+            if (schema.TryGetProperty("minLength", out var minimum))
+                Assert.True(text.Length >= minimum.GetInt32());
+            if (schema.TryGetProperty("maxLength", out var maximum))
+                Assert.True(text.Length <= maximum.GetInt32());
+            if (schema.TryGetProperty("format", out var format))
+            {
+                if (format.GetString() == "uuid")
+                    Assert.True(Guid.TryParse(text, out _));
+                if (format.GetString() == "date-time")
+                    Assert.True(DateTimeOffset.TryParse(text, out _));
+            }
+        }
         else if (type == "integer")
         {
             Assert.True(value.TryGetInt32(out var number));
             if (schema.TryGetProperty("minimum", out var minimum))
                 Assert.True(number >= minimum.GetInt32());
+            if (schema.TryGetProperty("maximum", out var maximum))
+                Assert.True(number <= maximum.GetInt32());
         }
     }
 }

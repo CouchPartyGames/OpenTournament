@@ -1,7 +1,7 @@
 # Agones Tournament C# SDK
 
 Hand-written clients for **.NET 10 LTS only**, with nullable reference types enabled.
-The solution contains three NuGet packages:
+The solution contains four NuGet packages:
 
 - `AgonesTournament.Sdk.Core`: caller-configured HTTP transport, UUID-backed Match,
   Tournament and Participant IDs, shared models, typed problem errors, and a live WebSocket connection.
@@ -10,7 +10,8 @@ The solution contains three NuGet packages:
 - `AgonesTournament.Sdk.GameServer`: the full `/api/v1/game-server/*` API and
   allocation metadata through the official [Agones C# SDK](https://agones.dev/site/docs/guides/client-sdks/csharp/).
 
-Organizer clients are planned for later tickets.
+- `AgonesTournament.Sdk.Organizer`: Tournament creation and management for Organizers
+  and trusted Game backends using caller-supplied access tokens.
 Packages are built as CI artifacts; they are not published to a NuGet feed yet.
 
 ## Build and install locally
@@ -82,6 +83,76 @@ Registration, unregistration, Check-in and `MyRegistrationsAsync` require a
 provider and fail with `InvalidOperationException` before HTTP if it is missing
 or returns an empty token. Registering during the Check-in Window also checks in.
 Registration and Check-in problem errors use the typed exceptions listed below.
+
+## Organizer and Game backend management
+
+Install `AgonesTournament.Sdk.Organizer` version `0.1.0`. Supply a provider for a
+current Keycloak access token on each call. A Game backend typically obtains a
+client-credentials token for a client listed in the Game's `trustedClients`.
+The application owns token acquisition, caching and refresh.
+
+```csharp
+using AgonesTournament.Sdk.Core;
+using AgonesTournament.Sdk.Organizer;
+
+using var http = new HttpClient();
+var transport = new TournamentHttpClient(http, new Uri("https://tournament.example"));
+// Supplied by your backend's Keycloak client-credentials integration.
+var organizer = new OrganizerClient(transport, GetCurrentAccessTokenAsync);
+var start = DateTimeOffset.UtcNow.AddHours(2);
+var tournament = await organizer.CreateTournamentAsync(new NewTournament
+{
+    GameId = "marbles",
+    Name = "Weekly Tournament",
+    Capacity = 16,
+    MinimumParticipants = 2,
+    RegistrationOpensAt = start.AddMinutes(-30),
+    StartsAt = start,
+    CheckIn = new CheckInSettings { Enabled = true, WindowSeconds = 300 },
+    Stages = [new StageSettings
+    {
+        Format = MatchFormat.SingleElimination,
+        BestOf = 3,
+        ResultDeadlineSeconds = 600
+    }]
+});
+// During the Registration Window, after verifying the player's identity:
+var participant = await organizer.RegisterAsync(tournament.Id,
+    new PlayerIdentity { Kind = "steam", Value = verifiedSteamId });
+// During the Check-in Window, after the player confirms they are present:
+await organizer.CheckInAsync(tournament.Id, participant.Id);
+```
+
+`EditTournamentAsync` replaces the Draft's complete settings using
+`TournamentSettings`; the Game cannot be changed. Settings freeze when the
+Registration Window opens. Declared Tournaments must be edited in git, but can
+still be cancelled with `CancelTournamentAsync`. `TournamentAsync`,
+`ListTournamentsAsync` (Game/status filters, limit 1–200, offset),
+`ListParticipantsAsync`, and `DisqualifyAsync` cover reads and management.
+Participant collections may be null; enumerate with `?? []`.
+
+Registering and checking in on another player's behalf requires a trusted Game
+backend token; being the Organizer alone does not grant identity ownership.
+`RegisterAsync` requires an explicit `PlayerIdentity`. Registration during the
+Check-in Window also checks in. Each client call uses a fresh provider token,
+rejects empty tokens before HTTP, and accepts a `CancellationToken`.
+
+Settings mirror the API and are validated by the service; failures include field
+locations in `ValidationException.Problem.Errors`. The constraints are:
+
+- Name: 1–200 characters; Capacity: 2–100000; Minimum Participants: at least 2
+  and no more than Capacity. Start must be in the future and registration must
+  open before the start. Enabled Check-in needs at least 60 seconds and must fit
+  inside the Registration Window. Omit `CheckIn` to disable it.
+- Stages: 1–10 in play order. Head-to-head Formats require `BestOf` of **1 or 3**
+  and omit `Bouts`. Free-for-all requires `Bouts` of 1–100 and omits `BestOf`.
+  Only Swiss may set nonzero `SwissRounds` (0–100; omitted/zero uses the default).
+- Groups: 1–1024, defaults to 1. Result Deadline: 60–604800 seconds.
+  Advancement is positive on every Stage followed by another Stage; on the last
+  Stage omit it or use 0. Each Group needs at least two Participants and more
+  Participants than its Advancement, including when only Minimum Participants
+  register. Later Stages receive exactly the preceding Groups × Advancement.
+  Free-for-all Groups must fit the Game's Maximum Match Size at Capacity.
 
 ## Waiting for the player's Game Server
 
@@ -232,6 +303,9 @@ field values). Specific problem codes have these subclasses:
 | `bout-conflict` | `BoutConflictException` |
 | `bout-already-forfeited` | `BoutAlreadyForfeitedException` |
 | `bout-out-of-order` | `BoutOutOfOrderException` |
+| `settings-frozen` | `SettingsFrozenException` |
+| `declared-in-git` | `DeclaredInGitException` |
+| `not-trusted-for-game` | `NotTrustedForGameException` |
 | `validation-failed`, `bad-request` | `ValidationException` |
 
 Unknown codes remain `ApiException` with their original code and detail.

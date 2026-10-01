@@ -46,6 +46,9 @@ public class ApiException(HttpStatusCode statusCode, ProblemDetails problem)
 
     internal static ApiException From(HttpStatusCode status, ProblemDetails problem) => problem.Code switch
     {
+        "settings-frozen" => new SettingsFrozenException(status, problem),
+        "declared-in-git" => new DeclaredInGitException(status, problem),
+        "not-trusted-for-game" => new NotTrustedForGameException(status, problem),
         "registration-closed" => new RegistrationClosedException(status, problem),
         "tournament-full" => new TournamentFullException(status, problem),
         "already-registered" => new AlreadyRegisteredException(status, problem),
@@ -89,3 +92,12 @@ public sealed class PlayerIdentityNotOwnedException(HttpStatusCode statusCode, P
 
 /// <summary>The Check-in Window is closed.</summary>
 public sealed class CheckInClosedException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>Tournament settings are frozen because registration has opened.</summary>
+public sealed class SettingsFrozenException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>A Declared Tournament's settings must be edited in git through its Manifest.</summary>
+public sealed class DeclaredInGitException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
+
+/// <summary>The Game does not trust this backend to create Tournaments or act for Player Identities.</summary>
+public sealed class NotTrustedForGameException(HttpStatusCode statusCode, ProblemDetails problem) : ApiException(statusCode, problem);
