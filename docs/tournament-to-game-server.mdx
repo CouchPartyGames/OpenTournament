@@ -5,7 +5,7 @@ description: How participants become match slots, receive a server endpoint, and
 
 # From tournament start to game server connection
 
-OpenTournament schedules tournaments and assigns a Game Server to each playable Match. It also controls who can **learn** the server's address and port. The game-specific server controls who can **join** the session: it receives the assigned Player Identities and must authenticate connecting players against them. The Organizer can see the endpoint for operational purposes, but being the Organizer does not make them a Match Participant.
+AgonesTournament schedules tournaments and assigns a Game Server to each playable Match. It also controls who can **learn** the server's address and port. The game-specific server controls who can **join** the session: it receives the assigned Player Identities and must authenticate connecting players against them. The Organizer can see the endpoint for operational purposes, but being the Organizer does not make them a Match Participant.
 
 The flow below follows a tournament's first playable Match. Other first-round Matches can go through the same steps in parallel. Later Matches become playable when their format rules determine their Participants.
 
@@ -14,7 +14,7 @@ sequenceDiagram
     autonumber
     actor Organizer
     actor Player
-    participant API as OpenTournament API
+    participant API as AgonesTournament API
     participant DB as PostgreSQL and scheduler
     participant Agones as Agones Fleet
     participant GS as Game Server
@@ -67,9 +67,9 @@ The plan creates Match records and assigns Participants to Match **slots**. The 
 
 ## 4. Allocate a server to each Ready Match
 
-For a Ready Match, OpenTournament creates a unique allocation ID and signs a Match token scoped to that Match and allocation. The token expires at the Match's result deadline plus a short grace period. It asks Agones to allocate a warm Game Server from the configured Game's Fleet. The allocation labels the server with the Match and allocation IDs and puts the token in the `opentournament/match-token` annotation for the Game Server to read through the Agones SDK.
+For a Ready Match, AgonesTournament creates a unique allocation ID and signs a Match token scoped to that Match and allocation. The token expires at the Match's result deadline plus a short grace period. It asks Agones to allocate a warm Game Server from the configured Game's Fleet. The allocation labels the server with the Match and allocation IDs and puts the token in the `opentournament/match-token` annotation for the Game Server to read through the Agones SDK.
 
-Agones returns the server's name, address, and port. OpenTournament confirms that the Match still owns this allocation, stores the endpoint, and emits a `match.changed` event. If there is no available server, the persisted allocation job retries with backoff. A later replacement after a server failure receives a new allocation ID and Match token. See [allocation](../internal/tournament/servers.go), [Agones adapter](../internal/gameserver/agones/agones.go), and [Match tokens](../internal/matchtoken/matchtoken.go).
+Agones returns the server's name, address, and port. AgonesTournament confirms that the Match still owns this allocation, stores the endpoint, and emits a `match.changed` event. If there is no available server, the persisted allocation job retries with backoff. A later replacement after a server failure receives a new allocation ID and Match token. See [allocation](../internal/tournament/servers.go), [Agones adapter](../internal/gameserver/agones/agones.go), and [Match tokens](../internal/matchtoken/matchtoken.go).
 
 ## 5. Give eligible clients the endpoint
 
@@ -79,13 +79,13 @@ The same boundary applies to live updates. A client can authenticate and subscri
 
 ## 6. Give the Game Server its Match roster
 
-The Game Server reads its Match token from the Agones annotation and calls `GET /api/v1/game-server/match` with `Authorization: Bearer <match token>`. OpenTournament verifies the token signature and expiry, the Match ID, and that the Match still belongs to that allocation. Keycloak user tokens do not grant access to these Game Server endpoints.
+The Game Server reads its Match token from the Agones annotation and calls `GET /api/v1/game-server/match` with `Authorization: Bearer <match token>`. AgonesTournament verifies the token signature and expiry, the Match ID, and that the Match still belongs to that allocation. Keycloak user tokens do not grant access to these Game Server endpoints.
 
 The response contains the Match ID, Game ID, status, format, Bout settings, and each assigned Participant's ID, `identityKind`, `identityValue`, and forfeited state. It also includes completed Bouts so a replacement server can resume a Match. This response gives the Game Server the roster it needs to set up its session. See [Game Server API](../internal/features/gameservers/gameservers.go) and [server Match view](../internal/tournament/reports.go).
 
 ## 7. Connect and admit players
 
-The game client connects to the returned address and port using the **game's own protocol**. OpenTournament does not proxy that connection or pass a player admission token to the Game Server. The Game Server implementation must authenticate the connecting player's Game or platform identity, compare its kind and value with the Match roster, and admit only assigned, eligible Participants. It should refuse other identities and handle forfeited Participants according to the game's session rules. The Organizer's right to see the endpoint is not a player admission right.
+The game client connects to the returned address and port using the **game's own protocol**. AgonesTournament does not proxy that connection or pass a player admission token to the Game Server. The Game Server implementation must authenticate the connecting player's Game or platform identity, compare its kind and value with the Match roster, and admit only assigned, eligible Participants. It should refuse other identities and handle forfeited Participants according to the game's session rules. The Organizer's right to see the endpoint is not a player admission right.
 
 **Security boundary:** hiding the address limits casual discovery, but it is not a network access control. Someone who obtains the address can attempt a connection. The actual player restriction depends on the Game Server implementing identity verification and roster checks. The repository provides the roster and Match token mechanism; it does not contain a generic game-protocol admission handler. The [specification](specs/0001-realtime-tournaments-v1.md) calls for only Match Participants to be admitted.
 
@@ -143,6 +143,8 @@ A Match that needs a Game Server goes through the stages below. Its Result Deadl
 
 ```mermaid
 flowchart TD
+    pending["Match Pending<br/>status: pending"]
+    allReady{"All players ready?<br/>previous Matches completed"}
     ready["Match Ready<br/>Result Deadline starts"]
     alloc["Game Server Allocated<br/>status: allocating"]
     direct["Direct Players to Game Server<br/>private endpoint in match.changed"]
@@ -154,6 +156,9 @@ flowchart TD
     release["Game Server Deallocated<br/>GameServer deleted, Fleet replaces it"]
     stalled["status: stalled<br/>Organizer resolves"]
 
+    pending --> allReady
+    allReady -- "no: wait" --> pending
+    allReady -- yes --> ready
     ready --> alloc --> direct --> joined --> started --> bout --> decided
     decided -- no --> bout
     decided -- yes --> completed --> release
@@ -164,19 +169,21 @@ flowchart TD
     stalled -. "server released" .-> release
 ```
 
-**Game Server Allocated.** The allocation job signs a Match token and asks Agones for a warm Game Server from the Game's Fleet. The Match becomes **Allocating**. Agones returns a name, address, and port, and OpenTournament stores them if the Match still owns that allocation. If no server is available, the job retries with backoff. See [section 4](#4-allocate-a-server-to-each-ready-match).
+**Game Server Allocated.** A Game Server is allocated only when all players are ready, which means every Participant of the Match is known and has completed their previous Matches. Until then the Match stays **Pending**, and no server is reserved for it. The format decides when players are ready. In an elimination bracket, a Match waits for both Matches that feed it to finish. In round-robin and Swiss Stages, a Match waits until every Match of the Group's previous Round has finished. First-round Matches are ready as soon as the Stage starts. When all players are ready, the Match becomes **Ready**, its Result Deadline starts, and an allocation job is scheduled. See [match progression](../internal/tournament/progress.go) and [formats](../internal/format/format.go).
+
+The allocation job then signs a Match token and asks Agones for a warm Game Server from the Game's Fleet. The Match becomes **Allocating**. Agones returns a name, address, and port, and AgonesTournament stores them if the Match still owns that allocation. If no server is available, the job retries with backoff. See [section 4](#4-allocate-a-server-to-each-ready-match).
 
 **Direct Players to Game Server.** The endpoint is sent only to the Match Participants and the Organizer, as a private part of `match.changed`, and returned by `GET /api/v1/matches/{matchId}`. Before players connect, the Game Server reads its token from the `opentournament/match-token` annotation and fetches the Match roster. See [section 5](#5-give-eligible-clients-the-endpoint) and [section 6](#6-give-the-game-server-its-match-roster).
 
-**Player Joined.** Players connect over the game's own protocol. The Game Server authenticates each identity and admits only Participants on the roster who have not forfeited. OpenTournament is not told about individual joins. A Participant who never arrives is reported as a No-show through `POST /api/v1/game-server/match/bouts/{bout}/no-shows`, which forfeits that Bout. See [section 7](#7-connect-and-admit-players).
+**Player Joined.** Players connect over the game's own protocol. The Game Server authenticates each identity and admits only Participants on the roster who have not forfeited. AgonesTournament is not told about individual joins. A Participant who never arrives is reported as a No-show through `POST /api/v1/game-server/match/bouts/{bout}/no-shows`, which forfeits that Bout. See [section 7](#7-connect-and-admit-players).
 
 **Match Started.** The Game Server calls `POST /api/v1/game-server/match/started`, and the Match becomes **In Progress**. Repeated calls have no further effect.
 
 **Bout Completed and Results Reported.** After each Bout, the Game Server calls `PUT /api/v1/game-server/match/bouts/{bout}`. A head-to-head report names the winner. A free-for-all report gives a placement and points for every Participant still playing. Bouts must be reported in order. Sending the same report again has no effect, and sending a different result for a recorded Bout is rejected as a conflict. Each recorded Bout emits `bout.recorded`. See [Bout reports](../internal/tournament/reports.go).
 
-**Match Completed and Results Reported.** The Game Server does not report that a Match has finished. After each Bout, OpenTournament checks the result against the Stage's format: a head-to-head Match ends when one side has won the majority of a Best-of, and a free-for-all Match ends after its last Bout. The Match then becomes **Completed** with a result and, for head-to-head, a winner. Standings are updated, and the format engine may make later Matches playable. See [match progression](../internal/tournament/progress.go).
+**Match Completed and Results Reported.** The Game Server does not report that a Match has finished. After each Bout, AgonesTournament checks the result against the Stage's format: a head-to-head Match ends when one side has won the majority of a Best-of, and a free-for-all Match ends after its last Bout. The Match then becomes **Completed** with a result and, for head-to-head, a winner. Standings are updated, and the format engine may make later Matches playable. See [match progression](../internal/tournament/progress.go).
 
-**Game Server Deallocated (or recycled).** After the Match completes, OpenTournament releases its Game Server by deleting the Agones GameServer. A server is never reused for another Match. The Fleet replaces it with a new warm server, and the old Match token stops working. If a release fails, the reconciler finds the server later and releases it, along with any other server that no active Match references. See [release](../internal/tournament/progress.go), [reconciliation](../internal/tournament/servers.go), and [Agones adapter](../internal/gameserver/agones/agones.go).
+**Game Server Deallocated (or recycled).** After the Match completes, AgonesTournament releases its Game Server by deleting the Agones GameServer. A server is never reused for another Match. The Fleet replaces it with a new warm server, and the old Match token stops working. If a release fails, the reconciler finds the server later and releases it, along with any other server that no active Match references. See [release](../internal/tournament/progress.go), [reconciliation](../internal/tournament/servers.go), and [Agones adapter](../internal/gameserver/agones/agones.go).
 
 Two other paths can interrupt the flow:
 
