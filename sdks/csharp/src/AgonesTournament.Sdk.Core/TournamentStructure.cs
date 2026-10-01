@@ -5,65 +5,65 @@ namespace AgonesTournament.Sdk.Core;
 /// <summary>The runtime Stages of a Tournament and its current status.</summary>
 public sealed record TournamentStructure
 {
-    /// <summary>Stages.</summary>
+    /// <summary>The configured Stages in play order; the API may return null.</summary>
     public required IReadOnlyList<Stage>? Stages { get; init; }
-    /// <summary>Status.</summary>
+    /// <summary>The current lifecycle state.</summary>
     public required TournamentStatus Status { get; init; }
-    /// <summary>TournamentId.</summary>
+    /// <summary>The Tournament containing this data.</summary>
     public required TournamentId TournamentId { get; init; }
 }
 
 /// <summary>One phase of a Tournament played in one Format.</summary>
 public sealed record Stage
 {
-    /// <summary>Format.</summary>
+    /// <summary>The rules used to pair Participants and determine advancement.</summary>
     public required MatchFormat Format { get; init; }
-    /// <summary>Groups.</summary>
+    /// <summary>The Groups playing this Stage independently; the API may return null.</summary>
     public required IReadOnlyList<Group>? Groups { get; init; }
-    /// <summary>Id.</summary>
+    /// <summary>The UUID of this domain object.</summary>
     public required StageId Id { get; init; }
-    /// <summary>Position.</summary>
+    /// <summary>The one-based position within the containing Tournament or Stage.</summary>
     public required int Position { get; init; }
-    /// <summary>Status.</summary>
+    /// <summary>The current lifecycle state.</summary>
     public required StageStatus Status { get; init; }
 }
 
 /// <summary>A pool of Participants playing independently within a Stage.</summary>
 public sealed record Group
 {
-    /// <summary>Id.</summary>
+    /// <summary>The UUID of this domain object.</summary>
     public required GroupId Id { get; init; }
-    /// <summary>Participants.</summary>
+    /// <summary>The Participants in this response; the API may return null.</summary>
     public required IReadOnlyList<GroupParticipant>? Participants { get; init; }
-    /// <summary>Position.</summary>
+    /// <summary>The one-based position within the containing Tournament or Stage.</summary>
     public required int Position { get; init; }
-    /// <summary>Rounds.</summary>
+    /// <summary>The Rounds played in this Group; the API may return null.</summary>
     public required IReadOnlyList<Round>? Rounds { get; init; }
-    /// <summary>Standings.</summary>
+    /// <summary>The current Standings in this Group; the API may return null.</summary>
     public required IReadOnlyList<Standing>? Standings { get; init; }
-    /// <summary>Status.</summary>
+    /// <summary>The current lifecycle state.</summary>
     public required StageStatus Status { get; init; }
 }
 
 /// <summary>A Participant seeded into a Group and whether they advanced.</summary>
 public sealed record GroupParticipant
 {
-    /// <summary>Advanced.</summary>
+    /// <summary>Whether this Participant advanced from the Group.</summary>
     public bool? Advanced { get; init; }
-    /// <summary>ParticipantId.</summary>
+    /// <summary>The Participant this entry belongs to.</summary>
     public required ParticipantId ParticipantId { get; init; }
-    /// <summary>Seed.</summary>
+    /// <summary>The one-based Seeding position in the Group.</summary>
     public required int Seed { get; init; }
 }
 
 /// <summary>One step of a Stage containing a set of Matches.</summary>
 public sealed record Round
 {
-    /// <summary>Bracket.</summary>
+    /// <summary>The double-elimination bracket, when supplied.</summary>
     public Bracket? Bracket { get; init; }
-    /// <summary>Matches.</summary>
+    /// <summary>The Matches played in this Round; the API may return null.</summary>
     public required IReadOnlyList<TournamentMatch>? Matches { get; init; }
-    /// <summary>Round.</summary>
+    /// <summary>The one-based Round number within the Group.</summary>
     [JsonPropertyName("round")]
     public required int Number { get; init; }
 }
@@ -81,16 +81,16 @@ public sealed record Standing
     public bool? Dropped { get; init; }
     /// <summary>Elimination formats only.</summary>
     public bool? Eliminated { get; init; }
-    /// <summary>Losses.</summary>
+    /// <summary>The number of Matches lost.</summary>
     public required long Losses { get; init; }
-    /// <summary>ParticipantId.</summary>
+    /// <summary>The Participant this entry belongs to.</summary>
     public required ParticipantId ParticipantId { get; init; }
-    /// <summary>Played.</summary>
+    /// <summary>The number of Matches played.</summary>
     public required long Played { get; init; }
-    /// <summary>Points.</summary>
+    /// <summary>The accumulated points used for Standing.</summary>
     public required long Points { get; init; }
     /// <summary>1-based position in the Group.</summary>
     public required long Position { get; init; }
-    /// <summary>Wins.</summary>
+    /// <summary>The number of Matches won.</summary>
     public required long Wins { get; init; }
 }

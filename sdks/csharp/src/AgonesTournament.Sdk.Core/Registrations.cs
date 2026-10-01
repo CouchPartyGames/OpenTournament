@@ -12,21 +12,21 @@ public sealed record PlayerIdentity
 /// <summary>A Participant registered in a Tournament, with their Player Identity and Check-in state.</summary>
 public sealed record RegisteredParticipant
 {
-    /// <summary>CheckedInAt.</summary>
+    /// <summary>When this Participant checked in; absent until Check-in.</summary>
     public DateTimeOffset? CheckedInAt { get; init; }
-    /// <summary>Id.</summary>
+    /// <summary>The UUID of this domain object.</summary>
     public required ParticipantId Id { get; init; }
-    /// <summary>Identity.</summary>
+    /// <summary>The Player Identity identifying this Participant.</summary>
     public required PlayerIdentity Identity { get; init; }
-    /// <summary>RegisteredAt.</summary>
+    /// <summary>When the Participant entered the Tournament.</summary>
     public required DateTimeOffset RegisteredAt { get; init; }
-    /// <summary>Status.</summary>
+    /// <summary>The current lifecycle state.</summary>
     public required ParticipantStatus Status { get; init; }
 }
 
 /// <summary>Participants belonging to the caller in one Tournament; the API may return a null collection.</summary>
 public sealed record ParticipantRegistrations
 {
-    /// <summary>Participants.</summary>
+    /// <summary>The Participants in this response; the API may return null.</summary>
     public required IReadOnlyList<RegisteredParticipant>? Participants { get; init; }
 }
