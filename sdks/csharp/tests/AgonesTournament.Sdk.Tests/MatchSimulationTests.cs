@@ -151,7 +151,7 @@ public class MatchSimulationTests
     public async Task RejectsMatchesItCannotSimulate()
     {
         var match = MatchOf(1) with { Format = MatchFormat.FreeForAll, BestOf = null, Bouts = 3 };
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<UnsupportedMatchException>(
             () => Simulation(new Recorder(), 1).PlayAsync(match, _ => { }, default));
     }
 
