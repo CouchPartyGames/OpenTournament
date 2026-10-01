@@ -104,7 +104,7 @@ public class OrganizerLiveTests
             {
                 if (gap)
                     await WebSocketServer.SendAsync(socket, WebSocketServer.Event(TournamentIdText, 12, "match.changed", MatchData()), ct);
-                else socket.Abort();
+                else await WebSocketServer.DropAsync(socket, ct);
             }
             else
                 await WebSocketServer.SendAsync(socket, WebSocketServer.Event(TournamentIdText, 21, "match.changed", MatchData()), ct);

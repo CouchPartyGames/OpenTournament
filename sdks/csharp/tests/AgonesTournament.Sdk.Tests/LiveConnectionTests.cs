@@ -93,7 +93,7 @@ public class LiveConnectionTests
                 await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Id, 11, "future", "{}"), ct);
                 if (gap)
                     await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Id, 13, "future", "{}"), ct);
-                else socket.Abort();
+                else await WebSocketServer.DropAsync(socket, ct);
             }
             else await WebSocketServer.SendAsync(socket, WebSocketServer.Event(Id, 21, "future", "{}"), ct);
             await Task.Delay(Timeout.Infinite, ct);

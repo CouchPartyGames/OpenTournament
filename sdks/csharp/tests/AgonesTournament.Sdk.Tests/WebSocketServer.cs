@@ -45,6 +45,11 @@ internal sealed class WebSocketServer(WebApplication app, Uri serviceRoot) : IAs
     public static async Task SendAsync(WebSocket socket, string message, CancellationToken ct)
         => await socket.SendAsync(Encoding.UTF8.GetBytes(message), WebSocketMessageType.Text, true, ct);
 
+    // Unlike Abort, a close is ordered after the frames already sent, so the client
+    // always reads them before it sees the connection drop.
+    public static async Task DropAsync(WebSocket socket, CancellationToken ct)
+        => await socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, ct);
+
     public static async Task SubscribeAsync(WebSocket socket, string id, long seq, CancellationToken ct)
     {
         var request = await ReadAsync(socket, ct);
