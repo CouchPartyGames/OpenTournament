@@ -3,6 +3,7 @@
     <Project Path="examples/MatchLoop/MatchLoop.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/AgonesTournament.Sdk.GameClient/AgonesTournament.Sdk.GameClient.csproj" />
     <Project Path="src/AgonesTournament.Sdk.Core/AgonesTournament.Sdk.Core.csproj" />
     <Project Path="src/AgonesTournament.Sdk.GameServer/AgonesTournament.Sdk.GameServer.csproj" />
   </Folder>

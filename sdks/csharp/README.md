@@ -1,14 +1,16 @@
 # Agones Tournament C# SDK
 
 Hand-written clients for **.NET 10 LTS only**, with nullable reference types enabled.
-The solution contains two NuGet packages:
+The solution contains three NuGet packages:
 
 - `AgonesTournament.Sdk.Core`: caller-configured HTTP transport, UUID-backed Match,
   Tournament and Participant IDs, shared models, and typed problem errors.
+- `AgonesTournament.Sdk.GameClient`: Tournament discovery, structure, Final Placements,
+  and Participant registration using caller-supplied Keycloak access tokens.
 - `AgonesTournament.Sdk.GameServer`: the full `/api/v1/game-server/*` API and
   allocation metadata through the official [Agones C# SDK](https://agones.dev/site/docs/guides/client-sdks/csharp/).
 
-Game Client, Organizer, and live-update clients are planned for later tickets.
+Organizer and live-update clients are planned for later tickets.
 Packages are built as CI artifacts; they are not published to a NuGet feed yet.
 
 ## Build and install locally
@@ -32,6 +34,54 @@ dotnet add package AgonesTournament.Sdk.GameServer --version 0.1.0
 ```
 
 NuGet must also have nuget.org configured to restore the Agones dependencies.
+
+## Game Client discovery and registration
+
+Install `AgonesTournament.Sdk.GameClient` version `0.1.0` for your game client.
+The caller owns sign-in. Supply a provider that returns a current Keycloak
+access token; it is invoked on each call, with the call's cancellation token.
+
+```csharp
+using AgonesTournament.Sdk.Core;
+using AgonesTournament.Sdk.GameClient;
+
+using var http = new HttpClient();
+var transport = new TournamentHttpClient(http, new Uri("https://tournament.example"));
+var discovery = new GameClient(transport);
+var page = await discovery.ListTournamentsAsync(
+    gameId: "marbles", status: TournamentStatus.RegistrationOpen, limit: 50, offset: 0);
+foreach (var tournament in page.Tournaments ?? [])
+    Console.WriteLine($"{tournament.Id}: {tournament.Name} ({tournament.Registered}/{tournament.Capacity})");
+
+// GetCurrentAccessTokenAsync is supplied by your application's Keycloak sign-in integration.
+var client = new GameClient(transport, GetCurrentAccessTokenAsync);
+var selected = (page.Tournaments ?? []).First();
+var participant = await client.RegisterAsync(selected.Id); // Own Keycloak identity.
+// To register a linked identity instead:
+// var participant = await client.RegisterAsync(selected.Id,
+//     new PlayerIdentity { Kind = "steam", Value = linkedSteamId });
+var registrations = await client.MyRegistrationsAsync(selected.Id);
+await client.CheckInAsync(selected.Id, participant.Id); // During the Check-in Window.
+// await client.UnregisterAsync(selected.Id, participant.Id); // Before the start.
+```
+
+`TournamentAsync`, `StructureAsync` and `FinalPlacementsAsync` read settings,
+Stages/Groups/Rounds/Matches/Bouts/Standings, and finishing ranges respectively.
+Collections may be `null`; use `?? []` when enumerating. Listing defaults to 50
+Tournaments; increase `offset` for subsequent pages (maximum `limit` is 200).
+
+`MatchAsync(matchId)` returns `MatchDetails`. `ServerAddress` and `ServerPort`
+are nullable: they are present only when the API includes them for a Participant
+or Organizer. `ServerAllocated` alone does not mean an endpoint is visible.
+Structure reads use `TournamentMatch` without endpoint fields; the Game Server
+library's `Match` is its allocation-specific view.
+
+Public reads work without a token provider. When a provider is supplied, public
+reads also send its token, allowing `MatchAsync` to receive an authorized endpoint.
+Registration, unregistration, Check-in and `MyRegistrationsAsync` require a
+provider and fail with `InvalidOperationException` before HTTP if it is missing
+or returns an empty token. Registering during the Check-in Window also checks in.
+Registration and Check-in problem errors use the typed exceptions listed below.
 
 ## Minimal Game Server loop
 
@@ -106,6 +156,12 @@ field values). Specific problem codes have these subclasses:
 
 | Problem code | Exception |
 |---|---|
+| `registration-closed` | `RegistrationClosedException` |
+| `tournament-full` | `TournamentFullException` (Capacity reached) |
+| `already-registered` | `AlreadyRegisteredException` |
+| `identity-kind-not-accepted` | `PlayerIdentityKindNotAcceptedException` |
+| `identity-not-owned` | `PlayerIdentityNotOwnedException` |
+| `check-in-closed` | `CheckInClosedException` |
 | `match-token-invalid` | `MatchTokenInvalidException` (invalid, expired, or superseded token) |
 | `bout-conflict` | `BoutConflictException` |
 | `bout-already-forfeited` | `BoutAlreadyForfeitedException` |

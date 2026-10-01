@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Description>Tournament discovery and Participant registration for game clients.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../AgonesTournament.Sdk.Core/AgonesTournament.Sdk.Core.csproj" />
+  </ItemGroup>
+</Project>

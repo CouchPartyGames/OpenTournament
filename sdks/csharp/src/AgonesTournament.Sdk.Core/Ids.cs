@@ -42,3 +42,25 @@ internal abstract class UuidConverter<T>(Func<Guid, T> create, Func<T, Guid> val
 internal sealed class MatchIdConverter() : UuidConverter<MatchId>(id => new(id), id => id.Value);
 internal sealed class TournamentIdConverter() : UuidConverter<TournamentId>(id => new(id), id => id.Value);
 internal sealed class ParticipantIdConverter() : UuidConverter<ParticipantId>(id => new(id), id => id.Value);
+
+/// <summary>The UUID of one Stage.</summary>
+/// <param name="Value">The UUID stored by the service.</param>
+[JsonConverter(typeof(StageIdConverter))]
+public readonly record struct StageId(Guid Value)
+{
+    /// <summary>Returns the UUID in its canonical hyphenated form.</summary>
+    public override string ToString() => Value.ToString("D");
+}
+
+internal sealed class StageIdConverter() : UuidConverter<StageId>(id => new(id), id => id.Value);
+
+/// <summary>The UUID of one Group.</summary>
+/// <param name="Value">The UUID stored by the service.</param>
+[JsonConverter(typeof(GroupIdConverter))]
+public readonly record struct GroupId(Guid Value)
+{
+    /// <summary>Returns the UUID in its canonical hyphenated form.</summary>
+    public override string ToString() => Value.ToString("D");
+}
+
+internal sealed class GroupIdConverter() : UuidConverter<GroupId>(id => new(id), id => id.Value);

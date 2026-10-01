@@ -406,33 +406,6 @@
         ],
         "type": "object"
       },
-      "ListOutputBody1": {
-        "additionalProperties": false,
-        "properties": {
-          "$schema": {
-            "description": "A URL to the JSON Schema for this object.",
-            "examples": [
-              "https://example.com/api/v1/schemas/ListOutputBody1.json"
-            ],
-            "format": "uri",
-            "readOnly": true,
-            "type": "string"
-          },
-          "participants": {
-            "items": {
-              "$ref": "#/components/schemas/ParticipantView"
-            },
-            "type": [
-              "array",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "participants"
-        ],
-        "type": "object"
-      },
       "MatchDetailView": {
         "additionalProperties": false,
         "properties": {
@@ -770,6 +743,33 @@
         },
         "required": [
           "participantIds"
+        ],
+        "type": "object"
+      },
+      "ParticipantRegistrations": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/api/v1/schemas/ParticipantRegistrations.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "participants": {
+            "items": {
+              "$ref": "#/components/schemas/ParticipantView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "participants"
         ],
         "type": "object"
       },
@@ -2101,7 +2101,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListOutputBody1"
+                  "$ref": "#/components/schemas/ParticipantRegistrations"
                 }
               }
             },
@@ -2200,7 +2200,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListOutputBody"
+                  "$ref": "#/components/schemas/ParticipantRegistrations"
                 }
               }
             },
