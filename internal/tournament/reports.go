@@ -166,7 +166,7 @@ func (tx *Tx) ReportBout(m db.Match, r BoutReport) error {
 	}
 	slots := gs.slots[m.ID]
 	have := gs.boutResults(m, r.Bout)
-	if m.Status == lifecycle.MatchCompleted && len(have) == 0 {
+	if m.Status == lifecycle.MatchCompleted && len(have) != len(slots) {
 		return problem.New(problem.Conflict, problem.CodeWrongStatus, "the match is already completed")
 	}
 	next := gs.playedBouts(m) + 1

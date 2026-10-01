@@ -293,3 +293,34 @@ func TestFinalFreeForAllPlacementsCanBeRetriedButNotChanged(t *testing.T) {
 		t.Fatalf("Match after retries = %+v, want completed with one Bout", got)
 	}
 }
+
+func TestCompletedFreeForAllRejectsNewResultsInPartiallyForfeitedBouts(t *testing.T) {
+	h := apptest.MustStart(t)
+	body := settings(h, stage("free-for-all", map[string]any{"bouts": 2}))
+	body["gameId"] = "royale"
+	body["capacity"] = 8
+	tt := mustCreate(t, h, body)
+	tt.openRegistration()
+	ps := tt.mustRegister("anna", "bert", "cleo")
+	tt.start()
+	m := tt.matches("allocating")[0]
+	token := tt.server(m.ID)
+	tt.withdraw(ps[0]).Expect(http.StatusNoContent)
+	tt.withdraw(ps[1]).Expect(http.StatusNoContent)
+	if got := tt.match(m.ID).Status; got != "completed" {
+		t.Fatalf("Match after withdrawals = %s, want completed", got)
+	}
+	r := tt.reportBout(token, 1, map[string]any{"placements": []map[string]any{
+		{"participantId": ps[2], "placement": 1, "points": 10},
+	}}).Expect(http.StatusConflict)
+	if r.Code() != "wrong-status" {
+		t.Fatalf("new result in partially forfeited Bout code = %s, want wrong-status", r.Code())
+	}
+	for _, bout := range tt.match(m.ID).Bouts {
+		for _, result := range bout.Results {
+			if result.ParticipantID == ps[2] {
+				t.Fatalf("completed Match gained a result for the remaining Participant: %+v", result)
+			}
+		}
+	}
+}
