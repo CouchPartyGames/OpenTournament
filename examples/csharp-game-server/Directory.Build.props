@@ -1,0 +1,6 @@
+<Project>
+  <!-- File-based apps compile only their entry file; add the simulation shared with the SDK test suite. -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)MatchSimulation.cs" />
+  </ItemGroup>
+</Project>

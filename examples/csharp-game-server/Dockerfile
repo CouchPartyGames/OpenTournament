@@ -6,6 +6,8 @@ COPY sdks/csharp/README.md sdks/csharp/README.md
 COPY sdks/csharp/src/AgonesTournament.Sdk.Core/ sdks/csharp/src/AgonesTournament.Sdk.Core/
 COPY sdks/csharp/src/AgonesTournament.Sdk.GameServer/ sdks/csharp/src/AgonesTournament.Sdk.GameServer/
 COPY examples/csharp-game-server/GameServer.cs examples/csharp-game-server/GameServer.cs
+COPY examples/csharp-game-server/MatchSimulation.cs examples/csharp-game-server/MatchSimulation.cs
+COPY examples/csharp-game-server/Directory.Build.props examples/csharp-game-server/Directory.Build.props
 RUN dotnet publish examples/csharp-game-server/GameServer.cs -c Release -r linux-x64 \
     --self-contained false -p:PublishSingleFile=true -p:DebugType=None -o /app
 
